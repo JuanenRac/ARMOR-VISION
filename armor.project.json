@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "ecosystem": "A.R.M.O.R.",
+  "name": "ARMOR-VISION",
+  "version": "0.0.1",
+  "role": "Camera zones, masks and detection rules",
+  "stack": "Python 3.11+",
+  "technologies": [
+    "Python",
+    "Motion gating",
+    "Object tracking"
+  ],
+  "deployment_target": "NVIDIA Jetson Orin NX (planned); developer workstation today",
+  "maturity": "scaffolding",
+  "family": "Core Services",
+  "parent": "ARMOR-SERVER",
+  "native_version": "0.0.1",
+  "build": "python -m unittest discover -s tests",
+  "notes": "The tested core of the camera analysis service: zones and masks drawn on normalised coordinates, a motion check that decides whether the detector runs at all, a tracker that notices what stands still, and rules for dwell time, labels and arming profiles that produce alert or detection events. No real detector model exists yet (the Jetson Orin NX version is not written) and nothing has run on a camera or on the Jetson; the simulation uses scripted detections."
+}

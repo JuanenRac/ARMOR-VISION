@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-110 -110 220 220" role="img" aria-label="ARMOR-SIMULATOR">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#07090C"/><stop offset="1" stop-color="#12161C"/></linearGradient>
+    <filter id="g"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect x="-110" y="-110" width="220" height="220" rx="36" fill="url(#bg)"/>
+  <g transform="scale(0.95)" filter="url(#g)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#00E5FF" stroke-width="4">
+    <path d="M0,-84 L66,-58 V4 C66,48 34,72 0,88 C-34,72 -66,48 -66,4 V-58 Z"/>
+    <g transform="scale(.78) translate(0 4)" stroke-width="4">
+    <path d="M-14,-44 h28 M-8,-44 v26 L-38,36 Q-40,44 -32,44 H32 Q40,44 38,36 L8,-18 v-26"/>
+    <path d="M-24,22 h48" stroke="#FFB020" stroke-width="3"/><circle cx="-6" cy="10" r="3" fill="#FFB020" stroke="none"/><circle cx="8" cy="-2" r="2.4" fill="#FFB020" stroke="none"/><circle cx="4" cy="30" r="3.4" fill="#FFB020" stroke="none"/>
+    </g>
+  </g>
+</svg>
