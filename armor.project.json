@@ -11,7 +11,7 @@
     "Object tracking"
   ],
   "deployment_target": "NVIDIA Jetson Orin NX (planned); developer workstation today",
-  "maturity": "scaffolding",
+  "maturity": "functional",
   "family": "Core Services",
   "parent": "ARMOR-SERVER",
   "native_version": "0.0.1",

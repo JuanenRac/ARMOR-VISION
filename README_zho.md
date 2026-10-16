@@ -21,14 +21,26 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Maturity-scaffolding-00E5FF.svg" alt="Maturity">
+  <img src="https://img.shields.io/badge/Tests-38%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.0.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 38 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
+**诚实性检查 - 今天真正能运行的部分:** 区域、运动检查、跟踪、规则和 38 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
 
 ---
+
+## 📋 速览
+
+| | |
+|---|---|
+| 版本 | `0.0.1` |
+| 成熟度 | 可用 |
+| 测试 | 38 (`python -m unittest discover -s tests`) |
+| 技术栈 | Python 3.11+ |
+| 真实硬件 | 暂无：没有真实的检测器、摄像头或 Jetson（使用脚本化检测的模拟） |
 
 ## 🎯 概述
 
@@ -38,22 +50,28 @@
 * **布防配置：** `away`、`home` 等决定监视哪些区域；未知模式则监视全部。
 * **只报告的事件：** 告警或检测始终带有 `authorizes_action: false`；做什么由服务器决定。
 
+## 🧩 在 A.R.M.O.R. 中的角色
+
+ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分：画在上面的区域和遮罩、先于昂贵检测器运行的移动检查、跟踪器、布防配置，以及把检测变成事件的规则。如今观察摄像头的是 [ARMOR-SERVER-AI](https://github.com/JuanenRac/ARMOR-SERVER-AI) 服务；ARMOR-VISION 则为真正的检测模型准备好了规则，等待它的到来。它只报告：事件从不授权任何动作。
+
 ## 📂 仓库结构
 
 ```text
 ARMOR-VISION/
-├── src/armor_vision/   几何、config（区域、遮罩、配置）、运动、跟踪、规则、检测器、pipeline、cli
-├── tests/              38 个测试
+├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
+├── tests/              38 tests
 └── docs/USAGE.md
 ```
 
 ## 🛠️ 开发环境
 
+**环境要求:** Python 3.11+ (standard library only)
+
 ```powershell
 $env:PYTHONPATH="src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 38 个测试
+python -m unittest discover -s tests   # 38 tests
 ```
 
 选项与配置格式：[用法](docs/USAGE.md)。

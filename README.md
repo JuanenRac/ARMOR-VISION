@@ -21,7 +21,9 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Maturity-scaffolding-00E5FF.svg" alt="Maturity">
+  <img src="https://img.shields.io/badge/Tests-38%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.0.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
@@ -30,6 +32,16 @@
 
 ---
 
+## 📋 At a glance
+
+| | |
+|---|---|
+| Version | `0.0.1` |
+| Maturity | Functional |
+| Tests | 38 (`python -m unittest discover -s tests`) |
+| Stack | Python 3.11+ |
+| On real hardware | None yet: no real detector, camera or Jetson (a simulation with scripted detections) |
+
 ## 🎯 Overview
 
 * **Zones and masks:** polygons drawn on normalised coordinates (0 to 1), so one drawing works at any resolution; a zone counts detections, a mask ignores movement. Each zone has a label filter, a kind (`alert` or `detection`) and an inertia in pictures and seconds.
@@ -37,6 +49,10 @@
 * **A tracker:** each object keeps its identity between pictures, and what stands still (a parked car) is remembered and makes no new events.
 * **Arming profiles:** `away`, `home` and the like choose which zones are watched; an unknown mode watches everything.
 * **Events that only report:** an alert or a detection always carries `authorizes_action: false`; the server decides what to do.
+
+## 🧩 Role in A.R.M.O.R.
+
+ARMOR-VISION is the part that decides what a camera's picture means, apart from any detector: the zones and masks drawn on it, the motion check that runs before the expensive detector, the tracker, the arming profiles and the rules that turn detections into events. [ARMOR-SERVER-AI](https://github.com/JuanenRac/ARMOR-SERVER-AI) is the service that watches the cameras today; ARMOR-VISION is where the rules for a real detection model are ready, waiting for it. It only reports: the events never authorise an action.
 
 ## 📂 Repository Structure
 
@@ -48,6 +64,8 @@ ARMOR-VISION/
 ```
 
 ## 🛠️ Development Environment
+
+**Requirements:** Python 3.11+ (standard library only)
 
 ```powershell
 $env:PYTHONPATH="src"

@@ -21,7 +21,9 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Maturity-scaffolding-00E5FF.svg" alt="Maturity">
+  <img src="https://img.shields.io/badge/Tests-38%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.0.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
@@ -29,6 +31,16 @@
 **正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、38 件のテストは実在します。**実際の検知モデルはまだありません**。カメラや Jetson Orin NX では何も動かしていません。シミュレーションは台本どおりの検知結果を使います。
 
 ---
+
+## 📋 ひと目で
+
+| | |
+|---|---|
+| バージョン | `0.0.1` |
+| 成熟度 | 機能する |
+| テスト | 38 (`python -m unittest discover -s tests`) |
+| 技術 | Python 3.11+ |
+| 実機での確認 | まだありません：実際の検出器、カメラ、Jetson はなく、スクリプト化した検出によるシミュレーションのみ |
 
 ## 🎯 概要
 
@@ -38,22 +50,28 @@
 * **警戒プロファイル:** `away`、`home` などが監視するゾーンを選びます。未知のモードはすべてを監視します。
 * **報告するだけのイベント:** 警報や検知には常に `authorizes_action: false` が付き、何をするかはサーバーが決めます。
 
+## 🧩 A.R.M.O.R. での役割
+
+ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味するかを決める部分です。映像に描くゾーンとマスク、高価な検出器の前に走る動き検査、トラッカー、警戒プロファイル、検出をイベントに変えるルール。現在カメラを見張っているのは [ARMOR-SERVER-AI](https://github.com/JuanenRac/ARMOR-SERVER-AI) で、ARMOR-VISION は実際の検出モデルのためのルールを用意して待っています。報告するだけで、イベントが動作を認可することはありません。
+
 ## 📂 リポジトリの構成
 
 ```text
 ARMOR-VISION/
-├── src/armor_vision/   ジオメトリ、config（ゾーン、マスク、プロファイル）、動き、追跡、ルール、検知器、pipeline、cli
-├── tests/              38 件のテスト
+├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
+├── tests/              38 tests
 └── docs/USAGE.md
 ```
 
 ## 🛠️ 開発環境
 
+**必要なもの:** Python 3.11+ (standard library only)
+
 ```powershell
 $env:PYTHONPATH="src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 38 件のテスト
+python -m unittest discover -s tests   # 38 tests
 ```
 
 オプションと設定の形式: [使い方](docs/USAGE.md)。

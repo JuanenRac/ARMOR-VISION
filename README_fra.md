@@ -21,14 +21,26 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Maturity-scaffolding-00E5FF.svg" alt="Maturity">
+  <img src="https://img.shields.io/badge/Tests-38%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.0.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Vérification d'honnêteté - ce qui fonctionne aujourd'hui :** Les zones, le contrôle du mouvement, le suivi, les règles et les 38 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
+**Vérification d'honnêteté - ce qui fonctionne aujourd'hui:** Les zones, le contrôle du mouvement, le suivi, les règles et les 38 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
 
 ---
+
+## 📋 En un coup d'œil
+
+| | |
+|---|---|
+| Version | `0.0.1` |
+| Maturité | Fonctionnel |
+| Tests | 38 (`python -m unittest discover -s tests`) |
+| Technologie | Python 3.11+ |
+| Sur matériel réel | Aucun pour l'instant : ni détecteur réel, ni caméra, ni Jetson (une simulation avec des détections scriptées) |
 
 ## 🎯 Présentation
 
@@ -38,16 +50,22 @@
 * **Profils d'armement :** `away`, `home` et similaires choisissent les zones surveillées ; un mode inconnu surveille tout.
 * **Des événements qui informent seulement :** une alerte ou une détection porte toujours `authorizes_action: false` ; le serveur décide quoi faire.
 
+## 🧩 Rôle dans A.R.M.O.R.
+
+ARMOR-VISION est la partie qui décide de ce que signifie l'image d'une caméra, indépendamment de tout détecteur : les zones et masques dessinés dessus, le contrôle de mouvement qui s'exécute avant le détecteur coûteux, le suiveur, les profils d'armement et les règles qui transforment des détections en événements. [ARMOR-SERVER-AI](https://github.com/JuanenRac/ARMOR-SERVER-AI) est le service qui surveille les caméras aujourd'hui ; ARMOR-VISION est l'endroit où les règles pour un vrai modèle de détection sont prêtes, en l'attendant. Il ne fait que rapporter : les événements n'autorisent jamais une action.
+
 ## 📂 Structure du dépôt
 
 ```text
 ARMOR-VISION/
-├── src/armor_vision/   géométrie, config (zones, masques, profils), mouvement, suivi, règles, détecteur, pipeline, cli
+├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
 ├── tests/              38 tests
 └── docs/USAGE.md
 ```
 
 ## 🛠️ Environnement de développement
+
+**Prérequis:** Python 3.11+ (standard library only)
 
 ```powershell
 $env:PYTHONPATH="src"

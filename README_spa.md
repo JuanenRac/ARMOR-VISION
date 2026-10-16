@@ -21,7 +21,9 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Maturity-scaffolding-00E5FF.svg" alt="Maturity">
+  <img src="https://img.shields.io/badge/Tests-38%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.0.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
@@ -29,6 +31,16 @@
 **Comprobación de honestidad - qué funciona hoy:** Las zonas, la comprobación de movimiento, el seguimiento, las reglas y los 38 tests son reales. **Todavía no existe un modelo de detección real** y nada se ha ejecutado en una cámara ni en la Jetson Orin NX: la simulación usa detecciones guionizadas.
 
 ---
+
+## 📋 De un vistazo
+
+| | |
+|---|---|
+| Versión | `0.0.1` |
+| Madurez | Funcional |
+| Tests | 38 (`python -m unittest discover -s tests`) |
+| Tecnología | Python 3.11+ |
+| En hardware real | Ninguno todavía: ni detector real, ni cámara ni Jetson (una simulación con detecciones guionizadas) |
 
 ## 🎯 Descripción general
 
@@ -38,16 +50,22 @@
 * **Perfiles de armado:** `away`, `home` y similares eligen qué zonas se vigilan; un modo desconocido vigila todo.
 * **Eventos que solo informan:** una alerta o una detección lleva siempre `authorizes_action: false`; el servidor decide qué hacer.
 
+## 🧩 Papel en A.R.M.O.R.
+
+ARMOR-VISION es la parte que decide qué significa la imagen de una cámara, al margen de cualquier detector: las zonas y máscaras dibujadas sobre ella, la comprobación de movimiento que corre antes del detector costoso, el seguidor, los perfiles de armado y las reglas que convierten detecciones en eventos. [ARMOR-SERVER-AI](https://github.com/JuanenRac/ARMOR-SERVER-AI) es el servicio que vigila hoy las cámaras; ARMOR-VISION es donde las reglas para un modelo de detección real están listas, esperándolo. Solo informa: los eventos nunca autorizan una acción.
+
 ## 📂 Estructura del repositorio
 
 ```text
 ARMOR-VISION/
-├── src/armor_vision/   geometría, config (zonas, máscaras, perfiles), movimiento, seguimiento, reglas, detector, pipeline, cli
+├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
 ├── tests/              38 tests
 └── docs/USAGE.md
 ```
 
 ## 🛠️ Entorno de desarrollo
+
+**Requisitos:** Python 3.11+ (standard library only)
 
 ```powershell
 $env:PYTHONPATH="src"

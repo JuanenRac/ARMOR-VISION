@@ -21,14 +21,26 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Maturity-scaffolding-00E5FF.svg" alt="Maturity">
+  <img src="https://img.shields.io/badge/Tests-38%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.0.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Ehrlichkeits-Check - was heute läuft:** Die Zonen, die Bewegungsprüfung, die Verfolgung, die Regeln und die 38 Tests sind real. Es gibt **noch kein echtes Erkennungsmodell**, und nichts lief auf einer Kamera oder auf dem Jetson Orin NX: die Simulation nutzt vorgegebene Erkennungen.
+**Ehrlichkeitsprüfung - was heute läuft:** Die Zonen, die Bewegungsprüfung, die Verfolgung, die Regeln und die 38 Tests sind real. Es gibt **noch kein echtes Erkennungsmodell**, und nichts lief auf einer Kamera oder auf dem Jetson Orin NX: die Simulation nutzt vorgegebene Erkennungen.
 
 ---
+
+## 📋 Auf einen Blick
+
+| | |
+|---|---|
+| Version | `0.0.1` |
+| Reifegrad | Funktionsfähig |
+| Tests | 38 (`python -m unittest discover -s tests`) |
+| Technik | Python 3.11+ |
+| Auf echter Hardware | Noch keiner: weder echter Detektor noch Kamera noch Jetson (eine Simulation mit geskripteten Erkennungen) |
 
 ## 🎯 Überblick
 
@@ -38,22 +50,28 @@
 * **Scharfschaltprofile:** `away`, `home` und ähnliche wählen, welche Zonen überwacht werden; ein unbekannter Modus überwacht alles.
 * **Ereignisse, die nur melden:** ein Alarm oder eine Erkennung trägt immer `authorizes_action: false`; der Server entscheidet, was zu tun ist.
 
+## 🧩 Rolle in A.R.M.O.R.
+
+ARMOR-VISION ist der Teil, der entscheidet, was das Bild einer Kamera bedeutet, unabhängig von jedem Detektor: die darauf gezeichneten Zonen und Masken, die Bewegungsprüfung, die vor dem teuren Detektor läuft, der Tracker, die Scharfschaltprofile und die Regeln, die Erkennungen zu Ereignissen machen. [ARMOR-SERVER-AI](https://github.com/JuanenRac/ARMOR-SERVER-AI) ist der Dienst, der heute die Kameras beobachtet; ARMOR-VISION ist der Ort, an dem die Regeln für ein echtes Erkennungsmodell bereitliegen und darauf warten. Es meldet nur: Die Ereignisse autorisieren nie eine Aktion.
+
 ## 📂 Struktur des Repositorys
 
 ```text
 ARMOR-VISION/
-├── src/armor_vision/   Geometrie, Config (Zonen, Masken, Profile), Bewegung, Verfolgung, Regeln, Detektor, Pipeline, CLI
-├── tests/              38 Tests
+├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
+├── tests/              38 tests
 └── docs/USAGE.md
 ```
 
 ## 🛠️ Entwicklungsumgebung
 
+**Voraussetzungen:** Python 3.11+ (standard library only)
+
 ```powershell
 $env:PYTHONPATH="src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 38 Tests
+python -m unittest discover -s tests   # 38 tests
 ```
 
 Optionen und Format der Konfiguration: [Nutzung](docs/USAGE.md).
