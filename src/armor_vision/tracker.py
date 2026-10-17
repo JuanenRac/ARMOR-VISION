@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from .geometry import Box, centre, iou
 
 MATCH_IOU = 0.3
+MATCH_REACH = 1.0                # a detection that does not overlap still follows a track if its centre is within this many box sizes (a quick walker at a low frame rate)
 MISSING_SECONDS = 2.0            # a moving track that is not seen this long is dropped
 STATIONARY_MISSING_SECONDS = 300.0   # a parked car is remembered much longer
 STATIONARY_WINDOW = 3.0          # seconds over which "did not move" is judged
@@ -50,6 +51,13 @@ class Tracker:
                     overlap = iou(track.box, detection.box)
                     if overlap >= MATCH_IOU:
                         pairs.append((overlap, track.track_id, index))
+                        continue
+                    # no overlap worth the name: the distance between centres, against the size of the boxes, ranks below every real overlap
+                    size = max(track.box[2] - track.box[0], track.box[3] - track.box[1], detection.box[2] - detection.box[0], detection.box[3] - detection.box[1])
+                    (tx, ty), (dx, dy) = centre(track.box), centre(detection.box)
+                    distance = ((tx - dx) ** 2 + (ty - dy) ** 2) ** 0.5
+                    if size > 0 and distance <= MATCH_REACH * size:
+                        pairs.append((0.1 * (1.0 - distance / (MATCH_REACH * size)), track.track_id, index))
         pairs.sort(key=lambda p: (-p[0], p[1], p[2]))
         used_tracks: set[int] = set()
         used_detections: set[int] = set()

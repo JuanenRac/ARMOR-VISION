@@ -20,6 +20,7 @@ manifest problem is reported without waiting on a slow build first.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -37,6 +38,7 @@ REQUIRED_DOCUMENTS = (
     "README_deu.md",
     "README_zho.md",
     "README_jpn.md",
+    "README_por.md",
     "CHANGELOG.md",
     "LICENSE",
 )
@@ -45,8 +47,8 @@ REQUIRED_MANIFEST_KEYS = (
     "deployment_target", "maturity", "family", "parent", "build", "notes", "native_version",
 )
 VALID_MATURITY = {"scaffolding", "functional", "established", "production"}
-SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
-VERSION_HEADING = re.compile(r"(?im)^#{1,3}\s*\[?(\d+\.\d+\.\d+)(?:\]|\s|$)")
+SEMVER = re.compile(r"^\d+\.\d+\.\d+(?:\.\d+)?$")   # three components up to 0.7.9, four from 0.8.0
+VERSION_HEADING = re.compile(r"(?im)^#{1,3}\s*\[?(\d+\.\d+\.\d+(?:\.\d+)?)(?:\]|\s|$)")
 
 # A version-shaped token sitting next to one of these "current version"
 # label words (any of the seven languages), or right after this project's
@@ -65,7 +67,7 @@ VERSION_PROSE_LABELS = (
 VERSION_PROSE_LABEL_PATTERN = re.compile(
     "|".join(f"(?<![A-Za-zÀ-ɏ])(?:{re.escape(label)})" for label in VERSION_PROSE_LABELS)
 )
-VERSION_PROSE_TOKEN = re.compile(r"\bv?(\d+\.\d+\.\d+)\b")
+VERSION_PROSE_TOKEN = re.compile(r"\bv?(\d+\.\d+\.\d+(?:\.\d+)?)\b")
 
 LOCAL_MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+[\"'][^)]*)?\)")
 MARKDOWN_EXCLUDED_DIRECTORIES = {
@@ -79,9 +81,34 @@ def fail(message: str) -> None:
     raise SystemExit(1)
 
 
+def validate_changelog_order() -> None:
+    """The changelog reads newest first: an `Unreleased` entry only at the top, each version once, and the versions in descending order (a stale `Unreleased` left in the
+    middle, or a second entry for a version, made changelogs hard to read)."""
+    path = ROOT / "CHANGELOG.md"
+    if not path.is_file():
+        return
+    heading = re.compile(r"^##\s*\[?(\d+\.\d+\.\d+(?:\.\d+)?)\]?")
+    unreleased = re.compile(r"^##\s*\[?Unreleased\]?", re.IGNORECASE)
+    key = lambda version: tuple((list(map(int, version.split("."))) + [0] * 4)[:4])
+    versions: list[tuple[str, int]] = []
+    seen_version = False
+    for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+        match = heading.match(line)
+        if match:
+            versions.append((match.group(1), number))
+            seen_version = True
+        elif unreleased.match(line) and seen_version:
+            fail(f"CHANGELOG.md line {number}: 'Unreleased' must be at the top, above the versions (merge it into the version that shipped it)")
+    for (newer, _), (older, line) in zip(versions, versions[1:]):
+        if key(newer) == key(older):
+            fail(f"CHANGELOG.md line {line}: version {older} has two entries; make it one")
+        if key(newer) < key(older):
+            fail(f"CHANGELOG.md line {line}: version {older} is listed after the older {newer}; newest first")
+
+
 def validate_readme_version_prose(manifest: dict) -> None:
     real_version = manifest["version"]
-    name_pattern = re.compile(re.escape(manifest["name"]) + r"\s+v(\d+\.\d+\.\d+)")
+    name_pattern = re.compile(re.escape(manifest["name"]) + r"\s+v(\d+\.\d+\.\d+(?:\.\d+)?)")
     offenders: list[str] = []
     for document_name in REQUIRED_DOCUMENTS:
         if not document_name.startswith("README"):
@@ -141,15 +168,20 @@ def main() -> int:
     if manifest["ecosystem"] != "A.R.M.O.R.":
         fail("manifest ecosystem must be A.R.M.O.R.")
     if manifest["name"] != ROOT.name:
-        fail(f"manifest name {manifest['name']!r} must match repository directory {ROOT.name!r}")
+        # A clone may live in a folder of another name (git clone ... armor-common, a worktree): in GitHub Actions the repository's own name is what counts, anywhere else it is a warning.
+        repository = os.environ.get("GITHUB_REPOSITORY", "").split("/")[-1]
+        if os.environ.get("GITHUB_ACTIONS") and repository and manifest["name"] != repository:
+            fail(f"manifest name {manifest['name']!r} must match the repository {repository!r}")
+        if not os.environ.get("GITHUB_ACTIONS"):
+            print(f"warning: manifest name {manifest['name']!r} differs from the folder {ROOT.name!r}", file=sys.stderr)
     if not isinstance(manifest["version"], str) or not SEMVER.fullmatch(manifest["version"]):
-        fail("manifest version must be MAJOR.MINOR.PATCH")
+        fail("manifest version must be MAJOR.MINOR.PATCH (or MAJOR.MINOR.PATCH.BUILD from 0.8.0)")
     if manifest["maturity"] not in VALID_MATURITY:
         fail(f"unsupported maturity: {manifest['maturity']!r}")
     if not isinstance(manifest["technologies"], list) or not manifest["technologies"]:
         fail("manifest technologies must be a non-empty list")
     if not isinstance(manifest["native_version"], str) or not SEMVER.fullmatch(manifest["native_version"]):
-        fail("manifest native_version must be MAJOR.MINOR.PATCH")
+        fail("manifest native_version must be MAJOR.MINOR.PATCH (or MAJOR.MINOR.PATCH.BUILD from 0.8.0)")
     if manifest["native_version"] != manifest["version"]:
         fail(f"native_version {manifest['native_version']} differs from version {manifest['version']}")
 
@@ -164,10 +196,11 @@ def main() -> int:
         fail(f"latest changelog version {found} differs from manifest {manifest['version']}")
 
     validate_readme_version_prose(manifest)
+    validate_changelog_order()
 
     # A Python project's pyproject.toml `version` and its package
     # `__init__.py`'s `__version__` mirror are a separate copy of the same
-    # number - found while auditing the ecosystem, several had silently
+    # number - found in practice, several had silently
     # drifted behind the manifest (armor_project_tool.py's `bump()` now
     # keeps them in sync going forward; this check catches a future regression
     # or a manual edit that skips it).

@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-38%20passing-2ea44f.svg" alt="Tests">
-  <img src="https://img.shields.io/badge/Version-0.0.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Tests-42%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.0.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实性检查 - 今天真正能运行的部分:** 区域、运动检查、跟踪、规则和 38 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
+**诚实性检查 - 今天真正能运行的部分:** 区域、运动检查、跟踪、规则和 42 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
 
 ---
 
@@ -36,9 +36,9 @@
 
 | | |
 |---|---|
-| 版本 | `0.0.1` |
+| 版本 | `0.0.2` |
 | 成熟度 | 可用 |
-| 测试 | 38 (`python -m unittest discover -s tests`) |
+| 测试 | 42 (`python -m unittest discover -s tests`) |
 | 技术栈 | Python 3.11+ |
 | 真实硬件 | 暂无：没有真实的检测器、摄像头或 Jetson（使用脚本化检测的模拟） |
 
@@ -59,7 +59,7 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 ```text
 ARMOR-VISION/
 ├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
-├── tests/              38 tests
+├── tests/              42 tests
 └── docs/USAGE.md
 ```
 
@@ -71,7 +71,7 @@ ARMOR-VISION/
 $env:PYTHONPATH="src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 38 tests
+python -m unittest discover -s tests   # 42 tests
 ```
 
 选项与配置格式：[用法](docs/USAGE.md)。

@@ -28,16 +28,33 @@ class Frame:
             raise ValueError("a grey frame has width x height bytes")
 
 
+_MASKED: dict[tuple, frozenset] = {}
+
+
+def _masked_cells(masks: tuple) -> frozenset:
+    """The cells whose centre is under a mask; a mask does not change from frame to frame, so this is worked out once per set of masks."""
+    if not masks:
+        return frozenset()
+    found = _MASKED.get(masks)
+    if found is None:
+        found = frozenset((column, row) for row in range(GRID_ROWS) for column in range(GRID_COLUMNS)
+                          if any(point_in_polygon(((column + 0.5) / GRID_COLUMNS, (row + 0.5) / GRID_ROWS), mask) for mask in masks))
+        if len(_MASKED) > 64:
+            _MASKED.clear()
+        _MASKED[masks] = found
+    return found
+
+
 def moved_cells(previous: Frame, current: Frame, threshold: int, masks: tuple = ()) -> set[tuple[int, int]]:
     """The (column, row) cells that changed between two frames of the same size."""
     if (previous.width, previous.height) != (current.width, current.height):
         raise ValueError("the two frames must have the same size")
     cells: set[tuple[int, int]] = set()
+    masked = _masked_cells(tuple(tuple(tuple(p) for p in mask) for mask in masks))
     for row in range(GRID_ROWS):
         y0, y1 = row * current.height // GRID_ROWS, (row + 1) * current.height // GRID_ROWS
         for column in range(GRID_COLUMNS):
-            centre = ((column + 0.5) / GRID_COLUMNS, (row + 0.5) / GRID_ROWS)
-            if any(point_in_polygon(centre, mask) for mask in masks):
+            if (column, row) in masked:
                 continue
             x0, x1 = column * current.width // GRID_COLUMNS, (column + 1) * current.width // GRID_COLUMNS
             total = count = 0

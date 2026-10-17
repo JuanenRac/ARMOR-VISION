@@ -30,9 +30,9 @@ python -m armor_vision check-config FILE
 - All coordinates are normalised: `[0, 0]` is the top-left corner of the picture and `[1, 1]` the bottom-right.
 - A **zone** counts an object when its feet (the bottom centre of its box) are inside the polygon, its label is accepted (an empty `labels` list accepts every label), and it has been there for `min_frames` pictures and `min_seconds` seconds. It fires once per visit; leaving and coming back is a new visit. An object that has stopped moving makes no new event.
 - `kind` is `alert` (worth waking someone) or `detection` (only recorded).
-- A **mask** is a polygon where movement is ignored: no motion is counted under it and detections whose centre is inside it are dropped.
+- A **mask** is a polygon where movement is ignored: no motion is counted under it and detections whose **centre** is inside it are dropped (a zone, on the other hand, looks at the **feet**: a person whose centre is under the masked crown of a tree and whose feet are in the zone is dropped).
 - `motion_threshold` (1 to 255) is the grey difference that counts as change; `motion_min_cells` is how many cells of the 16 x 9 grid must change before the detector is asked.
-- A **profile** lists the zones that are watched in an arming mode. With no mode, or a mode without a profile, every zone is watched.
+- A **profile** lists the zones that are watched in an arming mode. With no mode, or a mode without a profile, every zone is watched - except for `disarmed` (the server's own word): without a profile of that name its `alert` zones are not watched and only the `detection` zones record. The server's modes are `armed` and `disarmed`; `away` and `home` are profile names for a house that has them.
 - Unknown fields are errors, on purpose.
 
 ## Event

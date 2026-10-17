@@ -7,6 +7,7 @@ so the same drawing works at any resolution.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -77,7 +78,11 @@ def parse_config(raw: Any) -> tuple[VisionConfig | None, list[str]]:
             errors.append(f"{where}: motion_min_cells must be a whole number of at least 1")
             min_cells = 2
         zones: list[Zone] = []
-        for index, zone in enumerate(entry.get("zones", [])):
+        raw_zones = entry.get("zones", [])
+        if not isinstance(raw_zones, list):
+            errors.append(f"{where}: zones must be a list")
+            raw_zones = []
+        for index, zone in enumerate(raw_zones):
             zone_where = f"{where} zone #{index + 1}"
             if not isinstance(zone, dict):
                 errors.append(f"{zone_where}: must be an object")
@@ -109,14 +114,18 @@ def parse_config(raw: Any) -> tuple[VisionConfig | None, list[str]]:
             if not _number(min_frames) or isinstance(min_frames, float) or min_frames < 1:
                 errors.append(f"{zone_where} ({zone_id}): min_frames must be a whole number of at least 1")
                 min_frames = 1
-            if not _number(min_seconds) or min_seconds < 0:
-                errors.append(f"{zone_where} ({zone_id}): min_seconds cannot be negative")
+            if not _number(min_seconds) or not math.isfinite(min_seconds) or min_seconds < 0:
+                errors.append(f"{zone_where} ({zone_id}): min_seconds must be a finite number, not negative")
                 min_seconds = 0
             zones.append(Zone(zone_id, str(zone.get("name", zone_id)),
                               tuple((float(x), float(y)) for x, y in zone["points"]),
                               tuple(labels), kind, int(min_frames), float(min_seconds)))
         masks: list[tuple[tuple[float, float], ...]] = []
-        for index, mask in enumerate(entry.get("masks", [])):
+        raw_masks = entry.get("masks", [])
+        if not isinstance(raw_masks, list):
+            errors.append(f"{where}: masks must be a list")
+            raw_masks = []
+        for index, mask in enumerate(raw_masks):
             problem = valid_polygon(mask)
             if problem:
                 errors.append(f"{where} mask #{index + 1}: {problem}")

@@ -210,11 +210,51 @@ class RuleTests(unittest.TestCase):
     def test_fires_once_per_visit_and_again_after_leaving(self):
         config = config_with()
 
+        path = [0.4, 0.4, 0.4, 0.55, 0.7, 0.85, 0.85, 0.7, 0.55]    # walks out of the zone (feet at 0.875, past the edge at 0.8) and back in
+
         def route(step):
-            x = 0.4 if step < 3 or step >= 6 else 0.95
-            return [person(x - 0.05 if x > 0.9 else x)]
+            return [person(path[step])]
         events, _ = self.run_steps(config, route, 9)
         self.assertEqual(len(events), 2)
+
+    def test_somebody_who_comes_in_and_stands_still_is_caught_by_a_long_inertia(self):
+        config = config_with({"min_seconds": 10.0})
+        events, _ = self.run_steps(config, lambda s: [person(0.4)], 100, dt=0.2)   # 20 s, still from the first frame on
+        self.assertEqual(len(events), 1, "somebody who is there from the first frame and never moves is loitering too: the zone fires when its inertia is over")
+        path = [0.3 + min(s, 5) * 0.02 for s in range(100)]
+        events, _ = self.run_steps(config, lambda s: [person(path[s])], 100, dt=0.2)  # walks in for a second, then stops
+        self.assertEqual(len(events), 1)
+        self.assertGreaterEqual(events[0]["timestamp"], 10.0)
+
+    def test_a_frame_the_detector_misses_does_not_open_a_new_visit(self):
+        config = config_with()
+        events, _ = self.run_steps(config, lambda s: [] if s % 5 == 4 else [person(0.4 + s * 0.005)], 40)
+        self.assertEqual(len(events), 1)
+        self.assertEqual({e["track_id"] for e in events}, {1})
+
+    def test_a_quick_walker_keeps_the_same_track(self):
+        tracker = Tracker()
+        ids = set()
+        for step in range(8):
+            seen = tracker.update(step * 1.0, [Detection("person", 0.9, (0.1 + step * 0.08, 0.3, 0.15 + step * 0.08, 0.5))])
+            ids |= {track.track_id for track in seen}
+        self.assertEqual(ids, {1})
+
+    def test_disarmed_does_not_watch_alert_zones_and_nan_is_refused(self):
+        alert = config_with({"kind": "alert"})
+        detection = config_with({"kind": "detection"})
+        self.assertEqual(len(self.run_steps(alert, lambda s: [person()], 3, mode="armed")[0]), 1)
+        self.assertEqual(self.run_steps(alert, lambda s: [person()], 3, mode="disarmed")[0], [])
+        self.assertEqual(len(self.run_steps(detection, lambda s: [person()], 3, mode="disarmed")[0]), 1)
+        _, errors = parse_config({"cameras": {"cam": {"zones": [{"id": "z", "points": SQUARE, "min_seconds": float("nan")}]}}})
+        self.assertTrue(errors)
+        _, errors = parse_config({"cameras": {"cam": {"zones": 5, "masks": "x"}}})
+        self.assertTrue(any("zones must be a list" in e for e in errors) and any("masks must be a list" in e for e in errors))
+        self.assertIsNotNone(valid_polygon([[0.1, 0.1], [0.9, 0.9], [0.9, 0.1], [0.1, 0.9]]), "a bow tie is not a zone")
+        self.assertIsNotNone(valid_polygon([[0.1, 0.1], [0.5, 0.5], [0.9, 0.9]]), "three points on a line have no area")
+        pipeline = Pipeline(detection)
+        self.assertEqual(pipeline.process_detections("cam", 0.0, [Detection("person", float("nan"), (0.4, 0.3, 0.45, 0.5))]), [])
+        self.assertEqual(pipeline.stats.dropped_detections, 1)
 
     def test_label_filter(self):
         config = config_with({"labels": ["person"]})

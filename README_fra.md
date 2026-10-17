@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-38%20passing-2ea44f.svg" alt="Tests">
-  <img src="https://img.shields.io/badge/Version-0.0.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Tests-42%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.0.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Vérification d'honnêteté - ce qui fonctionne aujourd'hui:** Les zones, le contrôle du mouvement, le suivi, les règles et les 38 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
+**Vérification d'honnêteté - ce qui fonctionne aujourd'hui:** Les zones, le contrôle du mouvement, le suivi, les règles et les 42 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
 
 ---
 
@@ -36,9 +36,9 @@
 
 | | |
 |---|---|
-| Version | `0.0.1` |
+| Version | `0.0.2` |
 | Maturité | Fonctionnel |
-| Tests | 38 (`python -m unittest discover -s tests`) |
+| Tests | 42 (`python -m unittest discover -s tests`) |
 | Technologie | Python 3.11+ |
 | Sur matériel réel | Aucun pour l'instant : ni détecteur réel, ni caméra, ni Jetson (une simulation avec des détections scriptées) |
 
@@ -59,7 +59,7 @@ ARMOR-VISION est la partie qui décide de ce que signifie l'image d'une caméra,
 ```text
 ARMOR-VISION/
 ├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
-├── tests/              38 tests
+├── tests/              42 tests
 └── docs/USAGE.md
 ```
 
@@ -71,7 +71,7 @@ ARMOR-VISION/
 $env:PYTHONPATH="src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 38 tests
+python -m unittest discover -s tests   # 42 tests
 ```
 
 Options et format de la configuration : [usage](docs/USAGE.md).

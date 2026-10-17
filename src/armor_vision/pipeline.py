@@ -65,12 +65,14 @@ class Pipeline:
         camera = self._config.cameras[camera_id]
         kept = []
         for detection in detections:
-            if not valid_box(detection.box) or any(point_in_polygon(centre(detection.box), m) for m in camera.masks):
+            confidence = detection.confidence
+            if (not valid_box(detection.box) or isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0.0 <= confidence <= 1.0
+                    or any(point_in_polygon(centre(detection.box), m) for m in camera.masks)):
                 self.stats.dropped_detections += 1
                 continue
             kept.append(detection)
         tracker = self._trackers.setdefault(camera_id, Tracker())
         tracks = tracker.update(timestamp, kept)
-        events = self._evaluator.evaluate(camera, timestamp, tracks)
+        events = self._evaluator.evaluate(camera, timestamp, tracks, tracker.tracks)
         self.stats.events += len(events)
         return events

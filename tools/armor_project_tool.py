@@ -87,21 +87,64 @@ def check_tool(name: str, message: str) -> str:
     return path
 
 
+def project_python(project: Path) -> str:
+    """The Python of the checkout's own virtual environment with pytest in it (made the first time)."""
+    folder = project / ".venv"
+    python = folder / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if not python.is_file():
+        command(project, [sys.executable, "-m", "venv", str(folder)])
+    probe = subprocess.run([str(python), "-c", "import pytest"], capture_output=True)
+    if probe.returncode != 0:
+        command(project, [str(python), "-m", "pip", "install", "-q", "pytest>=8.0"])
+    return str(python)
+
+
+NODE_REPOSITORIES = ("ARMOR-ALARM", "ARMOR-ELECTRICAL", "ARMOR-HMI", "ARMOR-RADAR", "ARMOR-SOLAR")
+
+
+def siblings_required() -> bool:
+    """In CI (ARMOR_REQUIRE_SIBLINGS=1) a check that needs the other repositories next to this one fails when they are missing; on a machine it says it was skipped."""
+    return os.environ.get("ARMOR_REQUIRE_SIBLINGS", "") not in ("", "0")
+
+
+def test_common(project: Path) -> None:
+    """ARMOR-COMMON: its unit tests, then what it generates (the types and the conformance vectors must be the ones its sources produce) and that the firmware the five nodes share is identical to the base."""
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(project / "src") + os.pathsep + environment.get("PYTHONPATH", "")
+    command(project, [sys.executable, "-m", "unittest", "discover", "-s", "tests"], environment)
+    command(project, [sys.executable, "tools/generate_types.py", "--check"], environment)
+    command(project, [sys.executable, "tools/make_conformance.py", "--check"], environment)
+    present = [node for node in NODE_REPOSITORIES if (project.parent / node).is_dir()]
+    if len(present) == len(NODE_REPOSITORIES):
+        command(project, [sys.executable, "tools/sync_firmware_base.py", "check", "--root", str(project.parent)], environment)
+    elif siblings_required():
+        raise RuntimeError("the node repositories are not next to ARMOR-COMMON, so the shared firmware could not be compared (missing: " + ", ".join(sorted(set(NODE_REPOSITORIES) - set(present))) + ")")
+    else:
+        print("FIRMWARE_BASE=SKIPPED the node repositories are not next to ARMOR-COMMON")
+
+
+def host_tests(project: Path, build: Path) -> None:
+    """Run every test program the project's CMake registers (a list written by hand here left some of them out, among them the ones that check the signature of a firmware)."""
+    ctest = check_tool("ctest", "CTest (it comes with CMake) is required to run the host tests")
+    command(project, [ctest, "--test-dir", str(build), "--output-on-failure"])
+
+
 def test_project(project: Path, manifest: dict[str, object]) -> None:
     name = str(manifest["name"])
-    if name in PYTHON_PROJECTS:
+    if name == "ARMOR-COMMON":
+        test_common(project)
+    elif name in PYTHON_PROJECTS:
         environment = os.environ.copy()
         environment["PYTHONPATH"] = str(project / "src") + os.pathsep + environment.get("PYTHONPATH", "")
         command(project, [sys.executable, "-m", "unittest", "discover", "-s", "tests"], environment)
     elif name in PYTEST_PROJECTS:
-        # A stdlib-only CLI/install core with an optional pytest-based test
-        # suite and an optional PySide6 desktop shell - `pip install -e
-        # ".[dev]"` first so `pytest` and the package's own console entry
-        # point are both on PATH for this checkout.
-        command(project, [sys.executable, "-m", "pip", "install", "-q", "-e", ".[dev]"])
+        # A stdlib-only CLI/install core with a pytest-based test suite. The tests run from `src` (PYTHONPATH) with pytest from a virtual environment of this checkout (`.venv`,
+        # ignored by git): the project itself is never installed. It used to be `pip install -e`, which pointed the installation at the folder of the build - for the updater that is a
+        # staging folder that is renamed a moment later, so the updated updater could not be imported - and put it in the system Python, which Debian and Raspberry Pi OS refuse (PEP 668).
+        python = project_python(project)
         environment = os.environ.copy()
         environment["PYTHONPATH"] = str(project / "src") + os.pathsep + environment.get("PYTHONPATH", "")
-        command(project, [sys.executable, "-m", "pytest", "tests", "-q"], environment)
+        command(project, [python, "-m", "pytest", "tests", "-q"], environment)
     elif name in NODE_PROJECTS:
         check_tool("npm", "npm is required; install Node.js 22 or newer")
         # A fresh checkout (every CI run; a developer machine only the first
@@ -161,8 +204,7 @@ def test_radar(project: Path) -> None:
     command(project, [cmake, "-S", "tests", "-B", str(build), "-DCMAKE_BUILD_TYPE=Debug"])
     command(project, [cmake, "--build", str(build)])
     suffix = ".exe" if os.name == "nt" else ""
-    for test in ("test_core", "test_node", "test_sensors", "test_board_wifi"):
-        command(project, [str(build / f"{test}{suffix}")])
+    host_tests(project, build)
     emitter = subprocess.run([str(build / f"emit_samples{suffix}")], cwd=project, capture_output=True, text=True, check=True)
     checker = subprocess.run([sys.executable, "tests/check_contract.py"], cwd=project, input=emitter.stdout, text=True, check=False)
     if checker.returncode:
@@ -180,8 +222,7 @@ def test_solar(project: Path) -> None:
     command(project, [cmake, "-S", "tests", "-B", str(build), "-DCMAKE_BUILD_TYPE=Debug"])
     command(project, [cmake, "--build", str(build)])
     suffix = ".exe" if os.name == "nt" else ""
-    for test in ("test_solar", "test_node", "test_board_eth"):
-        command(project, [str(build / f"{test}{suffix}")])
+    host_tests(project, build)
     for emit in ("emit_samples", "emit_poller_samples"):
         emitter = subprocess.run([str(build / f"{emit}{suffix}")], cwd=project, capture_output=True, text=True, check=True)
         checker = subprocess.run([sys.executable, "tests/check_samples.py"], cwd=project, input=emitter.stdout, text=True, check=False)
@@ -196,8 +237,7 @@ def test_electrical(project: Path) -> None:
     command(project, [cmake, "-S", "tests", "-B", str(build), "-DCMAKE_BUILD_TYPE=Debug"])
     command(project, [cmake, "--build", str(build)])
     suffix = ".exe" if os.name == "nt" else ""
-    for test in ("test_meters", "test_interlock", "test_switch_set"):
-        command(project, [str(build / f"{test}{suffix}")])
+    host_tests(project, build)
     emitter = subprocess.run([str(build / f"emit_samples{suffix}")], cwd=project, capture_output=True, text=True, check=True)
     checker = subprocess.run([sys.executable, "tests/check_samples.py"], cwd=project, input=emitter.stdout, text=True, check=False)
     if checker.returncode:
@@ -211,8 +251,7 @@ def test_alarm(project: Path) -> None:
     command(project, [cmake, "-S", "tests", "-B", str(build), "-DCMAKE_BUILD_TYPE=Debug"])
     command(project, [cmake, "--build", str(build)])
     suffix = ".exe" if os.name == "nt" else ""
-    for test in ("test_alarm", "test_node", "test_release"):
-        command(project, [str(build / f"{test}{suffix}")])
+    host_tests(project, build)
     emitter = subprocess.run([str(build / f"emit_samples{suffix}")], cwd=project, capture_output=True, text=True, check=True)
     checker = subprocess.run([sys.executable, "tests/check_samples.py"], cwd=project, input=emitter.stdout, text=True, check=False)
     if checker.returncode:
@@ -225,9 +264,7 @@ def test_hmi(project: Path) -> None:
     build = project / "build" / "host"
     command(project, [cmake, "-S", "tests", "-B", str(build), "-DCMAKE_BUILD_TYPE=Debug"])
     command(project, [cmake, "--build", str(build)])
-    suffix = ".exe" if os.name == "nt" else ""
-    for test in ("test_config", "test_view", "test_voice", "test_board"):
-        command(project, [str(build / f"{test}{suffix}")])
+    host_tests(project, build)
 
 
 def validate_markdown_links(project: Path) -> None:
@@ -245,20 +282,28 @@ def validate_markdown_links(project: Path) -> None:
     print("ARMOR_DOCS_LINKS=PASS")
 
 
+def next_version(version: str) -> str:
+    """The odometer of the family: no component ever reaches 10 (0.2.9 -> 0.3.0). Three components up to 0.7.9; from 0.8.0 a project has four (0.7.9 -> 0.8.0.0 -> 0.8.0.9 -> 0.8.1.0 -> ... -> 0.8.9.9 -> 0.9.0.0)."""
+    numbers = [int(part) for part in version.split(".")]
+    if len(numbers) == 3 and numbers[:2] >= [0, 8]:
+        return ".".join(str(number) for number in numbers + [0])   # 0.8.0 is already 0.8.0.0
+    if numbers == [0, 7, 9]:
+        return "0.8.0.0"
+    index = len(numbers) - 1
+    numbers[index] += 1
+    while index > 0 and numbers[index] == 10:
+        numbers[index] = 0
+        index -= 1
+        numbers[index] += 1
+    return ".".join(str(number) for number in numbers)
+
+
 def bump(project: Path, manifest: dict[str, object]) -> tuple[str, str]:
     before = str(manifest["version"])
     parts = before.split(".")
-    if len(parts) != 3 or any(not part.isdigit() for part in parts):
-        raise RuntimeError("manifest version must use major.minor.patch numeric format")
-    # Odometer scheme: PATCH +1, rolling into MINOR past 9 (0.2.9 -> 0.3.0),
-    # A previous version of this function stopped at 0.2.10 - a real
-    # mistake found and corrected on ARMOR-SERVER's own 0.2.9 -> 0.2.10 bump.
-    major, minor, patch = (int(part) for part in parts)
-    patch += 1
-    if patch > 9:
-        patch = 0
-        minor += 1
-    after = f"{major}.{minor}.{patch}"
+    if len(parts) not in (3, 4) or any(not part.isdigit() for part in parts):
+        raise RuntimeError("manifest version must use major.minor.patch (or major.minor.patch.build) numeric format")
+    after = next_version(before)
     manifest["version"] = after
     manifest["native_version"] = after
     manifest_path = project / "armor.project.json"
@@ -282,8 +327,8 @@ def bump(project: Path, manifest: dict[str, object]) -> tuple[str, str]:
         gradle_file.write_text(gradle, encoding="utf-8")
     # A Python project's own pyproject.toml `version` (PyPI-style packaging
     # identity) and its package `__init__.py`'s `__version__` mirror are a
-    # separate copy of the number from armor.project.json's - found while
-    # auditing the ecosystem: ARMOR-NETWORK's pyproject.toml stayed at 0.0.1
+    # separate copy of the number from armor.project.json's - found in
+    # practice: ARMOR-NETWORK's pyproject.toml stayed at 0.0.1
     # while its manifest reached 0.0.2, and ARMOR-COMMON's stayed at 0.2.3
     # against a manifest already at 0.2.6, unnoticed because nothing kept
     # them in sync. Kept narrow to the projects that actually have a

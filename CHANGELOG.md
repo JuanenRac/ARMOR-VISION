@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [0.0.2] - Loitering that is caught, one event per visit, and a configuration that cannot lie
+
+- **Somebody who comes into a zone and stands still now fires it** once its `min_seconds` is over (before, the "did not move" rule silenced the zone before a long inertia could pass, so loitering was never reported). An object that was already standing still when it entered still makes no event.
+- **A frame the detector misses does not open a new visit:** visits end when the tracker has lost the object, not when one frame lacks it, so one person gives one event, not one per blink of the detector.
+- **The tracker follows a quick walker:** a detection with no overlap still continues a track when its centre is within one box size (low frame rates, close-up walkers), ranked below any real overlap.
+- **Modes:** the server's `disarmed` has an explicit meaning (alert zones are not watched, detection zones record); events carry `timestamp_ms`.
+- **The configuration:** `zones` or `masks` that are not lists, NaN and Infinity (in `min_seconds` and in the JSON file), bow-tie polygons and polygons with almost no area are refused with a clear line; a detection with a confidence outside 0..1 or NaN is dropped.
+- The masked cells of the motion grid are worked out once per set of masks, not on every frame.
+- Tests: 42 (before 38).
+
 ## [0.0.1]
 
 - First version: the tested core of the camera analysis service, in plain Python without dependencies.

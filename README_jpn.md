@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-38%20passing-2ea44f.svg" alt="Tests">
-  <img src="https://img.shields.io/badge/Version-0.0.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Tests-42%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.0.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、38 件のテストは実在します。**実際の検知モデルはまだありません**。カメラや Jetson Orin NX では何も動かしていません。シミュレーションは台本どおりの検知結果を使います。
+**正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、42 件のテストは実在します。**実際の検知モデルはまだありません**。カメラや Jetson Orin NX では何も動かしていません。シミュレーションは台本どおりの検知結果を使います。
 
 ---
 
@@ -36,9 +36,9 @@
 
 | | |
 |---|---|
-| バージョン | `0.0.1` |
+| バージョン | `0.0.2` |
 | 成熟度 | 機能する |
-| テスト | 38 (`python -m unittest discover -s tests`) |
+| テスト | 42 (`python -m unittest discover -s tests`) |
 | 技術 | Python 3.11+ |
 | 実機での確認 | まだありません：実際の検出器、カメラ、Jetson はなく、スクリプト化した検出によるシミュレーションのみ |
 
@@ -59,7 +59,7 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 ```text
 ARMOR-VISION/
 ├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
-├── tests/              38 tests
+├── tests/              42 tests
 └── docs/USAGE.md
 ```
 
@@ -71,7 +71,7 @@ ARMOR-VISION/
 $env:PYTHONPATH="src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 38 tests
+python -m unittest discover -s tests   # 42 tests
 ```
 
 オプションと設定の形式: [使い方](docs/USAGE.md)。

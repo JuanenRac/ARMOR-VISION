@@ -28,6 +28,11 @@ EXAMPLE_CONFIG = {
 }
 
 
+def _no_constants(name: str):
+    """json.loads accepts NaN and Infinity, which are not JSON and which no number check would stop: the file is refused."""
+    raise ValueError(f"{name} is not allowed in the file")
+
+
 def simulate(config, mode: str | None) -> tuple[list[dict], dict]:
     """A person crosses the driveway, a car sits in the street and something
     moves behind the masked tree, at five pictures per second for eight seconds."""
@@ -57,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv if argv is not None else sys.argv[1:] or ["simulate"])
     if args.action == "check-config":
         try:
-            raw = json.loads(Path(args.file).read_text(encoding="utf-8"))
+            raw = json.loads(Path(args.file).read_text(encoding="utf-8"), parse_constant=_no_constants)
         except (OSError, ValueError) as exc:
             print(f"cannot read {args.file}: {exc}", file=sys.stderr)
             return 2
@@ -71,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
     raw = EXAMPLE_CONFIG
     if getattr(args, "config", None):
         try:
-            raw = json.loads(Path(args.config).read_text(encoding="utf-8"))
+            raw = json.loads(Path(args.config).read_text(encoding="utf-8"), parse_constant=_no_constants)
         except (OSError, ValueError) as exc:
             print(f"cannot read {args.config}: {exc}", file=sys.stderr)
             return 2

@@ -19,9 +19,32 @@ def valid_polygon(points: Sequence[Sequence[float]]) -> str | None:
                 return "coordinates must be numbers"
             if not 0.0 <= float(value) <= 1.0:
                 return "coordinates must be between 0 and 1"
-    if _area(points) == 0.0:
-        return "the polygon has no area"
+    if _area(points) < 1e-4:
+        return "the polygon has (almost) no area"
+    if _crosses_itself(points):
+        return "the polygon crosses itself"
     return None
+
+
+def _crosses_itself(points: Sequence[Sequence[float]]) -> bool:
+    """Two edges that are not neighbours cross: a bow tie, whose inside is not what it looks like."""
+    count = len(points)
+    for i in range(count):
+        a, b = points[i], points[(i + 1) % count]
+        for j in range(i + 1, count):
+            if j == i + 1 or (i == 0 and j == count - 1):
+                continue
+            c, d = points[j], points[(j + 1) % count]
+            if _segments_cross(a, b, c, d):
+                return True
+    return False
+
+
+def _segments_cross(a: Sequence[float], b: Sequence[float], c: Sequence[float], d: Sequence[float]) -> bool:
+    def side(p: Sequence[float], q: Sequence[float], r: Sequence[float]) -> float:
+        return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+    d1, d2, d3, d4 = side(c, d, a), side(c, d, b), side(a, b, c), side(a, b, d)
+    return ((d1 > 0) != (d2 > 0)) and ((d3 > 0) != (d4 > 0)) and 0 not in (d1, d2, d3, d4)
 
 
 def _area(points: Sequence[Sequence[float]]) -> float:

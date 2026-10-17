@@ -3,8 +3,11 @@
 An object counts in a zone when its feet are inside, its label is accepted,
 it has been there for min_frames updates AND min_seconds, and the zone is
 watched in the current arming mode. Each (object, zone) pair fires once per
-visit; leaving the zone and coming back is a new visit. An object that has
-stopped moving does not fire again.
+visit; leaving the zone and coming back is a new visit. An object that was
+already standing still when it came into the zone (a parked car) makes no
+event; one that comes in and then stops (somebody loitering at a door) does,
+once it has been there long enough. A track that the detector misses for a
+moment keeps its visit.
 """
 from __future__ import annotations
 
@@ -22,6 +25,7 @@ class _Visit:
     frames: int
     entered_at: float
     fired: bool = False
+    started_stationary: bool = False
 
 
 class Evaluator:
@@ -35,14 +39,20 @@ class Evaluator:
 
     def watched(self, zone: Zone) -> bool:
         """With no mode, or a mode that has no profile, every zone is watched:
-        an unknown mode must never silently watch less."""
-        if self.mode is None or self.mode not in self._config.profiles:
+        an unknown mode must never silently watch less. The one exception is the
+        server's `disarmed`, which has no profile unless one is written: then the
+        alert zones are not watched and only the zones that record detections are."""
+        if self.mode is None:
             return True
+        if self.mode not in self._config.profiles:
+            return zone.kind != "alert" if self.mode == "disarmed" else True
         return zone.zone_id in self._config.profiles[self.mode]
 
-    def evaluate(self, camera: CameraConfig, timestamp: float, tracks: list[Track]) -> list[dict]:
+    def evaluate(self, camera: CameraConfig, timestamp: float, tracks: list[Track], alive: list[Track] | None = None) -> list[dict]:
+        """`tracks` are the ones seen in this update; `alive` (all the tracker still follows, when given) decides which visits end: an object the detector missed for a frame
+        has not left, and coming back must not open a new visit."""
         events: list[dict] = []
-        live = {(camera.camera_id, t.track_id) for t in tracks}
+        live = {(camera.camera_id, t.track_id) for t in (alive if alive is not None else tracks)}
         for key in [k for k in self._visits if (k[0], k[1]) not in live and k[0] == camera.camera_id]:
             del self._visits[key]   # the object is gone: its visits end
         for track in tracks:
@@ -56,9 +66,9 @@ class Evaluator:
                     continue
                 visit = self._visits.get(key)
                 if visit is None:
-                    visit = self._visits[key] = _Visit(0, timestamp)
+                    visit = self._visits[key] = _Visit(0, timestamp, started_stationary=track.stationary)
                 visit.frames += 1
-                if visit.fired or track.stationary:
+                if visit.fired or visit.started_stationary:
                     continue
                 if visit.frames >= zone.min_frames and timestamp - visit.entered_at >= zone.min_seconds:
                     visit.fired = True
@@ -80,5 +90,6 @@ def make_event(camera_id: str, zone: Zone, track: Track, timestamp: float) -> di
         "confidence": round(track.confidence, 3),
         "box": [round(v, 4) for v in track.box],
         "timestamp": timestamp,
+        "timestamp_ms": int(round(timestamp * 1000)),
         "authorizes_action": False,
     }
