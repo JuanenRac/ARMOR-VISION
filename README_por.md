@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-42%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-61%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Verificação de honestidade - o que funciona hoje:** As zonas, a verificação de movimento, o seguidor, as regras e os 42 testes são reais. **Ainda não há nenhum modelo detetor real** e nada correu numa câmara nem no Jetson Orin NX: a simulação usa deteções com guião.
+**Verificação de honestidade - o que funciona hoje:** As zonas, a verificação de movimento, o seguidor, as regras e os 61 testes são reais. **Ainda não há nenhum modelo detetor real** e nada correu numa câmara nem no Jetson Orin NX: a simulação usa deteções com guião.
 
 ---
 
@@ -38,7 +38,7 @@
 |---|---|
 | Versão | `0.0.2` |
 | Maturidade | Funcional |
-| Testes | 42 (`python -m unittest discover -s tests`) |
+| Testes | 61 (`python -m unittest discover -s tests`) |
 | Tecnologia | Python 3.11+ |
 | Em hardware real | Nenhum ainda: nem detetor real, nem câmara, nem Jetson (uma simulação com deteções guionizadas) |
 
@@ -59,7 +59,7 @@ O ARMOR-VISION é a parte que decide o que significa a imagem de uma câmara, à
 ```text
 ARMOR-VISION/
 ├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
-├── tests/              42 tests
+├── tests/              61 tests
 └── docs/USAGE.md
 ```
 
@@ -71,7 +71,7 @@ ARMOR-VISION/
 $env:PYTHONPATH="src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 42 tests
+python -m unittest discover -s tests   # 61 tests
 ```
 
 Opções e formato de configuração: [utilização](docs/USAGE.md).

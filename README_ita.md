@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-42%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-61%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Controllo di onestà - cosa funziona oggi:** Le zone, il controllo del movimento, il tracciamento, le regole e i 42 test sono reali. **Non esiste ancora un vero modello di rilevamento** e nulla è stato eseguito su una telecamera o sulla Jetson Orin NX: la simulazione usa rilevamenti scriptati.
+**Controllo di onestà - cosa funziona oggi:** Le zone, il controllo del movimento, il tracciamento, le regole e i 61 test sono reali. **Non esiste ancora un vero modello di rilevamento** e nulla è stato eseguito su una telecamera o sulla Jetson Orin NX: la simulazione usa rilevamenti scriptati.
 
 ---
 
@@ -38,7 +38,7 @@
 |---|---|
 | Versione | `0.0.2` |
 | Maturità | Funzionale |
-| Test | 42 (`python -m unittest discover -s tests`) |
+| Test | 61 (`python -m unittest discover -s tests`) |
 | Tecnologia | Python 3.11+ |
 | Su hardware reale | Ancora nessuno: né rilevatore reale, né telecamera, né Jetson (una simulazione con rilevamenti scriptati) |
 
@@ -59,7 +59,7 @@ ARMOR-VISION è la parte che decide cosa significa l'immagine di una telecamera,
 ```text
 ARMOR-VISION/
 ├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
-├── tests/              42 tests
+├── tests/              61 tests
 └── docs/USAGE.md
 ```
 
@@ -71,7 +71,7 @@ ARMOR-VISION/
 $env:PYTHONPATH="src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 42 tests
+python -m unittest discover -s tests   # 61 tests
 ```
 
 Opzioni e formato della configurazione: [uso](docs/USAGE.md).
