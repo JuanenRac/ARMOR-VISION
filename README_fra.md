@@ -65,13 +65,19 @@ ARMOR-VISION/
 
 ## 🛠️ Environnement de développement
 
-**Prérequis:** Python 3.11+ (standard library only)
+**Prérequis:** Python 3.11+ (bibliothèque standard uniquement)
 
 ```powershell
 $env:PYTHONPATH="src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
 python -m unittest discover -s tests   # 61 tests
+```
+
+```bash
+PYTHONPATH=src python -m armor_vision simulate --mode away
+PYTHONPATH=src python -m armor_vision check-config my_cameras.json
+PYTHONPATH=src python -m unittest discover -s tests   # 61 tests
 ```
 
 Options et format de la configuration : [usage](docs/USAGE.md).

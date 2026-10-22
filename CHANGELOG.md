@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+- The commands of the README are also given for bash (`PYTHONPATH=src python -m armor_vision ...`), in the eight languages, and the test count reads in each language.
+
 ## [0.0.2] - Loitering that is caught, one event per visit, and a configuration that cannot lie
 
 - **Somebody who comes into a zone and stands still now fires it** once its `min_seconds` is over (before, the "did not move" rule silenced the zone before a long inertia could pass, so loitering was never reported). An object that was already standing still when it entered still makes no event.

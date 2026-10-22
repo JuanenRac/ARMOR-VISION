@@ -74,6 +74,12 @@ python -m armor_vision check-config my_cameras.json
 python -m unittest discover -s tests   # 61 tests
 ```
 
+```bash
+PYTHONPATH=src python -m armor_vision simulate --mode away
+PYTHONPATH=src python -m armor_vision check-config my_cameras.json
+PYTHONPATH=src python -m unittest discover -s tests   # 61 tests
+```
+
 Options and the configuration format: [usage](docs/USAGE.md).
 
 ## 🔗 Related Projects
