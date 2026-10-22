@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- The banner follows the animated style of the ecosystem banners, with the name, the kind and the technologies of the project.
 - The commands of the README are also given for bash (`PYTHONPATH=src python -m armor_vision ...`), in the eight languages, and the test count reads in each language.
 
 ## [0.0.2] - Loitering that is caught, one event per visit, and a configuration that cannot lie
