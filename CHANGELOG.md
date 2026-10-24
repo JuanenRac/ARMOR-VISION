@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## [Unreleased]
+## [0.0.3] - The manifest says what the project is: a library without a service of 
 
 - The manifest says what the project is: a library without a service of its own, that produces alert and detection events.
 - The repository has a security policy, a code of conduct, a contributing guide and a support file.
