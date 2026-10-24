@@ -8,7 +8,9 @@
   "technologies": [
     "Python",
     "Motion gating",
-    "Object tracking"
+    "Object tracking",
+    "Alert and detection events",
+    "Library without a service"
   ],
   "deployment_target": "NVIDIA Jetson Orin NX (planned); developer workstation today",
   "maturity": "functional",
