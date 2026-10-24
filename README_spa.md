@@ -73,6 +73,7 @@ ARMOR-VISION es la parte que decide qué significa la imagen de una cámara, al 
 ARMOR-VISION/
 ├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
 ├── tests/              61 tests
+├── tools/              the shared CI checks (armor_ci_validate.py, armor_project_tool.py, _armor_readme_parity.py)
 └── docs/USAGE.md
 ```
 
