@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/ARMOR_BANNER.svg" alt="ARMOR-VISION banner" width="100%">
+  <img src="images/ARMOR_BANNER.svg" alt="Bannière d'ARMOR-VISION" width="100%">
 </p>
 
 # 👁️ ARMOR-VISION
@@ -18,17 +18,17 @@
 ### Zones, masques et règles de détection pour les caméras
 
 <p align="center">
-  <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
-  <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 ou ultérieure">
+  <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Langage">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
   <img src="https://img.shields.io/badge/Tests-61%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.3-0f6cbd.svg" alt="Version">
-  <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
+  <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturité">
 </p>
 
 ---
 
-**Vérification d'honnêteté - ce qui fonctionne aujourd'hui:** Les zones, le contrôle du mouvement, le suivi, les règles et les 61 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
+**Vérification d'honnêteté - ce qui fonctionne aujourd'hui :** Les zones, le contrôle du mouvement, le suivi, les règles et les 61 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
 
 ---
 
@@ -38,9 +38,14 @@
 |---|---|
 | Version | `0.0.3` |
 | Maturité | Fonctionnel |
+| Rôle | Zones, masques et règles de détection des caméras (famille : Core Services, parent : ARMOR-SERVER) |
+| Technologie | Python 3.11+, bibliothèque standard uniquement |
 | Tests | 61 (`python -m unittest discover -s tests`) |
-| Technologie | Python 3.11+ |
+| Fonctionne sur | N'importe quel ordinateur |
 | Sur matériel réel | Aucun pour l'instant : ni détecteur réel, ni caméra, ni Jetson (une simulation avec des détections scriptées) |
+| Licence | GPL-3.0-or-later |
+
+**Aller à :** [Présentation](#-présentation) · [Architecture](#-architecture) · [Sécurité](#-sécurité-et-protection) · [Interfaces](#-interfaces) · [Configuration](#-configuration) · [Démarrage rapide](#-démarrage-rapide) · [Tests](#-tests) · [Dépannage](#-dépannage) · [Structure](#-structure-du-dépôt) · [Liés](#-projets-liés)
 
 ## 🚦 État du projet
 
@@ -67,22 +72,69 @@ Chaque ligne est une partie de ce dépôt et le feu dit où elle en est aujourd'
 
 ARMOR-VISION est la partie qui décide de ce que signifie l'image d'une caméra, indépendamment de tout détecteur : les zones et masques dessinés dessus, le contrôle de mouvement qui s'exécute avant le détecteur coûteux, le suiveur, les profils d'armement et les règles qui transforment des détections en événements. [ARMOR-SERVER-AI](https://github.com/JuanenRac/ARMOR-SERVER-AI) est le service qui surveille les caméras aujourd'hui ; ARMOR-VISION est l'endroit où les règles pour un vrai modèle de détection sont prêtes, en l'attendant. Il ne fait que rapporter : les événements n'autorisent jamais une action.
 
-## 📂 Structure du dépôt
+| Nom | Comment | À quoi ça sert |
+|---|---|---|
+| ARMOR-SERVER-AI | les mêmes règles, dès qu'un modèle existe | Surveille les caméras aujourd'hui |
+| ARMOR-SERVER | `armor.vision.event/v1` | Décide quoi faire d'un événement (pas encore dans le contrat d'ARMOR-COMMON) |
 
-```text
-ARMOR-VISION/
-├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
-├── tests/              61 tests
-├── tools/              the shared CI checks (armor_ci_validate.py, armor_project_tool.py, _armor_readme_parity.py)
-└── docs/USAGE.md
+## 🏛️ Architecture
+
+<p align="center">
+  <img src="images/architecture.svg" alt="Architecture de ARMOR-VISION : qui l'appelle, ce qu'il contient et de quoi il dépend" width="100%">
+</p>
+
+## 🔒 Sécurité et protection
+
+| Menace | Défense |
+|---|---|
+| Le moteur de règles agit de lui-même | Chaque événement porte `authorizes_action: false` (schéma `armor.vision.event/v1`) ; le serveur décide |
+| Une mauvaise configuration de caméra | `check-config` liste chaque problème et un seul problème fait tout refuser ; les coordonnées vont de 0 à 1, une zone est `alert` ou `detection`, les champs inconnus sont des erreurs |
+| Le détecteur coûteux tourne pour rien | Le mouvement d'abord : le détecteur n'est sollicité que si assez de cellules de la grille 16 x 9 changent hors des masques |
+| Une voiture garée déclenche événement sur événement | Le suivi mémorise ce qui est immobile (dérive sous 0,01 en 3 s) pendant 300 s sans nouvel événement |
+| Un mode d'armement inconnu | Toutes les zones sont surveillées ; seul `disarmed` sans profil réduit au silence les zones `alert`, les zones `detection` enregistrent encore |
+
+Rien ici n'est une fonction de sécurité : il n'y a pas encore de vrai modèle de détection.
+
+## 🔌 Interfaces
+
+| Nom | Ce qu'elle règle |
+|---|---|
+| `python -m armor_vision simulate [--config FILE] [--mode MODE]` | Exécute un scénario intégré (une personne traverse une allée, une voiture garée, un mouvement derrière un arbre masqué) et imprime une ligne JSON par événement puis une ligne de compteurs |
+| `python -m armor_vision check-config FILE` | Valide une configuration et imprime chaque problème ; sortie 0 bonne, 1 invalide, 2 illisible |
+
+```json
+{"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
+ "zone_name": "Driveway", "track_id": 1, "label": "person", "confidence": 0.9,
+ "box": [0.41, 0.62, 0.47, 0.82], "timestamp": 1.0, "authorizes_action": false}
 ```
 
-## 🛠️ Environnement de développement
+En bibliothèque : `parse_config`, `Pipeline.process_detections` et `process_frame`. `load_detector("tensorrt")` lève `DetectorUnavailable` car le modèle pour le Jetson Orin NX n'est pas écrit. Voir [docs/USAGE.md](docs/USAGE.md).
 
-**Prérequis:** Python 3.11+ (bibliothèque standard uniquement)
+## ⚙️ Configuration
+
+| Nom | Ce qu'elle règle |
+|---|---|
+| `motion_threshold` | 1 à 255 : l'écart de gris qui compte comme changement |
+| `motion_min_cells` | Combien de cellules de la grille 16 x 9 doivent changer avant de solliciter le détecteur |
+| `zones[]` | `id`, `name`, `kind` (`alert` ou `detection`), `labels`, `min_frames`, `min_seconds`, `points` (polygone, 0 à 1) ; compté par les pieds de la boîte |
+| `masks[]` | Polygones où le mouvement est ignoré ; les détections dont le centre est dedans sont écartées |
+| `profiles` | Quelles zones sont surveillées dans chaque mode d'armement (`away`, `home`, ...) |
+
+| Limite | Valeur |
+|---|---|
+| Appariement d'une détection à une piste (recouvrement / portée) | 0.3 / 1.0 |
+| Une piste en mouvement non vue est abandonnée après | 2 s |
+| Immobile : fenêtre / dérive / mémorisé pendant | 3 s / 0.01 / 300 s |
+| Grille de mouvement | 16 x 9 |
+
+Ces valeurs sont aujourd'hui des constantes de `tracker.py` et `motion.py` ; le fichier de configuration contient les zones, masques, profils et seuils de mouvement.
+
+## 🚀 Démarrage rapide
+
+**Prérequis:** Python 3.11+ (bibliothèque standard uniquement).
 
 ```powershell
-$env:PYTHONPATH="src"
+$env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
 python -m unittest discover -s tests   # 61 tests
@@ -94,7 +146,86 @@ PYTHONPATH=src python -m armor_vision check-config my_cameras.json
 PYTHONPATH=src python -m unittest discover -s tests   # 61 tests
 ```
 
-Options et format de la configuration : [usage](docs/USAGE.md).
+## 🧪 Tests
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m unittest discover -s tests
+python -I tools/armor_ci_validate.py
+```
+
+| Fichier de tests | Tests | Ce qu'il couvre |
+|---|---|---|
+| `test_vision.py` | 42 | Géométrie, configuration, mouvement, suivi, règles, profils, la chaîne et la ligne de commande |
+| `test_vision_edges.py` | 19 | Les cas limites : mauvaises configurations, objets immobiles, détections masquées et détecteur indisponible |
+
+## 🏗️ Compilation et publication
+
+C'est du Python pur : rien à compiler. La version est dans `pyproject.toml` et `armor.project.json`.
+
+## 🩺 Dépannage
+
+| Vous voyez | Parce que | Faites |
+|---|---|---|
+| `check-config` se termine par 1 | La configuration a des problèmes ; il les liste tous | Corrigez-les tous : les champs inconnus sont des erreurs |
+| `check-config` se termine par 2 | Le fichier est illisible | Vérifiez le chemin et que c'est du JSON |
+| `DetectorUnavailable` | `load_detector("tensorrt")` : le vrai modèle n'est pas écrit | Utilisez `ScriptedDetector` |
+| Une zone ne se déclenche jamais | Les pieds sont hors du polygone, l'étiquette n'est pas acceptée, un masque la cache, ou le mode n'a pas de profil avec cette zone | Lancez `simulate` avec le même fichier et mode |
+
+## 📂 Structure du dépôt
+
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Structure du dépôt de ARMOR-VISION" width="100%">
+</p>
+
+<details>
+<summary>Version texte de l'arborescence</summary>
+
+```text
+ARMOR-VISION/
+├── src/armor_vision/
+│   ├── geometry.py                      polygones en coordonnées normalisées
+│   ├── config.py                        zones, masques, profils et leur validation
+│   ├── motion.py                        le contrôle de mouvement 16 x 9, masques ignorés
+│   ├── detector.py                      détections scriptées ; le vrai modèle n'est pas écrit
+│   ├── tracker.py                       identité entre images ; objets immobiles
+│   ├── rules.py                         des zones aux événements : armor.vision.event/v1
+│   └── pipeline.py cli.py __main__.py   toute la chaîne et la ligne de commande
+├── tests/                               les tests
+├── docs/                                les guides de ce dépôt
+├── tools/                               les contrôles CI partagés et les outils du projet
+├── .github/                             workflow CI et modèles d'issues et de pull requests
+├── images/                              bannière, icône et les deux images de ce README
+├── build.sh build.bat                   build par le flux de projet partagé
+├── test.sh test.bat                     lancer les tests par le flux partagé
+├── run.sh run.bat                       démarrer par le flux de projet partagé
+├── armor.project.json                   manifeste : version, rôle, maturité, commande de build
+├── CHANGELOG.md                         ce qui a changé à chaque version
+├── SECURITY.md SUPPORT.md LICENSE       politique de sécurité, support et licence
+├── CONTRIBUTING.md CODE_OF_CONDUCT.md   comment contribuer et le code de conduite
+├── build-test.sh build-test.bat         lancer les tests par le flux partagé
+├── pyproject.toml                       métadonnées du paquet
+└── .gitattributes .gitignore            réglages Git
+```
+
+</details>
+
+## 🗺️ Feuille de route et limites connues
+
+**Limites connues aujourd'hui**
+
+* Il n'y a pas encore de vrai modèle de détection et rien n'a tourné sur une caméra ni sur le Jetson Orin NX : la simulation utilise des détections scriptées.
+* L'événement ne fait pas encore partie du contrat d'ARMOR-COMMON.
+* Les valeurs du suivi et du mouvement sont des constantes du code, pas du fichier de configuration.
+
+**Ensuite**
+
+* Écrire le modèle de détection pour le Jetson Orin NX et l'essayer avec une vraie caméra.
+* Déplacer les constantes du suivi et du mouvement dans le fichier de configuration et mettre l'événement dans le contrat d'ARMOR-COMMON.
+
+## 🌍 Langues
+
+Le README et les textes existent en anglais, espagnol, français, italien, allemand, chinois, japonais et portugais européen.
 
 ## 🔗 Projets liés
 
@@ -120,15 +251,20 @@ Options et format de la configuration : [usage](docs/USAGE.md).
 * **[ARMOR-UPDATER](https://github.com/JuanenRac/ARMOR-UPDATER)** - Détecte, installe et met à jour les propres dépôts de l'écosystème
 * **[ARMOR-DOCS](https://github.com/JuanenRac/ARMOR-DOCS)** - Architecture, base de sécurité et matrice des capacités
 
-## 📚 Documentation et communauté
+## 📚 Documentation
 
-Pour en savoir plus :
-
+* [Utilisation](docs/USAGE.md) : les commandes, la configuration, l'événement et la bibliothèque
 * [Matrice des capacités : ce qui est prouvé et ce qui ne l'est pas](https://github.com/JuanenRac/ARMOR-DOCS/blob/main/docs/CAPABILITY_MATRIX.md)
 * [Catalogue des projets : versions et dépendances entre les dépôts](https://github.com/JuanenRac/ARMOR-DOCS/blob/main/docs/PROJECT_CATALOG.md)
 * [Historique des modifications de ce dépôt](CHANGELOG.md)
-* [Licence (GPL-3.0-or-later)](LICENSE)
-* Questions, idées et rapports : electrohobby3d@gmail.com
+
+## 🤝 Contribuer et communauté
+
+* Avant une pull request, lancez `python -m unittest discover -s tests` and `python -I tools/armor_ci_validate.py` : il doit réussir. Voir [CONTRIBUTING.md](CONTRIBUTING.md) et le [code de conduite](CODE_OF_CONDUCT.md).
+* Le README existe en huit langues et est généré à partir des sources d'ARMOR-DOCS : une modification du texte se fait là-bas.
+* Une modification d'un message entre composants commence dans ARMOR-COMMON.
+* Ne décrivez pas comme fonctionnant sur une carte ce qui a seulement été compilé.
+* Signalez une vulnérabilité en privé : [SECURITY.md](SECURITY.md). Questions, idées et rapports : electrohobby3d@gmail.com ([SUPPORT.md](SUPPORT.md)).
 
 ## 👤 AUTEUR
 

@@ -1,0 +1,154 @@
+{
+  "repo": "ARMOR-VISION",
+  "ecosystem": "armor",
+  "tagline": "Decides what a camera picture means: zones, masks, motion, a tracker and the rules that turn detections into events that only report.",
+  "description": "ARMOR-VISION takes the pictures or the detections of a camera, checks motion first, follows each object, applies the zones, masks and arming profiles and prints events that never authorise an action. ARMOR-SERVER-AI is the service that watches the cameras today; the real detector model for the Jetson Orin NX is not written yet.",
+  "columns": [
+    "WHO USES IT",
+    "THIS REPOSITORY",
+    "WHAT IT NEEDS"
+  ],
+  "nodes": [
+    {
+      "id": "ai",
+      "column": 0,
+      "level": "external",
+      "title": "ARMOR-SERVER-AI",
+      "lines": [
+        "the service that watches the",
+        "cameras today; the consumer",
+        "meant for these rules"
+      ]
+    },
+    {
+      "id": "dev",
+      "column": 0,
+      "level": "external",
+      "title": "Developer",
+      "lines": [
+        "simulate and check-config",
+        "on the command line"
+      ]
+    },
+    {
+      "id": "motion",
+      "column": 1,
+      "level": "tested",
+      "title": "motion.py",
+      "lines": [
+        "16 x 9 grid, masks ignored;",
+        "the detector runs only when",
+        "enough of the picture changed"
+      ],
+      "code": [
+        "src/armor_vision/motion.py::GRID_COLUMNS = 16"
+      ]
+    },
+    {
+      "id": "detector",
+      "column": 1,
+      "level": "config",
+      "title": "detector.py",
+      "lines": [
+        "scripted detections only;",
+        "no real model yet"
+      ],
+      "code": [
+        "src/armor_vision/detector.py"
+      ]
+    },
+    {
+      "id": "rules",
+      "column": 1,
+      "level": "contract",
+      "title": "rules.py",
+      "lines": [
+        "zones, masks, arming profiles;",
+        "armor.vision.event/v1 with",
+        "authorizes_action: false"
+      ],
+      "code": [
+        "src/armor_vision/rules.py::EVENT_SCHEMA"
+      ]
+    },
+    {
+      "id": "tracker",
+      "column": 1,
+      "level": "tested",
+      "title": "tracker.py",
+      "lines": [
+        "identity between pictures;",
+        "what stands still is remembered",
+        "for 300 s and makes no events"
+      ],
+      "code": [
+        "src/armor_vision/tracker.py::STATIONARY_MISSING_SECONDS"
+      ]
+    },
+    {
+      "id": "cam",
+      "column": 2,
+      "level": "untested",
+      "title": "Camera, Jetson Orin NX",
+      "lines": [
+        "no camera and no Jetson",
+        "has run this code"
+      ]
+    },
+    {
+      "id": "server",
+      "column": 2,
+      "level": "external",
+      "title": "ARMOR-SERVER",
+      "lines": [
+        "decides what to do with",
+        "an event; the event never",
+        "authorises an action"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "ai",
+      "to": "rules",
+      "label": "events",
+      "level": "contract"
+    },
+    {
+      "from": "dev",
+      "to": "motion",
+      "label": "",
+      "level": "tested"
+    },
+    {
+      "from": "motion",
+      "to": "detector",
+      "label": "",
+      "level": "tested"
+    },
+    {
+      "from": "detector",
+      "to": "tracker",
+      "label": "",
+      "level": "tested"
+    },
+    {
+      "from": "tracker",
+      "to": "rules",
+      "label": "",
+      "level": "tested"
+    },
+    {
+      "from": "detector",
+      "to": "cam",
+      "label": "pictures",
+      "level": "untested"
+    },
+    {
+      "from": "rules",
+      "to": "server",
+      "label": "event",
+      "level": "contract"
+    }
+  ]
+}

@@ -1,0 +1,404 @@
+{
+  "repo": "ARMOR-VISION",
+  "ecosystem": "armor",
+  "svg": "en",
+  "cards": [
+    {
+      "name": "src/armor_vision/",
+      "sub": {
+        "en": "zones, motion, tracker and rules",
+        "es": "zonas, movimiento, seguimiento y reglas",
+        "de": "Zonen, Bewegung, Tracker und Regeln",
+        "fr": "zones, mouvement, suivi et règles",
+        "it": "zone, movimento, tracker e regole",
+        "ja": "ゾーン、動き、トラッカー、ルール",
+        "zh": "区域、运动、跟踪和规则",
+        "pt": "zonas, movimento, seguimento e regras"
+      },
+      "span": 3,
+      "accent": "a",
+      "rows": [
+        {
+          "name": "geometry.py",
+          "desc": {
+            "en": "polygons on normalised coordinates",
+            "es": "polígonos en coordenadas normalizadas",
+            "de": "Polygone in normalisierten Koordinaten",
+            "fr": "polygones en coordonnées normalisées",
+            "it": "poligoni in coordinate normalizzate",
+            "ja": "正規化座標の多角形",
+            "zh": "归一化坐标的多边形",
+            "pt": "polígonos em coordenadas normalizadas"
+          }
+        },
+        {
+          "name": "config.py",
+          "desc": {
+            "en": "zones, masks, profiles and their validation",
+            "es": "zonas, máscaras, perfiles y su validación",
+            "de": "Zonen, Masken, Profile und ihre Prüfung",
+            "fr": "zones, masques, profils et leur validation",
+            "it": "zone, maschere, profili e la loro validazione",
+            "ja": "ゾーン、マスク、プロファイルとその検証",
+            "zh": "区域、遮罩、配置文件及其校验",
+            "pt": "zonas, máscaras, perfis e a sua validação"
+          }
+        },
+        {
+          "name": "motion.py",
+          "desc": {
+            "en": "the 16 x 9 motion check, masks ignored",
+            "es": "la comprobación de movimiento 16 x 9, máscaras ignoradas",
+            "de": "die 16-x-9-Bewegungsprüfung ohne Masken",
+            "fr": "le contrôle de mouvement 16 x 9, masques ignorés",
+            "it": "il controllo del movimento 16 x 9, maschere ignorate",
+            "ja": "16 x 9 の動き判定（マスクは無視）",
+            "zh": "16 x 9 运动检测（忽略遮罩）",
+            "pt": "a verificação de movimento 16 x 9, máscaras ignoradas"
+          }
+        },
+        {
+          "name": "detector.py",
+          "desc": {
+            "en": "scripted detections; the real model is not written",
+            "es": "detecciones guionizadas; el modelo real no está escrito",
+            "de": "geskriptete Erkennungen; das echte Modell fehlt",
+            "fr": "détections scriptées ; le vrai modèle n'est pas écrit",
+            "it": "rilevamenti scriptati; il modello reale non c'è",
+            "ja": "スクリプト化した検出。実モデルは未実装",
+            "zh": "脚本化检测；真实模型尚未编写",
+            "pt": "deteções guionizadas; o modelo real não está escrito"
+          }
+        },
+        {
+          "name": "tracker.py",
+          "desc": {
+            "en": "identity between pictures; stationary objects",
+            "es": "identidad entre imágenes; objetos quietos",
+            "de": "Identität zwischen Bildern; ruhende Objekte",
+            "fr": "identité entre images ; objets immobiles",
+            "it": "identità tra immagini; oggetti fermi",
+            "ja": "画像間の識別、静止物",
+            "zh": "跨画面的身份；静止物体",
+            "pt": "identidade entre imagens; objetos parados"
+          }
+        },
+        {
+          "name": "rules.py",
+          "desc": {
+            "en": "zones to events: armor.vision.event/v1",
+            "es": "de zonas a eventos: armor.vision.event/v1",
+            "de": "von Zonen zu Ereignissen: armor.vision.event/v1",
+            "fr": "des zones aux événements : armor.vision.event/v1",
+            "it": "dalle zone agli eventi: armor.vision.event/v1",
+            "ja": "ゾーンからイベントへ：armor.vision.event/v1",
+            "zh": "从区域到事件：armor.vision.event/v1",
+            "pt": "das zonas aos eventos: armor.vision.event/v1"
+          }
+        },
+        {
+          "name": "pipeline.py cli.py __main__.py",
+          "desc": {
+            "en": "the whole chain and the command line",
+            "es": "toda la cadena y la línea de órdenes",
+            "de": "die ganze Kette und die Kommandozeile",
+            "fr": "toute la chaîne et la ligne de commande",
+            "it": "tutta la catena e la riga di comando",
+            "ja": "全体の流れとコマンドライン",
+            "zh": "整个流程与命令行",
+            "pt": "toda a cadeia e a linha de comandos"
+          },
+          "tree_name": "pipeline.py cli.py __main__.py"
+        }
+      ]
+    },
+    {
+      "name": "tests/",
+      "span": 1,
+      "tree": {
+        "en": "the tests",
+        "es": "las pruebas",
+        "de": "die Tests",
+        "fr": "les tests",
+        "it": "i test",
+        "ja": "テスト",
+        "zh": "测试",
+        "pt": "os testes"
+      },
+      "rows": [
+        {
+          "name": "test_vision.py",
+          "desc": {
+            "en": "42 tests",
+            "es": "42 pruebas",
+            "de": "42 Tests",
+            "fr": "42 tests",
+            "it": "42 test",
+            "ja": "42 件",
+            "zh": "42 个",
+            "pt": "42 testes"
+          }
+        },
+        {
+          "name": "test_vision_edges.py",
+          "desc": {
+            "en": "19 tests",
+            "es": "19 pruebas",
+            "de": "19 Tests",
+            "fr": "19 tests",
+            "it": "19 test",
+            "ja": "19 件",
+            "zh": "19 个",
+            "pt": "19 testes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "docs/",
+      "span": 1,
+      "tree": {
+        "en": "the guides of this repository",
+        "es": "las guías de este repositorio",
+        "de": "die Anleitungen dieses Repositorys",
+        "fr": "les guides de ce dépôt",
+        "it": "le guide di questo repository",
+        "ja": "このリポジトリのガイド",
+        "zh": "本仓库的指南",
+        "pt": "os guias deste repositório"
+      },
+      "rows": [
+        {
+          "name": "USAGE.md",
+          "desc": {
+            "en": "usage and configuration",
+            "es": "uso y configuración",
+            "de": "Verwendung und Konfiguration",
+            "fr": "utilisation et configuration",
+            "it": "uso e configurazione",
+            "ja": "使い方と設定",
+            "zh": "用法与配置",
+            "pt": "utilização e configuração"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tools/",
+      "span": 1,
+      "tree": {
+        "en": "the shared CI checks and project tooling",
+        "es": "las comprobaciones de CI compartidas y las herramientas del proyecto",
+        "de": "die gemeinsamen CI-Prüfungen und Projektwerkzeuge",
+        "fr": "les contrôles CI partagés et les outils du projet",
+        "it": "i controlli CI condivisi e gli strumenti del progetto",
+        "ja": "共通の CI チェックとプロジェクトツール",
+        "zh": "共享的 CI 检查和项目工具",
+        "pt": "as verificações de CI partilhadas e as ferramentas do projeto"
+      },
+      "rows": [
+        {
+          "name": "armor_ci_validate.py",
+          "desc": {
+            "en": "the CI validation",
+            "es": "la validación de CI",
+            "de": "die CI-Prüfung",
+            "fr": "la validation CI",
+            "it": "la validazione CI",
+            "ja": "CI 検証",
+            "zh": "CI 验证",
+            "pt": "a validação de CI"
+          }
+        }
+      ]
+    },
+    {
+      "name": ".github/ images/",
+      "kind": "group",
+      "span": 3,
+      "columns": 2,
+      "rows": [
+        {
+          "name": ".github/",
+          "desc": {
+            "en": "CI workflow, issue and pull-request templates",
+            "es": "flujo de CI y plantillas de issues y pull requests",
+            "de": "CI-Workflow sowie Vorlagen für Issues und Pull Requests",
+            "fr": "workflow CI et modèles d'issues et de pull requests",
+            "it": "workflow CI e modelli per issue e pull request",
+            "ja": "CI ワークフローと Issue・Pull Request のテンプレート",
+            "zh": "CI 工作流以及 Issue 和 Pull Request 模板",
+            "pt": "fluxo de CI e modelos de issues e pull requests"
+          }
+        },
+        {
+          "name": "images/",
+          "desc": {
+            "en": "banner, icon and the two pictures of this README",
+            "es": "banner, icono y las dos imágenes de este README",
+            "de": "Banner, Symbol und die zwei Bilder dieses READMEs",
+            "fr": "bannière, icône et les deux images de ce README",
+            "it": "banner, icona e le due immagini di questo README",
+            "ja": "バナー、アイコン、この README の 2 つの図",
+            "zh": "横幅、图标和本 README 的两幅图",
+            "pt": "faixa, ícone e as duas imagens deste README"
+          }
+        }
+      ]
+    },
+    {
+      "name": {
+        "en": "Files at the root",
+        "es": "Ficheros en la raíz",
+        "de": "Dateien im Wurzelverzeichnis",
+        "fr": "Fichiers à la racine",
+        "it": "File nella radice",
+        "ja": "ルートのファイル",
+        "zh": "根目录的文件",
+        "pt": "Ficheiros na raiz"
+      },
+      "kind": "group",
+      "span": 3,
+      "columns": 2,
+      "rows": [
+        {
+          "name": "build.sh  build.bat",
+          "tree_name": "build.sh build.bat",
+          "desc": {
+            "en": "build through the shared project workflow",
+            "es": "compilar con el flujo de proyecto compartido",
+            "de": "Build über den gemeinsamen Projekt-Workflow",
+            "fr": "build par le flux de projet partagé",
+            "it": "build tramite il flusso di progetto condiviso",
+            "ja": "共通のプロジェクトワークフローでビルド",
+            "zh": "通过共享的项目工作流构建",
+            "pt": "compilar pelo fluxo de projeto partilhado"
+          }
+        },
+        {
+          "name": "test.sh  test.bat",
+          "tree_name": "test.sh test.bat",
+          "desc": {
+            "en": "run the tests through the shared workflow",
+            "es": "ejecutar las pruebas con el flujo compartido",
+            "de": "Tests über den gemeinsamen Workflow ausführen",
+            "fr": "lancer les tests par le flux partagé",
+            "it": "eseguire i test tramite il flusso condiviso",
+            "ja": "共通のワークフローでテストを実行",
+            "zh": "通过共享工作流运行测试",
+            "pt": "executar os testes pelo fluxo partilhado"
+          }
+        },
+        {
+          "name": "run.sh  run.bat",
+          "tree_name": "run.sh run.bat",
+          "desc": {
+            "en": "start through the shared project workflow",
+            "es": "arrancar con el flujo de proyecto compartido",
+            "de": "Start über den gemeinsamen Projekt-Workflow",
+            "fr": "démarrer par le flux de projet partagé",
+            "it": "avvio tramite il flusso di progetto condiviso",
+            "ja": "共通のプロジェクトワークフローで起動",
+            "zh": "通过共享的项目工作流启动",
+            "pt": "arrancar pelo fluxo de projeto partilhado"
+          }
+        },
+        {
+          "name": "armor.project.json",
+          "desc": {
+            "en": "manifest: version, role, maturity, build command",
+            "es": "manifiesto: versión, rol, madurez, comando de build",
+            "de": "Manifest: Version, Rolle, Reifegrad, Build-Befehl",
+            "fr": "manifeste : version, rôle, maturité, commande de build",
+            "it": "manifesto: versione, ruolo, maturità, comando di build",
+            "ja": "マニフェスト：バージョン、役割、成熟度、ビルドコマンド",
+            "zh": "清单：版本、角色、成熟度、构建命令",
+            "pt": "manifesto: versão, função, maturidade, comando de build"
+          }
+        },
+        {
+          "name": "CHANGELOG.md",
+          "desc": {
+            "en": "what changed in each version",
+            "es": "qué cambió en cada versión",
+            "de": "was sich in jeder Version geändert hat",
+            "fr": "ce qui a changé à chaque version",
+            "it": "cosa è cambiato in ogni versione",
+            "ja": "各バージョンの変更点",
+            "zh": "每个版本的变化",
+            "pt": "o que mudou em cada versão"
+          }
+        },
+        {
+          "name": "SECURITY.md  SUPPORT.md  LICENSE",
+          "tree_name": "SECURITY.md SUPPORT.md LICENSE",
+          "desc": {
+            "en": "security policy, support and license",
+            "es": "política de seguridad, soporte y licencia",
+            "de": "Sicherheitsrichtlinie, Support und Lizenz",
+            "fr": "politique de sécurité, support et licence",
+            "it": "politica di sicurezza, supporto e licenza",
+            "ja": "セキュリティポリシー、サポート、ライセンス",
+            "zh": "安全策略、支持和许可证",
+            "pt": "política de segurança, apoio e licença"
+          }
+        },
+        {
+          "name": "CONTRIBUTING.md  CODE_OF_CONDUCT.md",
+          "tree_name": "CONTRIBUTING.md CODE_OF_CONDUCT.md",
+          "desc": {
+            "en": "how to contribute and the code of conduct",
+            "es": "cómo contribuir y el código de conducta",
+            "de": "Mitwirkung und Verhaltenskodex",
+            "fr": "comment contribuer et le code de conduite",
+            "it": "come contribuire e il codice di condotta",
+            "ja": "貢献方法と行動規範",
+            "zh": "如何贡献与行为准则",
+            "pt": "como contribuir e o código de conduta"
+          }
+        },
+        {
+          "name": "build-test.sh  build-test.bat",
+          "desc": {
+            "en": "run the tests through the shared workflow",
+            "es": "ejecutar las pruebas con el flujo compartido",
+            "de": "Tests über den gemeinsamen Workflow ausführen",
+            "fr": "lancer les tests par le flux partagé",
+            "it": "eseguire i test tramite il flusso condiviso",
+            "ja": "共通のワークフローでテストを実行",
+            "zh": "通过共享工作流运行测试",
+            "pt": "executar os testes pelo fluxo partilhado"
+          },
+          "tree_name": "build-test.sh build-test.bat"
+        },
+        {
+          "name": "pyproject.toml",
+          "desc": {
+            "en": "package metadata",
+            "es": "metadatos del paquete",
+            "de": "Paketmetadaten",
+            "fr": "métadonnées du paquet",
+            "it": "metadati del pacchetto",
+            "ja": "パッケージのメタデータ",
+            "zh": "包元数据",
+            "pt": "metadados do pacote"
+          }
+        },
+        {
+          "name": ".gitattributes  .gitignore",
+          "desc": {
+            "en": "Git settings",
+            "es": "ajustes de Git",
+            "de": "Git-Einstellungen",
+            "fr": "réglages Git",
+            "it": "impostazioni di Git",
+            "ja": "Git の設定",
+            "zh": "Git 设置",
+            "pt": "definições do Git"
+          },
+          "tree_name": ".gitattributes .gitignore"
+        }
+      ]
+    }
+  ]
+}

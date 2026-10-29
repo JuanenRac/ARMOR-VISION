@@ -18,7 +18,7 @@
 ### Zones, masks and detection rules for the cameras
 
 <p align="center">
-  <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
   <img src="https://img.shields.io/badge/Tests-61%20passing-2ea44f.svg" alt="Tests">
@@ -38,9 +38,14 @@
 |---|---|
 | Version | `0.0.3` |
 | Maturity | Functional |
+| Role | Camera zones, masks and detection rules (family: Core Services, parent: ARMOR-SERVER) |
+| Stack | Python 3.11+, standard library only |
 | Tests | 61 (`python -m unittest discover -s tests`) |
-| Stack | Python 3.11+ |
+| Runs on | Any computer |
 | On real hardware | None yet: no real detector, camera or Jetson (a simulation with scripted detections) |
+| License | GPL-3.0-or-later |
+
+**Jump to:** [Overview](#-overview) · [Architecture](#-architecture) · [Security](#-security--safety) · [Interfaces](#-interfaces) · [Configuration](#-configuration) · [Quick start](#-quick-start) · [Testing](#-testing) · [Troubleshooting](#-troubleshooting) · [Structure](#-repository-structure) · [Related](#-related-projects)
 
 ## 🚦 Project status
 
@@ -67,22 +72,69 @@ Each line is one part of this repository and the light says how far it is today.
 
 ARMOR-VISION is the part that decides what a camera's picture means, apart from any detector: the zones and masks drawn on it, the motion check that runs before the expensive detector, the tracker, the arming profiles and the rules that turn detections into events. [ARMOR-SERVER-AI](https://github.com/JuanenRac/ARMOR-SERVER-AI) is the service that watches the cameras today; ARMOR-VISION is where the rules for a real detection model are ready, waiting for it. It only reports: the events never authorise an action.
 
-## 📂 Repository Structure
+| Name | How | What for |
+|---|---|---|
+| ARMOR-SERVER-AI | same rules, once a model exists | Watches the cameras today |
+| ARMOR-SERVER | `armor.vision.event/v1` | Decides what to do with an event (not part of the ARMOR-COMMON contract yet) |
 
-```text
-ARMOR-VISION/
-├── src/armor_vision/   geometry, config (zones, masks, profiles), motion, tracker, rules, detector, pipeline, cli
-├── tests/              61 tests
-├── tools/              the shared CI checks (armor_ci_validate.py, armor_project_tool.py, _armor_readme_parity.py)
-└── docs/USAGE.md
+## 🏛️ Architecture
+
+<p align="center">
+  <img src="images/architecture.svg" alt="ARMOR-VISION architecture: who calls it, what it holds and what it depends on" width="100%">
+</p>
+
+## 🔒 Security & Safety
+
+| Threat | Defence |
+|---|---|
+| The rule engine acts on its own | Every event carries `authorizes_action: false` (schema `armor.vision.event/v1`); the server decides |
+| A wrong camera configuration | `check-config` lists every problem and one problem means nothing is accepted; coordinates are 0 to 1, a zone is `alert` or `detection`, unknown fields are errors |
+| The costly detector runs for nothing | Motion comes first: the detector is asked only when enough cells of the 16 x 9 grid changed outside the masks |
+| A parked car raises event after event | The tracker remembers what stands still (drift under 0.01 in 3 s) for 300 s and it makes no new events |
+| An unknown arming mode | Every zone is watched; only `disarmed` without a profile silences the `alert` zones, and `detection` zones still record |
+
+Nothing here is a safety function: there is no real detector model yet.
+
+## 🔌 Interfaces
+
+| Name | What it sets |
+|---|---|
+| `python -m armor_vision simulate [--config FILE] [--mode MODE]` | Runs a built-in scenario (a person crossing a driveway, a parked car, movement behind a masked tree) and prints one JSON line per event and a last line with the counters |
+| `python -m armor_vision check-config FILE` | Validates a configuration and prints every problem; exit 0 good, 1 invalid, 2 unreadable |
+
+```json
+{"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
+ "zone_name": "Driveway", "track_id": 1, "label": "person", "confidence": 0.9,
+ "box": [0.41, 0.62, 0.47, 0.82], "timestamp": 1.0, "authorizes_action": false}
 ```
 
-## 🛠️ Development Environment
+As a library: `parse_config`, `Pipeline.process_detections` and `process_frame`. Asking `load_detector("tensorrt")` raises `DetectorUnavailable` because the model for the Jetson Orin NX is not written. See [docs/USAGE.md](docs/USAGE.md).
 
-**Requirements:** Python 3.11+ (standard library only)
+## ⚙️ Configuration
+
+| Name | What it sets |
+|---|---|
+| `motion_threshold` | 1 to 255: the grey difference that counts as change |
+| `motion_min_cells` | How many cells of the 16 x 9 grid must change before the detector is asked |
+| `zones[]` | `id`, `name`, `kind` (`alert` or `detection`), `labels`, `min_frames`, `min_seconds`, `points` (polygon, 0 to 1); counted by the feet of the box |
+| `masks[]` | Polygons where movement is ignored; detections whose centre is inside are dropped |
+| `profiles` | Which zones are watched in each arming mode (`away`, `home`, ...) |
+
+| Limit | Value |
+|---|---|
+| Matching of a detection to a track (overlap / reach) | 0.3 / 1.0 |
+| A moving track not seen is dropped after | 2 s |
+| Stationary: window / drift / remembered for | 3 s / 0.01 / 300 s |
+| Motion grid | 16 x 9 |
+
+These values are constants of `tracker.py` and `motion.py` today; the configuration file holds the zones, masks, profiles and the motion thresholds.
+
+## 🚀 Quick start
+
+**Requirements:** Python 3.11+ (standard library only).
 
 ```powershell
-$env:PYTHONPATH="src"
+$env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
 python -m unittest discover -s tests   # 61 tests
@@ -94,7 +146,86 @@ PYTHONPATH=src python -m armor_vision check-config my_cameras.json
 PYTHONPATH=src python -m unittest discover -s tests   # 61 tests
 ```
 
-Options and the configuration format: [usage](docs/USAGE.md).
+## 🧪 Testing
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m unittest discover -s tests
+python -I tools/armor_ci_validate.py
+```
+
+| Test file | Tests | What it covers |
+|---|---|---|
+| `test_vision.py` | 42 | Geometry, configuration, motion, tracker, rules, profiles, the pipeline and the command line |
+| `test_vision_edges.py` | 19 | The edges: bad configurations, stationary objects, masked detections and the unavailable detector |
+
+## 🏗️ Build & Release
+
+It is plain Python: nothing to compile. The version lives in `pyproject.toml` and `armor.project.json`.
+
+## 🩺 Troubleshooting
+
+| You see | Because | Do |
+|---|---|---|
+| `check-config` exits with 1 | The configuration has problems; it lists each one | Fix them all: unknown fields are errors |
+| `check-config` exits with 2 | The file cannot be read | Check the path and that it is JSON |
+| `DetectorUnavailable` | `load_detector("tensorrt")`: the real model is not written | Use `ScriptedDetector` |
+| A zone never fires | The feet are outside the polygon, the label is not accepted, a mask hides it, or the mode has no profile with that zone | Run `simulate` with the same file and mode |
+
+## 📂 Repository Structure
+
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Repository structure of ARMOR-VISION" width="100%">
+</p>
+
+<details>
+<summary>Text version of the tree</summary>
+
+```text
+ARMOR-VISION/
+├── src/armor_vision/
+│   ├── geometry.py                      polygons on normalised coordinates
+│   ├── config.py                        zones, masks, profiles and their validation
+│   ├── motion.py                        the 16 x 9 motion check, masks ignored
+│   ├── detector.py                      scripted detections; the real model is not written
+│   ├── tracker.py                       identity between pictures; stationary objects
+│   ├── rules.py                         zones to events: armor.vision.event/v1
+│   └── pipeline.py cli.py __main__.py   the whole chain and the command line
+├── tests/                               the tests
+├── docs/                                the guides of this repository
+├── tools/                               the shared CI checks and project tooling
+├── .github/                             CI workflow, issue and pull-request templates
+├── images/                              banner, icon and the two pictures of this README
+├── build.sh build.bat                   build through the shared project workflow
+├── test.sh test.bat                     run the tests through the shared workflow
+├── run.sh run.bat                       start through the shared project workflow
+├── armor.project.json                   manifest: version, role, maturity, build command
+├── CHANGELOG.md                         what changed in each version
+├── SECURITY.md SUPPORT.md LICENSE       security policy, support and license
+├── CONTRIBUTING.md CODE_OF_CONDUCT.md   how to contribute and the code of conduct
+├── build-test.sh build-test.bat         run the tests through the shared workflow
+├── pyproject.toml                       package metadata
+└── .gitattributes .gitignore            Git settings
+```
+
+</details>
+
+## 🗺️ Roadmap & Known limits
+
+**Known limits today**
+
+* There is no real detector model yet, and nothing has run on a camera or on the Jetson Orin NX: the simulation uses scripted detections.
+* The event is not part of the ARMOR-COMMON contract yet.
+* The tracker and motion values are constants in the code, not in the configuration file.
+
+**Next**
+
+* Write the detector model for the Jetson Orin NX and try it with a real camera.
+* Move the tracker and motion constants to the configuration file and put the event in the ARMOR-COMMON contract.
+
+## 🌍 Languages
+
+README and texts exist in English, Spanish, French, Italian, German, Chinese, Japanese and European Portuguese.
 
 ## 🔗 Related Projects
 
@@ -120,15 +251,20 @@ Options and the configuration format: [usage](docs/USAGE.md).
 * **[ARMOR-UPDATER](https://github.com/JuanenRac/ARMOR-UPDATER)** - Detects, installs and updates the ecosystem's own repositories
 * **[ARMOR-DOCS](https://github.com/JuanenRac/ARMOR-DOCS)** - Architecture, security baseline and the capability matrix
 
-## 📚 Documentation & Community
+## 📚 Documentation
 
-Where to read more:
-
+* [Usage](docs/USAGE.md): the commands, the configuration, the event and the library
 * [Capability matrix: what is proven and what is not](https://github.com/JuanenRac/ARMOR-DOCS/blob/main/docs/CAPABILITY_MATRIX.md)
 * [Project catalogue: versions and how the repositories depend on each other](https://github.com/JuanenRac/ARMOR-DOCS/blob/main/docs/PROJECT_CATALOG.md)
 * [Changelog of this repository](CHANGELOG.md)
-* [License (GPL-3.0-or-later)](LICENSE)
-* Questions, ideas and reports: electrohobby3d@gmail.com
+
+## 🤝 Contributing & Community
+
+* Before a pull request run `python -m unittest discover -s tests` and `python -I tools/armor_ci_validate.py`: it must pass. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md).
+* The README exists in eight languages and is generated from the sources in ARMOR-DOCS: a change to the text is made there.
+* A change to a message between components starts in ARMOR-COMMON.
+* Do not describe as working on a board what has only been built.
+* Report a vulnerability privately: [SECURITY.md](SECURITY.md). Questions, ideas and reports: electrohobby3d@gmail.com ([SUPPORT.md](SUPPORT.md)).
 
 ## 👤 AUTHOR
 
