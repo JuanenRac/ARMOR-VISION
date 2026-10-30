@@ -14,6 +14,7 @@
   ],
   "deployment_target": "NVIDIA Jetson Orin NX (planned); developer workstation today",
   "maturity": "functional",
+  "evidence": "host-test",
   "family": "Core Services",
   "parent": "ARMOR-SERVER",
   "native_version": "0.0.3",
