@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The CI type-checks the source:** the project declares its mypy configuration, so the shared workflow runs ruff and mypy on it.
 ## [0.0.4] - The lights of Project status follow the evidence of the manifest, the universal README and the pictures of the README from shared tools
 
 - **The lights of Project status follow the evidence of the manifest:** the manifest says how far the repository has been shown to work (`evidence`: `host-test`, `simulator`, `bench` or `field`) and the validator fails when a light is above what that evidence and the maturity allow (`tools/status_lights.py`), so a green that never ran on real hardware cannot come back.
