@@ -22,7 +22,7 @@
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Lenguaje">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
   <img src="https://img.shields.io/badge/Tests-90%20passing-2ea44f.svg" alt="Pruebas">
-  <img src="https://img.shields.io/badge/Version-0.0.4-0f6cbd.svg" alt="Versión">
+  <img src="https://img.shields.io/badge/Version-0.0.5-0f6cbd.svg" alt="Versión">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Madurez">
 </p>
 
@@ -36,7 +36,7 @@
 
 | | |
 |---|---|
-| Versión | `0.0.4` |
+| Versión | `0.0.5` |
 | Madurez | Funcional |
 | Función | Zonas, máscaras y reglas de detección de cámaras (familia: Core Services, padre: ARMOR-SERVER) |
 | Tecnología | Python 3.11+, solo biblioteca estándar |
