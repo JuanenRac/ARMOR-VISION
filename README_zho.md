@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-61%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-90%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.4-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 61 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
+**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 90 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
 
 ---
 
@@ -40,7 +40,7 @@
 | 成熟度 | 可用 |
 | 角色 | 摄像头区域、遮罩和检测规则（家族：Core Services，上级：ARMOR-SERVER） |
 | 技术栈 | Python 3.11+，仅标准库 |
-| 测试 | 61 (`python -m unittest discover -s tests`) |
+| 测试 | 90 (`python -m unittest discover -s tests`) |
 | 运行位置 | 任何计算机 |
 | 真实硬件 | 暂无：没有真实的检测器、摄像头或 Jetson（使用脚本化检测的模拟） |
 | 许可证 | GPL-3.0-or-later |
@@ -56,7 +56,7 @@
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 防区、移动检查、跟踪器和规则都能工作，但目前还没有真实的检测模型：模拟使用的是脚本化的检测结果。 |
-| 测试 | 🟢 | 61 项测试通过（`python -m unittest discover -s tests`）。 |
+| 测试 | 🟢 | 90 项测试通过（`python -m unittest discover -s tests`）。 |
 | 硬件 | 🔴 | 还没有在摄像头或 Jetson Orin NX 上运行过。 |
 | 文档 | 🟢 | 八种语言和更新日志均为最新。 |
 
@@ -92,6 +92,7 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 | 耗资源的检测器无故运行 | 先检测运动：只有遮罩之外 16 x 9 网格中足够多的单元发生变化，才会调用检测器 |
 | 停放的汽车不断触发事件 | 跟踪器会记住静止物体（3 秒内漂移小于 0.01）300 秒，不再产生新事件 |
 | 未知的布防模式 | 监视所有区域；只有没有配置文件的 `disarmed` 会让 `alert` 区域静默，`detection` 区域仍会记录 |
+| 活动管线保存或泄露人的图像 | 默认关闭；只保留网格每个格子的计数（位置、标签和数字），绝不保留图像、框或身份；导出内容注明 `contains_images: false`。格式错误、时间倒退或超过 16 MiB 的检测文件会被整体拒绝，热力图有硬性的内存上限 |
 
 这里没有任何安全功能：目前还没有真实的检测模型。
 
@@ -101,6 +102,10 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 |---|---|
 | `python -m armor_vision simulate [--config FILE] [--mode MODE]` | 运行内置场景（有人穿过车道、停放的汽车、被遮罩的树后有动静），每个事件输出一行 JSON，最后输出计数器 |
 | `python -m armor_vision check-config FILE` | 校验配置并输出所有问题；退出码 0 正常、1 无效、2 无法读取 |
+| `python -m armor_vision simulate --simulate-events --activity-config FILE [--seed N] [--detections-file FILE]` | 活动管线默认关闭，除非文件写明 `"enabled": true`（关闭时退出码为 3）：用固定种子的合成场景或已记录的检测，每个事件输出一行 JSON（`zone_enter`、`zone_exit`、`dwell`、`loiter`、`line_cross`） |
+| `python -m armor_vision simulate --heatmap OUT --activity-config FILE` | 写出活动热力图（每个格子的计数，`OUT` 以 `.json`、`.png` 或 `.svg` 结尾）；只含汇总后的位置，绝不含图像 |
+| `python -m armor_vision activity-example` / `check-activity-config FILE` | 打印一份可作起点的活动配置 / 校验一份配置（退出码 0 正常，1 无效，2 无法读取） |
+| `ActivityEngine`, `heatmap_route` | 作为库：引擎以及 `GET /heatmap?camera=ID&format=json`（也支持 `png` 和 `svg`）的处理器，供将来挂载它的服务使用；本仓库没有自己的服务器，管线关闭时该路由返回 404 |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -119,6 +124,7 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 | `zones[]` | `id`、`name`、`kind`（`alert` 或 `detection`）、`labels`、`min_frames`、`min_seconds`、`points`（多边形，0 到 1）；按框的脚部计数 |
 | `masks[]` | 忽略运动的多边形；中心位于其中的检测会被丢弃 |
 | `profiles` | 每种布防模式下监视哪些区域（`away`、`home` 等） |
+| `活动配置（单独的文件）` | `enabled`（默认 `false`）、`heatmap`（`cols`、`rows`、`window_seconds`、`half_life_seconds`、`slices`、最大 65536 的 `max_cells`、`position`、`labels`）和 `events`（`dwell_seconds`、`loiter_seconds`、`loiter_radius`、`lost_seconds`、`labels`、含 `id`、`a`、`b` 的 `lines[]`）；热力图按权重除以最大值归一化 |
 
 | 限制 | 值 |
 |---|---|
@@ -137,13 +143,13 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 61 tests
+python -m unittest discover -s tests   # 90 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 61 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 90 tests
 ```
 
 ## 🧪 测试
@@ -158,6 +164,8 @@ python -I tools/armor_ci_validate.py
 |---|---|---|
 | `test_vision.py` | 42 | 几何、配置、运动、跟踪、规则、配置文件、流程和命令行 |
 | `test_vision_edges.py` | 19 | 边界情况：错误配置、静止物体、被遮罩的检测以及不可用的检测器 |
+| `test_characterization.py` | 2 | 逐字节固定内置模拟的输出，使活动管线关闭时它不会改变 |
+| `test_activity.py` | 27 | 活动配置、合成与记录的来源、事件、热力图（确定性、总和等于检测数、网格之外没有内容、窗口、衰减、内存）、`/heatmap` 处理器和命令行 |
 
 ## 🏗️ 构建与发布
 
@@ -190,6 +198,9 @@ ARMOR-VISION/
 │   ├── detector.py                      脚本化检测；真实模型尚未编写
 │   ├── tracker.py                       跨画面的身份；静止物体
 │   ├── rules.py                         从区域到事件：armor.vision.event/v1
+│   ├── activity_config.py               活动管线设置，默认关闭
+│   ├── sources.py heatmap.py            合成与记录的来源；热力图
+│   ├── activity.py                      事件与 /heatmap 处理器
 │   └── pipeline.py cli.py __main__.py   整个流程与命令行
 ├── tests/                               测试
 ├── docs/                                本仓库的指南
@@ -215,6 +226,7 @@ ARMOR-VISION/
 **目前已知的限制**
 
 * 目前还没有真实的检测模型，也没有在摄像头或 Jetson Orin NX 上运行过：模拟使用脚本化的检测。
+* 活动管线的摄像头或 RTSP 来源属于硬件部分，尚未编写：目前使用合成场景或检测文件运行。热力图在这里没有 HTTP 服务器，只有处理器。
 * 该事件尚未纳入 ARMOR-COMMON 合约。
 * 跟踪与运动的数值是代码中的常量，不在配置文件中。
 

@@ -104,3 +104,8 @@ def valid_box(box: Sequence[float]) -> bool:
     if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in box):
         return False
     return 0.0 <= box[0] < box[2] <= 1.0 and 0.0 <= box[1] < box[3] <= 1.0
+
+
+def segments_cross(a: Sequence[float], b: Sequence[float], c: Sequence[float], d: Sequence[float]) -> bool:
+    """Segment a-b properly crosses segment c-d (touching an end does not count)."""
+    return _segments_cross(a, b, c, d)

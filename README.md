@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-61%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-90%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.4-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Honesty check - what runs today:** The zones, the motion check, the tracker, the rules and the 61 tests are real. There is **no real detector model yet** and nothing has run on a camera or on the Jetson Orin NX: the simulation uses scripted detections.
+**Honesty check - what runs today:** The zones, the motion check, the tracker, the rules and the 90 tests are real. There is **no real detector model yet** and nothing has run on a camera or on the Jetson Orin NX: the simulation uses scripted detections.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturity | Functional |
 | Role | Camera zones, masks and detection rules (family: Core Services, parent: ARMOR-SERVER) |
 | Stack | Python 3.11+, standard library only |
-| Tests | 61 (`python -m unittest discover -s tests`) |
+| Tests | 90 (`python -m unittest discover -s tests`) |
 | Runs on | Any computer |
 | On real hardware | None yet: no real detector, camera or Jetson (a simulation with scripted detections) |
 | License | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟡 | The zones, the motion check, the tracker and the rules work, but there is no real detector model yet: the simulation uses scripted detections. |
-| Tests | 🟢 | 61 tests pass (`python -m unittest discover -s tests`). |
+| Tests | 🟢 | 90 tests pass (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nothing has run on a camera or on the Jetson Orin NX. |
 | Documentation | 🟢 | Eight languages and the changelog are up to date. |
 
@@ -92,6 +92,7 @@ ARMOR-VISION is the part that decides what a camera's picture means, apart from 
 | The costly detector runs for nothing | Motion comes first: the detector is asked only when enough cells of the 16 x 9 grid changed outside the masks |
 | A parked car raises event after event | The tracker remembers what stands still (drift under 0.01 in 3 s) for 300 s and it makes no new events |
 | An unknown arming mode | Every zone is watched; only `disarmed` without a profile silences the `alert` zones, and `detection` zones still record |
+| The activity pipeline stores or leaks pictures of people | It is off by default; it keeps only a count per cell of the grid (positions, labels and numbers), never a picture, a box or an identity; the export says `contains_images: false`. A file of detections that is malformed, goes back in time or is over 16 MiB is refused whole, and the map has a hard memory limit |
 
 Nothing here is a safety function: there is no real detector model yet.
 
@@ -101,6 +102,10 @@ Nothing here is a safety function: there is no real detector model yet.
 |---|---|
 | `python -m armor_vision simulate [--config FILE] [--mode MODE]` | Runs a built-in scenario (a person crossing a driveway, a parked car, movement behind a masked tree) and prints one JSON line per event and a last line with the counters |
 | `python -m armor_vision check-config FILE` | Validates a configuration and prints every problem; exit 0 good, 1 invalid, 2 unreadable |
+| `python -m armor_vision simulate --simulate-events --activity-config FILE [--seed N] [--detections-file FILE]` | Activity pipeline, OFF unless the file says `"enabled": true` (exit 3 when off): a synthetic scene with a fixed seed, or recorded detections, gives one JSON line per event (`zone_enter`, `zone_exit`, `dwell`, `loiter`, `line_cross`) |
+| `python -m armor_vision simulate --heatmap OUT --activity-config FILE` | Writes the heat map of activity (counts per cell, `OUT` ends in `.json`, `.png` or `.svg`); only aggregated positions, never pictures |
+| `python -m armor_vision activity-example` / `check-activity-config FILE` | Prints an activity configuration to start from / validates one (exit 0 good, 1 invalid, 2 unreadable) |
+| `ActivityEngine`, `heatmap_route` | As a library: the engine and the handler of `GET /heatmap?camera=ID&format=json` (`png` and `svg` too), for the service that will mount it; this repository has no server of its own and the route answers 404 while the pipeline is off |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -119,6 +124,7 @@ As a library: `parse_config`, `Pipeline.process_detections` and `process_frame`.
 | `zones[]` | `id`, `name`, `kind` (`alert` or `detection`), `labels`, `min_frames`, `min_seconds`, `points` (polygon, 0 to 1); counted by the feet of the box |
 | `masks[]` | Polygons where movement is ignored; detections whose centre is inside are dropped |
 | `profiles` | Which zones are watched in each arming mode (`away`, `home`, ...) |
+| `activity configuration (separate file)` | `enabled` (default `false`), `heatmap` (`cols`, `rows`, `window_seconds`, `half_life_seconds`, `slices`, `max_cells` up to 65536, `position`, `labels`) and `events` (`dwell_seconds`, `loiter_seconds`, `loiter_radius`, `lost_seconds`, `labels`, `lines[]` with `id`, `a`, `b`); the heat map is normalised as weight divided by the maximum |
 
 | Limit | Value |
 |---|---|
@@ -137,13 +143,13 @@ These values are constants of `tracker.py` and `motion.py` today; the configurat
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 61 tests
+python -m unittest discover -s tests   # 90 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 61 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 90 tests
 ```
 
 ## 🧪 Testing
@@ -158,6 +164,8 @@ python -I tools/armor_ci_validate.py
 |---|---|---|
 | `test_vision.py` | 42 | Geometry, configuration, motion, tracker, rules, profiles, the pipeline and the command line |
 | `test_vision_edges.py` | 19 | The edges: bad configurations, stationary objects, masked detections and the unavailable detector |
+| `test_characterization.py` | 2 | Fixes the output of the built-in simulation byte for byte, so that it cannot change while the activity pipeline is off |
+| `test_activity.py` | 27 | Activity configuration, synthetic and recorded sources, events, heat map (determinism, sum equals detections, nothing outside the grid, window, decay, memory), the `/heatmap` handler and the command line |
 
 ## 🏗️ Build & Release
 
@@ -190,6 +198,9 @@ ARMOR-VISION/
 │   ├── detector.py                      scripted detections; the real model is not written
 │   ├── tracker.py                       identity between pictures; stationary objects
 │   ├── rules.py                         zones to events: armor.vision.event/v1
+│   ├── activity_config.py               activity pipeline settings, off by default
+│   ├── sources.py heatmap.py            synthetic and recorded sources; heat map
+│   ├── activity.py                      events and the /heatmap handler
 │   └── pipeline.py cli.py __main__.py   the whole chain and the command line
 ├── tests/                               the tests
 ├── docs/                                the guides of this repository
@@ -215,6 +226,7 @@ ARMOR-VISION/
 **Known limits today**
 
 * There is no real detector model yet, and nothing has run on a camera or on the Jetson Orin NX: the simulation uses scripted detections.
+* The camera or RTSP source of the activity pipeline is for the hardware and is not written: today it runs on a synthetic scene or a file of detections. The heat map has no HTTP server here, only the handler.
 * The event is not part of the ARMOR-COMMON contract yet.
 * The tracker and motion values are constants in the code, not in the configuration file.
 

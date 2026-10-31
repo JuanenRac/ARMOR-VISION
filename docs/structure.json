@@ -97,6 +97,45 @@
           }
         },
         {
+          "name": "activity_config.py",
+          "desc": {
+            "en": "activity pipeline settings, off by default",
+            "es": "ajustes del canal de actividad, apagado por defecto",
+            "de": "Einstellungen der Aktivitätspipeline, standardmäßig aus",
+            "fr": "réglages de la chaîne d'activité, éteinte par défaut",
+            "it": "impostazioni della pipeline di attività, spenta di default",
+            "ja": "アクティビティ処理の設定（既定でオフ）",
+            "zh": "活动管线设置，默认关闭",
+            "pt": "definições da cadeia de atividade, desligada por defeito"
+          }
+        },
+        {
+          "name": "sources.py heatmap.py",
+          "desc": {
+            "en": "synthetic and recorded sources; heat map",
+            "es": "fuentes sintética y grabada; mapa de calor",
+            "de": "synthetische und aufgezeichnete Quellen; Heatmap",
+            "fr": "sources synthétique et enregistrée ; carte de chaleur",
+            "it": "sorgenti sintetica e registrata; mappa di calore",
+            "ja": "合成・記録ソース、ヒートマップ",
+            "zh": "合成与记录的来源；热力图",
+            "pt": "fontes sintética e gravada; mapa de calor"
+          }
+        },
+        {
+          "name": "activity.py",
+          "desc": {
+            "en": "events and the /heatmap handler",
+            "es": "eventos y manejador de /heatmap",
+            "de": "Ereignisse und der /heatmap-Handler",
+            "fr": "événements et gestionnaire /heatmap",
+            "it": "eventi e gestore /heatmap",
+            "ja": "イベントと /heatmap ハンドラ",
+            "zh": "事件与 /heatmap 处理器",
+            "pt": "eventos e tratador de /heatmap"
+          }
+        },
+        {
           "name": "pipeline.py cli.py __main__.py",
           "desc": {
             "en": "the whole chain and the command line",
@@ -150,6 +189,32 @@
             "ja": "19 件",
             "zh": "19 个",
             "pt": "19 testes"
+          }
+        },
+        {
+          "name": "test_characterization.py",
+          "desc": {
+            "en": "pins the simulation output",
+            "es": "fija la salida simulada",
+            "de": "fixiert die Simulation",
+            "fr": "fixe la simulation",
+            "it": "fissa la simulazione",
+            "ja": "シミュレーション出力を固定",
+            "zh": "固定模拟输出",
+            "pt": "fixa a simulação"
+          }
+        },
+        {
+          "name": "test_activity.py",
+          "desc": {
+            "en": "activity pipeline, heat map",
+            "es": "actividad y mapa de calor",
+            "de": "Aktivität, Heatmap",
+            "fr": "activité, carte de chaleur",
+            "it": "attività, mappa di calore",
+            "ja": "アクティビティ、ヒートマップ",
+            "zh": "活动、热力图",
+            "pt": "atividade, mapa de calor"
           }
         }
       ]

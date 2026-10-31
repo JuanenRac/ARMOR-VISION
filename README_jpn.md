@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-61%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-90%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.4-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、61 件のテストは実在します。**実際の検知モデルはまだありません**。カメラや Jetson Orin NX では何も動かしていません。シミュレーションは台本どおりの検知結果を使います。
+**正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、90 件のテストは実在します。**実際の検知モデルはまだありません**。カメラや Jetson Orin NX では何も動かしていません。シミュレーションは台本どおりの検知結果を使います。
 
 ---
 
@@ -40,7 +40,7 @@
 | 成熟度 | 機能する |
 | 役割 | カメラのゾーン、マスク、検出ルール（ファミリー：Core Services、親：ARMOR-SERVER） |
 | 技術 | Python 3.11+、標準ライブラリのみ |
-| テスト | 61 (`python -m unittest discover -s tests`) |
+| テスト | 90 (`python -m unittest discover -s tests`) |
 | 動作環境 | 任意のコンピューター |
 | 実機での確認 | まだありません：実際の検出器、カメラ、Jetson はなく、スクリプト化した検出によるシミュレーションのみ |
 | ライセンス | GPL-3.0-or-later |
@@ -56,7 +56,7 @@
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟡 | ゾーン、動きの確認、トラッカー、規則は動作しますが、実際の検出モデルはまだありません。シミュレーションはスクリプト化した検出結果を使います。 |
-| テスト | 🟢 | 61 件のテストが通ります（`python -m unittest discover -s tests`）。 |
+| テスト | 🟢 | 90 件のテストが通ります（`python -m unittest discover -s tests`）。 |
 | ハードウェア | 🔴 | カメラや Jetson Orin NX ではまだ何も動かしていません。 |
 | ドキュメント | 🟢 | 8 言語と変更履歴は最新です。 |
 
@@ -92,6 +92,7 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 | 高コストな検出器が無駄に動く | まず動き判定：マスク外で 16 x 9 グリッドの十分なセルが変化したときだけ検出器を呼びます |
 | 駐車中の車が何度もイベントを出す | トラッカーは静止物（3 秒で 0.01 未満の移動）を 300 秒覚え、新しいイベントを出しません |
 | 未知の警戒モード | すべてのゾーンを監視します。プロファイルのない `disarmed` だけが `alert` ゾーンを止め、`detection` ゾーンは記録を続けます |
+| アクティビティ処理が人物の画像を保存・漏えいする | 既定ではオフです。保持するのはグリッドのセルごとの件数（位置、ラベル、数値）だけで、画像、ボックス、個人の識別情報は決して保持しません。出力には `contains_images: false` と書かれます。形式が不正な検出ファイル、時間が戻るもの、16 MiB を超えるものは丸ごと拒否され、マップにはメモリの厳格な上限があります |
 
 ここにある機能は安全機能ではありません。実際の検出モデルはまだありません。
 
@@ -101,6 +102,10 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 |---|---|
 | `python -m armor_vision simulate [--config FILE] [--mode MODE]` | 組み込みシナリオ（私道を横切る人、駐車中の車、マスクした木の陰の動き）を実行し、イベントごとに JSON 1 行と、最後にカウンターの行を出力します |
 | `python -m armor_vision check-config FILE` | 設定を検証してすべての問題を表示します。終了コード 0 正常、1 不正、2 読み取り不可 |
+| `python -m armor_vision simulate --simulate-events --activity-config FILE [--seed N] [--detections-file FILE]` | アクティビティ処理は、ファイルに `"enabled": true` と書かない限りオフです（オフのときは終了コード 3）。固定シードの合成シーンまたは記録済みの検出から、イベント（`zone_enter`、`zone_exit`、`dwell`、`loiter`、`line_cross`）ごとに JSON の 1 行を出力します |
+| `python -m armor_vision simulate --heatmap OUT --activity-config FILE` | アクティビティのヒートマップ（セルごとの件数、`OUT` は `.json`、`.png`、`.svg` のいずれかで終わる）を書き出します。集計した位置だけで、画像は決して含みません |
+| `python -m armor_vision activity-example` / `check-activity-config FILE` | 出発点となるアクティビティ設定を表示 / 設定を検証します（終了コード 0 正常、1 不正、2 読み取り不可） |
+| `ActivityEngine`, `heatmap_route` | ライブラリとして：エンジンと `GET /heatmap?camera=ID&format=json`（`png`、`svg` も可）のハンドラ。これを載せるサービス向けで、このリポジトリには独自のサーバーはなく、処理がオフの間はルートは 404 を返します |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -119,6 +124,7 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 | `zones[]` | `id`、`name`、`kind`（`alert` または `detection`）、`labels`、`min_frames`、`min_seconds`、`points`（多角形、0〜1）。ボックスの足元で判定 |
 | `masks[]` | 動きを無視する多角形。中心が内側にある検出は破棄されます |
 | `profiles` | 警戒モードごとに監視するゾーン（`away`、`home` など） |
+| `アクティビティ設定（別ファイル）` | `enabled`（既定 `false`）、`heatmap`（`cols`、`rows`、`window_seconds`、`half_life_seconds`、`slices`、65536 までの `max_cells`、`position`、`labels`）、`events`（`dwell_seconds`、`loiter_seconds`、`loiter_radius`、`lost_seconds`、`labels`、`id`・`a`・`b` を持つ `lines[]`）。ヒートマップは重みを最大値で割って正規化します |
 
 | 制限 | 値 |
 |---|---|
@@ -137,13 +143,13 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 61 tests
+python -m unittest discover -s tests   # 90 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 61 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 90 tests
 ```
 
 ## 🧪 テスト
@@ -158,6 +164,8 @@ python -I tools/armor_ci_validate.py
 |---|---|---|
 | `test_vision.py` | 42 | 幾何、設定、動き、トラッカー、ルール、プロファイル、全体の流れ、コマンドライン |
 | `test_vision_edges.py` | 19 | 境界条件：不正な設定、静止物、マスクされた検出、利用できない検出器 |
+| `test_characterization.py` | 2 | 組み込みシミュレーションの出力をバイト単位で固定し、アクティビティ処理がオフの間は変わらないようにします |
+| `test_activity.py` | 27 | アクティビティ設定、合成と記録のソース、イベント、ヒートマップ（決定性、合計が検出数と一致、グリッド外なし、ウィンドウ、減衰、メモリ）、`/heatmap` ハンドラ、コマンドライン |
 
 ## 🏗️ ビルドとリリース
 
@@ -190,6 +198,9 @@ ARMOR-VISION/
 │   ├── detector.py                      スクリプト化した検出。実モデルは未実装
 │   ├── tracker.py                       画像間の識別、静止物
 │   ├── rules.py                         ゾーンからイベントへ：armor.vision.event/v1
+│   ├── activity_config.py               アクティビティ処理の設定（既定でオフ）
+│   ├── sources.py heatmap.py            合成・記録ソース、ヒートマップ
+│   ├── activity.py                      イベントと /heatmap ハンドラ
 │   └── pipeline.py cli.py __main__.py   全体の流れとコマンドライン
 ├── tests/                               テスト
 ├── docs/                                このリポジトリのガイド
@@ -215,6 +226,7 @@ ARMOR-VISION/
 **現時点の既知の制限**
 
 * 実際の検出モデルはまだなく、カメラや Jetson Orin NX では何も動いていません。シミュレーションはスクリプト化した検出を使います。
+* アクティビティ処理のカメラまたは RTSP ソースはハードウェア向けで未実装です。現在は合成シーンまたは検出ファイルで動作します。ヒートマップにはここでは HTTP サーバーはなく、ハンドラだけがあります。
 * イベントはまだ ARMOR-COMMON のコントラクトに含まれていません。
 * トラッカーと動き判定の値は設定ファイルではなくコード内の定数です。
 

@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **An activity pipeline with simulated cameras and a heat map (off by default):** the new activity configuration (`enabled` is `false` unless the file says otherwise) switches on a pipeline that turns detections into activity events (`zone_enter`, `zone_exit`, `dwell`, `loiter`, `line_cross`, with `authorizes_action: false`) and keeps a heat map of activity: counts per cell of a grid over the scene, over a configurable time window with optional decay, normalised as weight divided by the maximum, exportable as JSON, PNG or SVG (standard library only) and bounded in memory. The detections come from a pluggable source: a deterministic synthetic scene (a seed gives the same objects every time) or a file of recorded detections; a malformed, backwards-in-time or oversized file is refused whole. Only aggregated positions are kept: no picture, box or identity is stored or exported. New commands `simulate --simulate-events`, `simulate --heatmap OUT`, `activity-example` and `check-activity-config`, and the handler of `GET /heatmap` for the service that will mount it (this repository has no server of its own). With the switch off, everything behaves as before; the real camera or RTSP source is for the hardware and is not written.
+- Tests: 90 (before 61), including tests that pin the existing simulation output and property tests with a fixed seed.
 - **The CI type-checks the source:** the project declares its mypy configuration, so the shared workflow runs ruff and mypy on it.
 ## [0.0.4] - The lights of Project status follow the evidence of the manifest, the universal README and the pictures of the README from shared tools
 
