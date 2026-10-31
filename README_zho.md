@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-90%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-97%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 90 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
+**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 97 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
 
 ---
 
@@ -40,7 +40,7 @@
 | 成熟度 | 可用 |
 | 角色 | 摄像头区域、遮罩和检测规则（家族：Core Services，上级：ARMOR-SERVER） |
 | 技术栈 | Python 3.11+，仅标准库 |
-| 测试 | 90 (`python -m unittest discover -s tests`) |
+| 测试 | 97 (`python -m unittest discover -s tests`) |
 | 运行位置 | 任何计算机 |
 | 真实硬件 | 暂无：没有真实的检测器、摄像头或 Jetson（使用脚本化检测的模拟） |
 | 许可证 | GPL-3.0-or-later |
@@ -56,7 +56,7 @@
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 防区、移动检查、跟踪器和规则都能工作，但目前还没有真实的检测模型：模拟使用的是脚本化的检测结果。 |
-| 测试 | 🟢 | 90 项测试通过（`python -m unittest discover -s tests`）。 |
+| 测试 | 🟢 | 97 项测试通过（`python -m unittest discover -s tests`）。 |
 | 硬件 | 🔴 | 还没有在摄像头或 Jetson Orin NX 上运行过。 |
 | 文档 | 🟢 | 八种语言和更新日志均为最新。 |
 
@@ -105,7 +105,8 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 | `python -m armor_vision simulate --simulate-events --activity-config FILE [--seed N] [--detections-file FILE]` | 活动管线默认关闭，除非文件写明 `"enabled": true`（关闭时退出码为 3）：用固定种子的合成场景或已记录的检测，每个事件输出一行 JSON（`zone_enter`、`zone_exit`、`dwell`、`loiter`、`line_cross`） |
 | `python -m armor_vision simulate --heatmap OUT --activity-config FILE` | 写出活动热力图（每个格子的计数，`OUT` 以 `.json`、`.png` 或 `.svg` 结尾）；只含汇总后的位置，绝不含图像 |
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | 打印一份可作起点的活动配置 / 校验一份配置（退出码 0 正常，1 无效，2 无法读取） |
-| `ActivityEngine`, `heatmap_route` | 作为库：引擎以及 `GET /heatmap?camera=ID&format=json`（也支持 `png` 和 `svg`）的处理器，供将来挂载它的服务使用；本仓库没有自己的服务器，管线关闭时该路由返回 404 |
+| `ActivityEngine`, `heatmap_route` | 作为库：引擎以及 `GET /heatmap?camera=ID&format=json`（也支持 `png` 和 `svg`）的处理器，供挂载它的服务使用；管线关闭时该路由返回 404 |
+| `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | 根据记录的检测结果回答一次 `GET /heatmap` 查询，并把答案作为一行 JSON（`status`、`content_type`、`body_base64`）输出；挂载该路由的服务器运行的就是它。路由的每个答案都以 0 退出（管线关闭时的 404 和查询有误时的 400 也是），配置错误退出 1，文件无法读取退出 2 |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -143,13 +144,13 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 90 tests
+python -m unittest discover -s tests   # 97 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 90 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 97 tests
 ```
 
 ## 🧪 测试
@@ -166,6 +167,7 @@ python -I tools/armor_ci_validate.py
 | `test_vision_edges.py` | 19 | 边界情况：错误配置、静止物体、被遮罩的检测以及不可用的检测器 |
 | `test_characterization.py` | 2 | 逐字节固定内置模拟的输出，使活动管线关闭时它不会改变 |
 | `test_activity.py` | 27 | 活动配置、合成与记录的来源、事件、热力图（确定性、总和等于检测数、网格之外没有内容、窗口、衰减、内存）、`/heatmap` 处理器和命令行 |
+| `test_heatmap_service.py` | 7 | 作为命令的热力图路由：关闭时无论数据如何都返回 404，开启但没有数据时返回空图，三种格式下的计数，错误的查询，以及错误的配置或文件会报错，绝不会变成空图 |
 
 ## 🏗️ 构建与发布
 
@@ -201,6 +203,7 @@ ARMOR-VISION/
 │   ├── activity_config.py               活动管线设置，默认关闭
 │   ├── sources.py heatmap.py            合成与记录的来源；热力图
 │   ├── activity.py                      事件与 /heatmap 处理器
+│   ├── heatmap_service.py               作为命令的 /heatmap 路由
 │   └── pipeline.py cli.py __main__.py   整个流程与命令行
 ├── tests/                               测试
 ├── docs/                                本仓库的指南

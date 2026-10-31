@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-90%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-97%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Verificação de honestidade - o que funciona hoje:** As zonas, a verificação de movimento, o seguidor, as regras e os 90 testes são reais. **Ainda não há nenhum modelo detetor real** e nada correu numa câmara nem no Jetson Orin NX: a simulação usa deteções com guião.
+**Verificação de honestidade - o que funciona hoje:** As zonas, a verificação de movimento, o seguidor, as regras e os 97 testes são reais. **Ainda não há nenhum modelo detetor real** e nada correu numa câmara nem no Jetson Orin NX: a simulação usa deteções com guião.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturidade | Funcional |
 | Função | Zonas, máscaras e regras de deteção de câmaras (família: Core Services, pai: ARMOR-SERVER) |
 | Tecnologia | Python 3.11+, só biblioteca padrão |
-| Testes | 90 (`python -m unittest discover -s tests`) |
+| Testes | 97 (`python -m unittest discover -s tests`) |
 | Funciona em | Qualquer computador |
 | Em hardware real | Nenhum ainda: nem detetor real, nem câmara, nem Jetson (uma simulação com deteções guionizadas) |
 | Licença | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 | Área | Estado | O que significa aqui |
 |---|---|---|
 | Software | 🟡 | As zonas, a verificação de movimento, o seguimento e as regras funcionam, mas ainda não há um modelo detetor real: a simulação usa deteções com guião. |
-| Testes | 🟢 | Passam 90 testes (`python -m unittest discover -s tests`). |
+| Testes | 🟢 | Passam 97 testes (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nada funcionou numa câmara nem no Jetson Orin NX. |
 | Documentação | 🟢 | Oito idiomas e o registo de alterações estão atualizados. |
 
@@ -105,7 +105,8 @@ Nada aqui é uma função de segurança: ainda não há um modelo de deteção r
 | `python -m armor_vision simulate --simulate-events --activity-config FILE [--seed N] [--detections-file FILE]` | Cadeia de atividade, DESLIGADA salvo se o ficheiro disser `"enabled": true` (código 3 se estiver desligada): uma cena sintética com semente fixa, ou deteções gravadas, dá uma linha JSON por evento (`zone_enter`, `zone_exit`, `dwell`, `loiter`, `line_cross`) |
 | `python -m armor_vision simulate --heatmap OUT --activity-config FILE` | Escreve o mapa de calor da atividade (contagens por célula, `OUT` termina em `.json`, `.png` ou `.svg`); só posições agregadas, nunca imagens |
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | Imprime uma configuração de atividade para começar / valida uma (código 0 bom, 1 inválida, 2 ilegível) |
-| `ActivityEngine`, `heatmap_route` | Como biblioteca: o motor e o tratador de `GET /heatmap?camera=ID&format=json` (também `png` e `svg`), para o serviço que o montar; este repositório não tem servidor próprio e a rota responde 404 enquanto a cadeia estiver desligada |
+| `ActivityEngine`, `heatmap_route` | Como biblioteca: o motor e o tratador de `GET /heatmap?camera=ID&format=json` (também `png` e `svg`), para o serviço que o monta; a rota responde 404 enquanto a cadeia estiver desligada |
+| `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | Responde a um pedido `GET /heatmap` a partir de deteções gravadas e imprime a resposta como uma linha JSON (`status`, `content_type`, `body_base64`); é o que executa um servidor que monta a rota. Código 0 para qualquer resposta da rota (também 404 com a cadeia desligada e 400 num pedido errado), 1 se a configuração estiver errada, 2 se um ficheiro não puder ser lido |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -143,13 +144,13 @@ Estes valores são hoje constantes de `tracker.py` e `motion.py`; o ficheiro de 
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 90 tests
+python -m unittest discover -s tests   # 97 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 90 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 97 tests
 ```
 
 ## 🧪 Testes
@@ -166,6 +167,7 @@ python -I tools/armor_ci_validate.py
 | `test_vision_edges.py` | 19 | Os casos-limite: configurações erradas, objetos parados, deteções mascaradas e o detetor indisponível |
 | `test_characterization.py` | 2 | Fixa byte a byte a saída da simulação incorporada, para que não mude enquanto a cadeia de atividade estiver desligada |
 | `test_activity.py` | 27 | Configuração de atividade, fontes sintética e gravada, eventos, mapa de calor (determinismo, soma igual às deteções, nada fora da grelha, janela, decaimento, memória), o tratador de `/heatmap` e a linha de comandos |
+| `test_heatmap_service.py` | 7 | A rota do mapa de calor como comando: desligada dá 404 sejam quais forem os dados, ligada sem dados dá um mapa vazio, contagens nos três formatos, pedidos errados, e uma configuração ou um ficheiro errados são um erro e nunca um mapa vazio |
 
 ## 🏗️ Compilação e publicação
 
@@ -201,6 +203,7 @@ ARMOR-VISION/
 │   ├── activity_config.py               definições da cadeia de atividade, desligada por defeito
 │   ├── sources.py heatmap.py            fontes sintética e gravada; mapa de calor
 │   ├── activity.py                      eventos e tratador de /heatmap
+│   ├── heatmap_service.py               a rota /heatmap como comando
 │   └── pipeline.py cli.py __main__.py   toda a cadeia e a linha de comandos
 ├── tests/                               os testes
 ├── docs/                                os guias deste repositório

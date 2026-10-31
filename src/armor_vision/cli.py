@@ -10,6 +10,7 @@ from . import __version__
 from .activity import ActivityEngine
 from .activity_config import ACTIVITY_EXAMPLE, parse_activity_config
 from .config import parse_config
+from .heatmap_service import QUERY_KEYS, ServiceError, answer
 from .pipeline import Pipeline
 from .sources import FileSource, SourceError, SyntheticSource
 from .tracker import Detection
@@ -112,6 +113,23 @@ def _run_activity(args, config) -> int:
     return 0
 
 
+def _run_heatmap_route(args, config) -> int:
+    """One query of GET /heatmap: the answer as a JSON line, exit 0 for any answer of the route (also 404 and 400), 1 for a wrong configuration, 2 for a file that cannot be read."""
+    try:
+        raw = json.loads(Path(args.activity_config).read_text(encoding="utf-8"), parse_constant=_no_constants)
+    except (OSError, ValueError) as exc:
+        print(f"cannot read {args.activity_config}: {exc}", file=sys.stderr)
+        return 2
+    query = {key: getattr(args, key) for key in QUERY_KEYS if getattr(args, key) is not None}
+    try:
+        result = answer(config, raw, args.detections_file, query)
+    except ServiceError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return exc.code
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="armor-vision", description="ARMOR-VISION zones and detection rules")
     parser.add_argument("--version", action="version", version=f"armor-vision {__version__}")
@@ -132,6 +150,12 @@ def main(argv: list[str] | None = None) -> int:
     check_activity = sub.add_parser("check-activity-config", help="validate an activity configuration file")
     check_activity.add_argument("file")
     sub.add_parser("activity-example", help="print an activity configuration to start from")
+    route = sub.add_parser("heatmap-route", help="answer one GET /heatmap query from a file of recorded detections and print the answer as one JSON line (for the server that mounts the route)")
+    route.add_argument("--config", help="configuration file (default: the built-in example)")
+    route.add_argument("--activity-config", metavar="FILE", required=True, help="activity configuration; the route answers 404 unless it says enabled")
+    route.add_argument("--detections-file", metavar="FILE", help="recorded detections (JSON lines); without it the map is empty")
+    for key in QUERY_KEYS:
+        route.add_argument(f"--{key}", help=f"the {key} parameter of the query")
     args = parser.parse_args(argv if argv is not None else sys.argv[1:] or ["simulate"])
     if args.action == "check-config":
         try:
@@ -169,6 +193,8 @@ def main(argv: list[str] | None = None) -> int:
         for error in errors:
             print(f"error: {error}", file=sys.stderr)
         return 1
+    if args.action == "heatmap-route":
+        return _run_heatmap_route(args, config)
     if args.simulate_events or args.heatmap:
         return _run_activity(args, config)
     events, stats = simulate(config, args.mode)

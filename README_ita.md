@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 o successiva">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Linguaggio">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-90%20passing-2ea44f.svg" alt="Test">
+  <img src="https://img.shields.io/badge/Tests-97%20passing-2ea44f.svg" alt="Test">
   <img src="https://img.shields.io/badge/Version-0.0.5-0f6cbd.svg" alt="Versione">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturità">
 </p>
 
 ---
 
-**Controllo di onestà - cosa funziona oggi:** Le zone, il controllo del movimento, il tracciamento, le regole e i 90 test sono reali. **Non esiste ancora un vero modello di rilevamento** e nulla è stato eseguito su una telecamera o sulla Jetson Orin NX: la simulazione usa rilevamenti scriptati.
+**Controllo di onestà - cosa funziona oggi:** Le zone, il controllo del movimento, il tracciamento, le regole e i 97 test sono reali. **Non esiste ancora un vero modello di rilevamento** e nulla è stato eseguito su una telecamera o sulla Jetson Orin NX: la simulazione usa rilevamenti scriptati.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturità | Funzionale |
 | Ruolo | Zone, maschere e regole di rilevamento delle telecamere (famiglia: Core Services, padre: ARMOR-SERVER) |
 | Tecnologia | Python 3.11+, solo libreria standard |
-| Test | 90 (`python -m unittest discover -s tests`) |
+| Test | 97 (`python -m unittest discover -s tests`) |
 | Gira su | Qualsiasi computer |
 | Su hardware reale | Ancora nessuno: né rilevatore reale, né telecamera, né Jetson (una simulazione con rilevamenti scriptati) |
 | Licenza | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Area | Stato | Cosa significa qui |
 |---|---|---|
 | Software | 🟡 | Le zone, il controllo del movimento, il tracciamento e le regole funzionano, ma non c'è ancora un vero modello di rilevamento: la simulazione usa rilevamenti da script. |
-| Test | 🟢 | Superano 90 test (`python -m unittest discover -s tests`). |
+| Test | 🟢 | Superano 97 test (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nulla ha girato su una telecamera né sulla Jetson Orin NX. |
 | Documentazione | 🟢 | Otto lingue e il registro delle modifiche sono aggiornati. |
 
@@ -105,7 +105,8 @@ Nulla qui è una funzione di sicurezza: non esiste ancora un vero modello di ril
 | `python -m armor_vision simulate --simulate-events --activity-config FILE [--seed N] [--detections-file FILE]` | Pipeline di attività, SPENTA salvo che il file dica `"enabled": true` (codice 3 se spenta): una scena sintetica con seme fisso, o rilevamenti registrati, dà una riga JSON per evento (`zone_enter`, `zone_exit`, `dwell`, `loiter`, `line_cross`) |
 | `python -m armor_vision simulate --heatmap OUT --activity-config FILE` | Scrive la mappa di calore dell'attività (conteggi per cella, `OUT` termina in `.json`, `.png` o `.svg`); solo posizioni aggregate, mai immagini |
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | Stampa una configurazione di attività di partenza / ne convalida una (codice 0 buono, 1 non valida, 2 illeggibile) |
-| `ActivityEngine`, `heatmap_route` | Come libreria: il motore e il gestore di `GET /heatmap?camera=ID&format=json` (anche `png` e `svg`), per il servizio che lo monterà; questo repository non ha un server proprio e la rotta risponde 404 finché la pipeline è spenta |
+| `ActivityEngine`, `heatmap_route` | Come libreria: il motore e il gestore di `GET /heatmap?camera=ID&format=json` (anche `png` e `svg`), per il servizio che lo monta; la rotta risponde 404 finché la pipeline è spenta |
+| `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | Risponde a una richiesta `GET /heatmap` da rilevamenti registrati e stampa la risposta come una riga JSON (`status`, `content_type`, `body_base64`); è ciò che esegue un server che monta la rotta. Codice 0 per ogni risposta della rotta (anche 404 a pipeline spenta e 400 per una richiesta errata), 1 per una configurazione errata, 2 per un file illeggibile |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -143,13 +144,13 @@ Oggi questi valori sono costanti di `tracker.py` e `motion.py`; il file di confi
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 90 tests
+python -m unittest discover -s tests   # 97 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 90 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 97 tests
 ```
 
 ## 🧪 Test
@@ -166,6 +167,7 @@ python -I tools/armor_ci_validate.py
 | `test_vision_edges.py` | 19 | I casi limite: configurazioni errate, oggetti fermi, rilevamenti mascherati e rilevatore non disponibile |
 | `test_characterization.py` | 2 | Fissa byte per byte l'uscita della simulazione integrata, così non cambia finché la pipeline di attività è spenta |
 | `test_activity.py` | 27 | Configurazione di attività, sorgenti sintetica e registrata, eventi, mappa di calore (determinismo, somma uguale ai rilevamenti, niente fuori dalla griglia, finestra, decadimento, memoria), il gestore `/heatmap` e la riga di comando |
+| `test_heatmap_service.py` | 7 | La rotta della mappa di calore come comando: spenta dà 404 qualunque siano i dati, accesa senza dati dà una mappa vuota, conteggi nei tre formati, richieste errate, e una configurazione o un file errati sono un errore e mai una mappa vuota |
 
 ## 🏗️ Compilazione e rilascio
 
@@ -201,6 +203,7 @@ ARMOR-VISION/
 │   ├── activity_config.py               impostazioni della pipeline di attività, spenta di default
 │   ├── sources.py heatmap.py            sorgenti sintetica e registrata; mappa di calore
 │   ├── activity.py                      eventi e gestore /heatmap
+│   ├── heatmap_service.py               la rotta /heatmap come comando
 │   └── pipeline.py cli.py __main__.py   tutta la catena e la riga di comando
 ├── tests/                               i test
 ├── docs/                                le guide di questo repository

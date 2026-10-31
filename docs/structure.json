@@ -136,6 +136,19 @@
           }
         },
         {
+          "name": "heatmap_service.py",
+          "desc": {
+            "en": "the /heatmap route as a command",
+            "es": "la ruta /heatmap como comando",
+            "de": "die /heatmap-Route als Befehl",
+            "fr": "la route /heatmap en commande",
+            "it": "la rotta /heatmap come comando",
+            "ja": "/heatmap ルートをコマンドとして",
+            "zh": "作为命令的 /heatmap 路由",
+            "pt": "a rota /heatmap como comando"
+          }
+        },
+        {
           "name": "pipeline.py cli.py __main__.py",
           "desc": {
             "en": "the whole chain and the command line",
@@ -215,6 +228,19 @@
             "ja": "アクティビティ、ヒートマップ",
             "zh": "活动、热力图",
             "pt": "atividade, mapa de calor"
+          }
+        },
+        {
+          "name": "test_heatmap_service.py",
+          "desc": {
+            "en": "the heat map route as a command",
+            "es": "la ruta del mapa de calor como comando",
+            "de": "die Heatmap-Route als Befehl",
+            "fr": "la route de la carte de chaleur en commande",
+            "it": "la rotta della mappa di calore come comando",
+            "ja": "ヒートマップのルートをコマンドとして",
+            "zh": "作为命令的热力图路由",
+            "pt": "a rota do mapa de calor como comando"
           }
         }
       ]

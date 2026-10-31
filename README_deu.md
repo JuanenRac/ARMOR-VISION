@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 oder neuer">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Sprache">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-90%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-97%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Reifegrad">
 </p>
 
 ---
 
-**Ehrlichkeitsprüfung - was heute läuft:** Die Zonen, die Bewegungsprüfung, die Verfolgung, die Regeln und die 90 Tests sind real. Es gibt **noch kein echtes Erkennungsmodell**, und nichts lief auf einer Kamera oder auf dem Jetson Orin NX: die Simulation nutzt vorgegebene Erkennungen.
+**Ehrlichkeitsprüfung - was heute läuft:** Die Zonen, die Bewegungsprüfung, die Verfolgung, die Regeln und die 97 Tests sind real. Es gibt **noch kein echtes Erkennungsmodell**, und nichts lief auf einer Kamera oder auf dem Jetson Orin NX: die Simulation nutzt vorgegebene Erkennungen.
 
 ---
 
@@ -40,7 +40,7 @@
 | Reifegrad | Funktionsfähig |
 | Rolle | Kamerazonen, Masken und Erkennungsregeln (Familie: Core Services, übergeordnet: ARMOR-SERVER) |
 | Technik | Python 3.11+, nur Standardbibliothek |
-| Tests | 90 (`python -m unittest discover -s tests`) |
+| Tests | 97 (`python -m unittest discover -s tests`) |
 | Läuft auf | Jeder Computer |
 | Auf echter Hardware | Noch keiner: weder echter Detektor noch Kamera noch Jetson (eine Simulation mit geskripteten Erkennungen) |
 | Lizenz | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Jede Zeile ist ein Teil dieses Repositorys, und die Ampel sagt, wie weit er heut
 | Bereich | Stand | Was das hier bedeutet |
 |---|---|---|
 | Software | 🟡 | Die Zonen, die Bewegungsprüfung, die Verfolgung und die Regeln funktionieren, aber es gibt noch kein echtes Erkennungsmodell: Die Simulation nutzt geskriptete Erkennungen. |
-| Tests | 🟢 | 90 Tests bestehen (`python -m unittest discover -s tests`). |
+| Tests | 🟢 | 97 Tests bestehen (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nichts lief an einer Kamera oder auf dem Jetson Orin NX. |
 | Dokumentation | 🟢 | Acht Sprachen und das Änderungsprotokoll sind aktuell. |
 
@@ -105,7 +105,8 @@ Nichts davon ist eine Sicherheitsfunktion: Es gibt noch kein echtes Erkennungsmo
 | `python -m armor_vision simulate --simulate-events --activity-config FILE [--seed N] [--detections-file FILE]` | Aktivitätspipeline, AUS, solange die Datei nicht `"enabled": true` sagt (Exit 3 wenn aus): eine synthetische Szene mit festem Seed oder aufgezeichnete Erkennungen ergibt eine JSON-Zeile je Ereignis (`zone_enter`, `zone_exit`, `dwell`, `loiter`, `line_cross`) |
 | `python -m armor_vision simulate --heatmap OUT --activity-config FILE` | Schreibt die Heatmap der Aktivität (Zählungen je Zelle, `OUT` endet auf `.json`, `.png` oder `.svg`); nur aggregierte Positionen, niemals Bilder |
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | Gibt eine Aktivitätskonfiguration als Ausgangspunkt aus / prüft eine (Exit 0 gut, 1 ungültig, 2 nicht lesbar) |
-| `ActivityEngine`, `heatmap_route` | Als Bibliothek: die Engine und der Handler für `GET /heatmap?camera=ID&format=json` (auch `png` und `svg`) für den Dienst, der ihn einbindet; dieses Repository hat keinen eigenen Server und die Route antwortet 404, solange die Pipeline aus ist |
+| `ActivityEngine`, `heatmap_route` | Als Bibliothek: die Engine und der Handler für `GET /heatmap?camera=ID&format=json` (auch `png` und `svg`) für den Dienst, der ihn einbindet; die Route antwortet 404, solange die Pipeline aus ist |
+| `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | Beantwortet eine `GET /heatmap`-Anfrage aus aufgezeichneten Erkennungen und gibt die Antwort als eine JSON-Zeile aus (`status`, `content_type`, `body_base64`); das führt ein Server aus, der die Route einbindet. Exit 0 für jede Antwort der Route (auch 404 bei ausgeschalteter Pipeline und 400 bei einer fehlerhaften Anfrage), 1 bei falscher Konfiguration, 2 bei einer nicht lesbaren Datei |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -143,13 +144,13 @@ Diese Werte sind heute Konstanten in `tracker.py` und `motion.py`; die Konfigura
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 90 tests
+python -m unittest discover -s tests   # 97 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 90 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 97 tests
 ```
 
 ## 🧪 Tests
@@ -166,6 +167,7 @@ python -I tools/armor_ci_validate.py
 | `test_vision_edges.py` | 19 | Die Grenzfälle: falsche Konfigurationen, ruhende Objekte, maskierte Erkennungen und der nicht verfügbare Detektor |
 | `test_characterization.py` | 2 | Legt die Ausgabe der eingebauten Simulation Byte für Byte fest, damit sie sich bei ausgeschalteter Aktivitätspipeline nicht ändert |
 | `test_activity.py` | 27 | Aktivitätskonfiguration, synthetische und aufgezeichnete Quellen, Ereignisse, Heatmap (Determinismus, Summe gleich Erkennungen, nichts außerhalb des Gitters, Fenster, Abklingen, Speicher), der `/heatmap`-Handler und die Befehlszeile |
+| `test_heatmap_service.py` | 7 | Die Heatmap-Route als Befehl: aus ist 404, egal welche Daten, an ohne Daten ist eine leere Karte, Zählungen in den drei Formaten, fehlerhafte Anfragen, und eine falsche Konfiguration oder Datei ist ein Fehler und nie eine leere Karte |
 
 ## 🏗️ Build und Veröffentlichung
 
@@ -201,6 +203,7 @@ ARMOR-VISION/
 │   ├── activity_config.py               Einstellungen der Aktivitätspipeline, standardmäßig aus
 │   ├── sources.py heatmap.py            synthetische und aufgezeichnete Quellen; Heatmap
 │   ├── activity.py                      Ereignisse und der /heatmap-Handler
+│   ├── heatmap_service.py               die /heatmap-Route als Befehl
 │   └── pipeline.py cli.py __main__.py   die ganze Kette und die Kommandozeile
 ├── tests/                               die Tests
 ├── docs/                                die Anleitungen dieses Repositorys

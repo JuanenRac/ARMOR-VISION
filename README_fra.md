@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 ou ultérieure">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Langage">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-90%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-97%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturité">
 </p>
 
 ---
 
-**Vérification d'honnêteté - ce qui fonctionne aujourd'hui :** Les zones, le contrôle du mouvement, le suivi, les règles et les 90 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
+**Vérification d'honnêteté - ce qui fonctionne aujourd'hui :** Les zones, le contrôle du mouvement, le suivi, les règles et les 97 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturité | Fonctionnel |
 | Rôle | Zones, masques et règles de détection des caméras (famille : Core Services, parent : ARMOR-SERVER) |
 | Technologie | Python 3.11+, bibliothèque standard uniquement |
-| Tests | 90 (`python -m unittest discover -s tests`) |
+| Tests | 97 (`python -m unittest discover -s tests`) |
 | Fonctionne sur | N'importe quel ordinateur |
 | Sur matériel réel | Aucun pour l'instant : ni détecteur réel, ni caméra, ni Jetson (une simulation avec des détections scriptées) |
 | Licence | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Chaque ligne est une partie de ce dépôt et le feu dit où elle en est aujourd'
 | Domaine | État | Ce que cela veut dire ici |
 |---|---|---|
 | Logiciel | 🟡 | Les zones, le contrôle du mouvement, le suivi et les règles fonctionnent, mais il n'y a pas encore de vrai modèle détecteur : la simulation utilise des détections scénarisées. |
-| Tests | 🟢 | 90 tests réussissent (`python -m unittest discover -s tests`). |
+| Tests | 🟢 | 97 tests réussissent (`python -m unittest discover -s tests`). |
 | Matériel | 🔴 | Rien n'a tourné sur une caméra ni sur le Jetson Orin NX. |
 | Documentation | 🟢 | Huit langues et le journal des modifications sont à jour. |
 
@@ -105,7 +105,8 @@ Rien ici n'est une fonction de sécurité : il n'y a pas encore de vrai modèle 
 | `python -m armor_vision simulate --simulate-events --activity-config FILE [--seed N] [--detections-file FILE]` | Chaîne d'activité, ÉTEINTE sauf si le fichier dit `"enabled": true` (code 3 si éteinte) : une scène synthétique à graine fixe, ou des détections enregistrées, donne une ligne JSON par événement (`zone_enter`, `zone_exit`, `dwell`, `loiter`, `line_cross`) |
 | `python -m armor_vision simulate --heatmap OUT --activity-config FILE` | Écrit la carte de chaleur de l'activité (comptes par cellule, `OUT` finit par `.json`, `.png` ou `.svg`) ; seulement des positions agrégées, jamais d'images |
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | Affiche une configuration d'activité de départ / en valide une (code 0 bon, 1 invalide, 2 illisible) |
-| `ActivityEngine`, `heatmap_route` | En bibliothèque : le moteur et le gestionnaire de `GET /heatmap?camera=ID&format=json` (aussi `png` et `svg`), pour le service qui le montera ; ce dépôt n'a pas de serveur propre et la route répond 404 tant que la chaîne est éteinte |
+| `ActivityEngine`, `heatmap_route` | En bibliothèque : le moteur et le gestionnaire de `GET /heatmap?camera=ID&format=json` (aussi `png` et `svg`), pour le service qui le monte ; la route répond 404 tant que la chaîne est éteinte |
+| `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | Répond à une requête `GET /heatmap` à partir de détections enregistrées et affiche la réponse en une ligne JSON (`status`, `content_type`, `body_base64`) ; c'est ce que lance un serveur qui monte la route. Code 0 pour toute réponse de la route (aussi 404 chaîne éteinte et 400 pour une requête fausse), 1 pour une configuration erronée, 2 pour un fichier illisible |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -143,13 +144,13 @@ Ces valeurs sont aujourd'hui des constantes de `tracker.py` et `motion.py` ; le 
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 90 tests
+python -m unittest discover -s tests   # 97 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 90 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 97 tests
 ```
 
 ## 🧪 Tests
@@ -166,6 +167,7 @@ python -I tools/armor_ci_validate.py
 | `test_vision_edges.py` | 19 | Les cas limites : mauvaises configurations, objets immobiles, détections masquées et détecteur indisponible |
 | `test_characterization.py` | 2 | Fixe octet par octet la sortie de la simulation intégrée, pour qu'elle ne change pas tant que la chaîne d'activité est éteinte |
 | `test_activity.py` | 27 | Configuration d'activité, sources synthétique et enregistrée, événements, carte de chaleur (déterminisme, somme égale aux détections, rien hors de la grille, fenêtre, décroissance, mémoire), le gestionnaire `/heatmap` et la ligne de commande |
+| `test_heatmap_service.py` | 7 | La route de la carte de chaleur en commande : éteinte donne 404 quelles que soient les données, allumée sans données donne une carte vide, comptes dans les trois formats, requêtes fausses, et une configuration ou un fichier faux est une erreur et jamais une carte vide |
 
 ## 🏗️ Compilation et publication
 
@@ -201,6 +203,7 @@ ARMOR-VISION/
 │   ├── activity_config.py               réglages de la chaîne d'activité, éteinte par défaut
 │   ├── sources.py heatmap.py            sources synthétique et enregistrée ; carte de chaleur
 │   ├── activity.py                      événements et gestionnaire /heatmap
+│   ├── heatmap_service.py               la route /heatmap en commande
 │   └── pipeline.py cli.py __main__.py   toute la chaîne et la ligne de commande
 ├── tests/                               les tests
 ├── docs/                                les guides de ce dépôt
