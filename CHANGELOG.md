@@ -4,7 +4,10 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.0.7] - The live service can ask for a token, and must when it is open to other machines
+
 - **The live service can ask for a token, and must when it is open to other machines:** the settings gain `token_file`, the path of a file that holds the token (the environment variable `ARMOR_VISION_SERVICE_TOKEN` does the same; never both, and never in the settings file, so it is never in a repository). With a token every request, `GET /health` included, needs `Authorization: Bearer <token>`, compared in constant time, and anything else is an empty `401`. With `allow_remote` true the service does not start without one. A token of fewer than 24 characters or with odd characters is refused; the token is never printed, not even by `check-service-config`, which only says whether there is one.
+
 ## [0.0.6] - A live service keeps the activity engine in memory and serves the heat map, and the heat map route can be mounted by a server
 
 - **A live service keeps the activity engine in memory and serves the heat map:** `python -m armor_vision serve --activity-config FILE [--config FILE] [--service-config FILE]` runs the same engine the command line uses, takes detections as they happen (`POST /ingest`, one observation per request, in time order for each camera) and answers `GET /heatmap?camera=&format=&scale=` from that memory instead of replaying a file for every request (`GET /health` tells what it holds). Its settings are in a file (`service-example` prints one, `check-service-config` checks one): the address (the loopback one unless `allow_remote` is true), the port, the largest request, the most detections in one observation and the longest query; an unknown field or a value out of range means it does not start. It stores nothing on disk, keeps no secret and keeps only counted positions; a scene can be simulated at start (`simulate`). The command `heatmap-route` is unchanged.
