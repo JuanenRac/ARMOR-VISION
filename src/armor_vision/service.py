@@ -26,7 +26,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
-from .activity import ActivityEngine, heatmap_route
+from .activity import ActivityEngine, HeatmapPlan, heatmap_draw, heatmap_plan
 from .activity_config import ActivityConfig
 from .config import VisionConfig
 from .sources import FileSource, SourceError, SyntheticSource
@@ -41,6 +41,9 @@ SERVICE_EXAMPLE: dict[str, Any] = {
     "max_body_bytes": 65536,
     "max_detections": 64,
     "max_query_bytes": 512,
+    "request_timeout_s": 15,
+    "max_connections": 64,
+    "render_cache_entries": 16,
     "token_file": None,
     "simulate": None,
 }
@@ -68,6 +71,9 @@ class ServiceSettings:
     max_body_bytes: int = 65536
     max_detections: int = 64
     max_query_bytes: int = 512
+    request_timeout_s: int = 15
+    max_connections: int = 64
+    render_cache_entries: int = 16
     token_file: str | None = None
     simulate: SimulateSettings | None = None
 
@@ -128,6 +134,9 @@ def parse_service_settings(raw: object) -> tuple[ServiceSettings | None, list[st
     body = raw.get("max_body_bytes", d.max_body_bytes)
     detections = raw.get("max_detections", d.max_detections)
     query = raw.get("max_query_bytes", d.max_query_bytes)
+    timeout = raw.get("request_timeout_s", d.request_timeout_s)
+    connections = raw.get("max_connections", d.max_connections)
+    cache = raw.get("render_cache_entries", d.render_cache_entries)
     token_file = raw.get("token_file", d.token_file)
     if not isinstance(host, str) or not host:
         errors.append("host must be an address")
@@ -149,6 +158,15 @@ def parse_service_settings(raw: object) -> tuple[ServiceSettings | None, list[st
     if not _whole(query) or not 64 <= query <= 4096:
         errors.append("max_query_bytes must be a whole number from 64 to 4096")
         query = d.max_query_bytes
+    if not _whole(timeout) or not 1 <= timeout <= 300:
+        errors.append("request_timeout_s must be a whole number of seconds from 1 to 300")
+        timeout = d.request_timeout_s
+    if not _whole(connections) or not 1 <= connections <= 1024:
+        errors.append("max_connections must be a whole number from 1 to 1024")
+        connections = d.max_connections
+    if not _whole(cache) or not 0 <= cache <= 256:
+        errors.append("render_cache_entries must be a whole number from 0 (no cache) to 256")
+        cache = d.render_cache_entries
     if token_file is not None and (not isinstance(token_file, str) or not token_file or len(token_file) > 1024):
         errors.append("token_file must be null or the path of a file that holds the token")
         token_file = None
@@ -165,7 +183,7 @@ def parse_service_settings(raw: object) -> tuple[ServiceSettings | None, list[st
                 errors.append(f"simulate: {exc}")
     if errors:
         return None, errors
-    return ServiceSettings(str(host), int(port), bool(remote), int(body), int(detections), int(query), token_file, simulate), []
+    return ServiceSettings(str(host), int(port), bool(remote), int(body), int(detections), int(query), int(timeout), int(connections), int(cache), token_file, simulate), []
 
 
 class LiveService:
@@ -177,6 +195,9 @@ class LiveService:
         if settings.allow_remote and token is None:
             raise ServiceConfigError("allow_remote needs a token: the service does not start without one")
         self._lock = threading.Lock()
+        self._count_lock = threading.Lock()
+        self._cache: dict[tuple[object, ...], tuple[int, str, bytes]] = {}
+        self._cache_lock = threading.Lock()
         self._engine: ActivityEngine | None = ActivityEngine(vision, activity) if activity.enabled else None
         self._last: dict[str, float] = {}
         self.accepted_posts = 0
@@ -192,7 +213,7 @@ class LiveService:
     def ingest(self, record: object) -> tuple[int, dict[str, object]]:
         """One observation. 200 with the number of events, 400 for a bad one, 404 for a camera that is not in the configuration, 409 when time goes backwards, 503 when the pipeline is off."""
         def refuse(status: int, why: str) -> tuple[int, dict[str, object]]:
-            self.refused_posts += 1
+            self.refuse()
             return status, {"error": why}
         if self._engine is None:
             return refuse(503, "activity_off")
@@ -209,12 +230,37 @@ class LiveService:
                 return refuse(409, "time goes backwards for this camera")
             events = self._engine.process(observation.camera_id, observation.timestamp, list(observation.detections))
             self._last[observation.camera_id] = observation.timestamp
-        self.accepted_posts += 1
+        with self._count_lock:
+            self.accepted_posts += 1
         return 200, {"schema": SERVICE_SCHEMA, "events": len(events)}
 
+    def refuse(self) -> None:
+        """One more request refused (counted under its own lock: the handlers run in many threads)."""
+        with self._count_lock:
+            self.refused_posts += 1
+
     def heatmap(self, query: dict[str, str]) -> tuple[int, str, bytes]:
+        """The engine is read under the lock and let go of before the picture is drawn, so a PNG at a large scale never holds up the detections that come in. The drawing of a map that has not
+        changed (same camera, format and scale, and no observation counted since) is kept, a few at a time (`render_cache_entries`), and handed out again."""
         with self._lock:
-            return heatmap_route(self._engine, query)
+            planned = heatmap_plan(self._engine, query)
+        if not isinstance(planned, HeatmapPlan):
+            return planned
+        snapshot = planned.snapshot
+        limit = self.settings.render_cache_entries
+        key = (planned.camera_id, planned.fmt, planned.scale, snapshot.accepted, snapshot.rejected, snapshot.at)
+        if limit > 0:
+            with self._cache_lock:
+                hit = self._cache.get(key)
+            if hit is not None:
+                return hit
+        answer = heatmap_draw(planned)
+        if limit > 0:
+            with self._cache_lock:
+                if len(self._cache) >= limit:
+                    self._cache.pop(next(iter(self._cache)))
+                self._cache[key] = answer
+        return answer
 
     def authorized(self, header: str | None) -> bool:
         """True when no token is set, or when the request carries it (`Authorization: Bearer ...`), compared in constant time."""
@@ -238,6 +284,7 @@ def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         server_version = "armor-vision"
         sys_version = ""
+        timeout = settings.request_timeout_s   # a client that goes quiet in the middle of a request is dropped: a thread is not held for ever
 
         def log_message(self, format: str, *args: object) -> None:   # nothing about a request is written anywhere
             return
@@ -261,7 +308,7 @@ def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:
             self.send_header("WWW-Authenticate", "Bearer")
             self.send_header("Content-Length", "0")
             self.end_headers()
-            service.refused_posts += 1
+            service.refuse()
             return True
 
         def do_GET(self) -> None:
@@ -294,7 +341,7 @@ def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:
             try:
                 record = json.loads(data.decode("utf-8"), parse_constant=lambda name: (_ for _ in ()).throw(ValueError(name)))
             except (ValueError, UnicodeDecodeError):
-                service.refused_posts += 1
+                service.refuse()
                 return self._json(400, {"error": "not JSON"})
             status, payload = service.ingest(record)
             self._json(status, payload)
@@ -309,7 +356,39 @@ def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:
     return Handler
 
 
+class _Server(ThreadingHTTPServer):
+    """One thread per request, at most `max_connections` at the same time: the next one is told to come back (503) instead of starting yet another thread."""
+    daemon_threads = True
+
+    def __init__(self, address: tuple[str, int], handler: type[BaseHTTPRequestHandler], max_connections: int) -> None:
+        super().__init__(address, handler)
+        self._slots = threading.BoundedSemaphore(max_connections)
+
+    def process_request(self, request: Any, client_address: Any) -> None:
+        if not self._slots.acquire(blocking=False):
+            try:
+                request.sendall(b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nRetry-After: 1\r\nConnection: close\r\n\r\n")
+            except OSError:
+                pass
+            try:   # what the client already sent is read (without waiting) so that closing does not turn the answer into a reset
+                request.setblocking(False)
+                request.recv(4096)
+            except OSError:
+                pass
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self._slots.release()
+            raise
+
+    def process_request_thread(self, request: Any, client_address: Any) -> None:
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._slots.release()
+
+
 def make_server(service: LiveService) -> ThreadingHTTPServer:
-    server = ThreadingHTTPServer((service.settings.host, service.settings.port), _handler(service))
-    server.daemon_threads = True
-    return server
+    return _Server((service.settings.host, service.settings.port), _handler(service), service.settings.max_connections)

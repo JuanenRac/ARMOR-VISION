@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 ou ultérieure">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Langage">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-112%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-119%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.7-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturité">
 </p>
 
 ---
 
-**Vérification d'honnêteté - ce qui fonctionne aujourd'hui :** Les zones, le contrôle du mouvement, le suivi, les règles et les 112 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
+**Vérification d'honnêteté - ce qui fonctionne aujourd'hui :** Les zones, le contrôle du mouvement, le suivi, les règles et les 119 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturité | Fonctionnel |
 | Rôle | Zones, masques et règles de détection des caméras (famille : Core Services, parent : ARMOR-SERVER) |
 | Technologie | Python 3.11+, bibliothèque standard uniquement |
-| Tests | 112 (`python -m unittest discover -s tests`) |
+| Tests | 119 (`python -m unittest discover -s tests`) |
 | Fonctionne sur | N'importe quel ordinateur |
 | Sur matériel réel | Aucun pour l'instant : ni détecteur réel, ni caméra, ni Jetson (une simulation avec des détections scriptées) |
 | Licence | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Chaque ligne est une partie de ce dépôt et le feu dit où elle en est aujourd'
 | Domaine | État | Ce que cela veut dire ici |
 |---|---|---|
 | Logiciel | 🟡 | Les zones, le contrôle du mouvement, le suivi et les règles fonctionnent, mais il n'y a pas encore de vrai modèle détecteur : la simulation utilise des détections scénarisées. |
-| Tests | 🟢 | 112 tests réussissent (`python -m unittest discover -s tests`). |
+| Tests | 🟢 | 119 tests réussissent (`python -m unittest discover -s tests`). |
 | Matériel | 🔴 | Rien n'a tourné sur une caméra ni sur le Jetson Orin NX. |
 | Documentation | 🟢 | Huit langues et le journal des modifications sont à jour. |
 
@@ -107,7 +107,7 @@ Rien ici n'est une fonction de sécurité : il n'y a pas encore de vrai modèle 
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | Affiche une configuration d'activité de départ / en valide une (code 0 bon, 1 invalide, 2 illisible) |
 | `ActivityEngine`, `heatmap_route` | En bibliothèque : le moteur et le gestionnaire de `GET /heatmap?camera=ID&format=json` (aussi `png` et `svg`), pour le service qui le monte ; la route répond 404 tant que la chaîne est éteinte |
 | `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | Répond à une requête `GET /heatmap` à partir de détections enregistrées et affiche la réponse en une ligne JSON (`status`, `content_type`, `body_base64`) ; c'est ce que lance un serveur qui monte la route. Code 0 pour toute réponse de la route (aussi 404 chaîne éteinte et 400 pour une requête fausse), 1 pour une configuration erronée, 2 pour un fichier illisible |
-| `python -m armor_vision serve --activity-config FILE [--config FILE] [--service-config FILE]` | Lance le service vivant : le moteur d'activité reste en mémoire, les détections arrivent une observation à la fois (`POST /ingest`) et `GET /heatmap` répond depuis cette mémoire. Il écoute sur 127.0.0.1 sauf si le fichier de réglages dit `allow_remote`, ne détient d'autre secret que le jeton qu'il peut exiger (il doit en avoir un, dans un fichier, s'il est ouvert à d'autres machines) et n'écrit rien sur le disque. Sortie 1 pour une configuration fausse ou une activité éteinte, 2 pour un fichier illisible ou un port impossible à ouvrir |
+| `python -m armor_vision serve --activity-config FILE [--config FILE] [--service-config FILE]` | Lance le service vivant : le moteur d'activité reste en mémoire, les détections arrivent une observation à la fois (`POST /ingest`) et `GET /heatmap` répond depuis cette mémoire. Il écoute sur 127.0.0.1 sauf si le fichier de réglages dit `allow_remote`, ne détient d'autre secret que le jeton qu'il peut exiger (il doit en avoir un, dans un fichier, s'il est ouvert à d'autres machines) et n'écrit rien sur le disque. Sortie 1 pour une configuration fausse ou une activité éteinte, 2 pour un fichier illisible ou un port impossible à ouvrir Limites dans le fichier de réglages : `request_timeout_s` (un client qui se tait est coupé), `max_connections` (au suivant on dit de revenir avec un 503) et `render_cache_entries` (combien de cartes dessinées sont gardées ; 0 l'éteint). |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -145,13 +145,13 @@ Ces valeurs sont aujourd'hui des constantes de `tracker.py` et `motion.py` ; le 
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 112 tests
+python -m unittest discover -s tests   # 119 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 112 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 119 tests
 ```
 
 ## 🧪 Tests
@@ -170,6 +170,7 @@ python -I tools/armor_ci_validate.py
 | `test_activity.py` | 27 | Configuration d'activité, sources synthétique et enregistrée, événements, carte de chaleur (déterminisme, somme égale aux détections, rien hors de la grille, fenêtre, décroissance, mémoire), le gestionnaire `/heatmap` et la ligne de commande |
 | `test_heatmap_service.py` | 7 | La route de la carte de chaleur en commande : éteinte donne 404 quelles que soient les données, allumée sans données donne une carte vide, comptes dans les trois formats, requêtes fausses, et une configuration ou un fichier faux est une erreur et jamais une carte vide |
 | `test_service.py` | 15 | Le service vivant : la même carte que le fichier rejoué, éteint donne 404 et 503, ce qui n'est pas compris est refusé, les limites des réglages, mémoire bornée et la commande |
+| `test_service_load.py` | 7 | Le service vivant sous charge légère et avec des clients qui se conduisent mal : les nouvelles limites et leurs plages, un client qui se tait est coupé, les requêtes simultanées sont bornées, compteurs exacts avec beaucoup de fils, le dessin d'une carte inchangée est réutilisé et borné, et une carte en cours de dessin ne retarde pas les observations |
 
 ## 🏗️ Compilation et publication
 

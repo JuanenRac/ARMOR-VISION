@@ -10,11 +10,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import NamedTuple
 
 from .activity_config import ActivityConfig, CountLine
 from .config import VisionConfig, Zone
 from .geometry import centre, foot_point, point_in_polygon, segments_cross, valid_box
-from .heatmap import Heatmap
+from .heatmap import Heatmap, HeatmapSnapshot
 from .sources import DetectionSource
 from .tracker import Detection, Track, Tracker
 
@@ -168,9 +169,17 @@ class ActivityEngine:
         return events
 
 
-def heatmap_route(engine: ActivityEngine | None, query: dict[str, str]) -> tuple[int, str, bytes]:
-    """The handler for `GET /heatmap?camera=ID&format=json|png|svg&scale=N`, for the service that will
-    mount it. Returns (status, content type, body). Off (no engine): 404, as if the route did not exist."""
+class HeatmapPlan(NamedTuple):
+    """What is left to draw once a query has been checked: the snapshot of the map, the camera, the format and the scale."""
+    snapshot: HeatmapSnapshot
+    camera_id: str
+    fmt: str
+    scale: int
+
+
+def heatmap_plan(engine: ActivityEngine | None, query: dict[str, str]) -> tuple[int, str, bytes] | HeatmapPlan:
+    """The first half of `heatmap_route`: the query is checked and the map is read out of the engine. Returns the finished answer (the 4xx of a bad query, the 404 of an engine that is off)
+    or the plan to draw: the snapshot, which no longer depends on the engine, so a service can let go of its lock before it draws."""
     def text(status: int, message: str) -> tuple[int, str, bytes]:
         return status, "text/plain; charset=utf-8", (message + "\n").encode()
     if engine is None:
@@ -190,11 +199,23 @@ def heatmap_route(engine: ActivityEngine | None, query: dict[str, str]) -> tuple
     scale_text = query.get("scale", "16")
     if not scale_text.isdecimal() or not 1 <= int(scale_text) <= 64:
         return text(400, "scale must be a whole number from 1 to 64")
-    snapshot = engine.heatmap(camera_id).snapshot()
+    if fmt not in ("json", "png", "svg"):
+        return text(400, "format must be json, png or svg")
+    return HeatmapPlan(engine.heatmap(camera_id).snapshot(), camera_id, fmt, int(scale_text))
+
+
+def heatmap_draw(plan: HeatmapPlan) -> tuple[int, str, bytes]:
+    """The second half: draws the plan. It touches nothing of the engine."""
+    snapshot, camera_id, fmt, scale = plan.snapshot, plan.camera_id, plan.fmt, plan.scale
     if fmt == "json":
         return 200, "application/json", snapshot.to_json(camera_id).encode()
     if fmt == "png":
-        return 200, "image/png", snapshot.to_png(int(scale_text))
-    if fmt == "svg":
-        return 200, "image/svg+xml", snapshot.to_svg(int(scale_text)).encode()
-    return text(400, "format must be json, png or svg")
+        return 200, "image/png", snapshot.to_png(scale)
+    return 200, "image/svg+xml", snapshot.to_svg(scale).encode()
+
+
+def heatmap_route(engine: ActivityEngine | None, query: dict[str, str]) -> tuple[int, str, bytes]:
+    """The handler for `GET /heatmap?camera=ID&format=json|png|svg&scale=N`, for the service that will
+    mount it. Returns (status, content type, body). Off (no engine): 404, as if the route did not exist."""
+    planned = heatmap_plan(engine, query)
+    return heatmap_draw(planned) if isinstance(planned, HeatmapPlan) else planned

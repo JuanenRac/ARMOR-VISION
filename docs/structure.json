@@ -268,6 +268,19 @@
             "zh": "实时服务",
             "pt": "o serviço vivo"
           }
+        },
+        {
+          "name": "test_service_load.py",
+          "desc": {
+            "en": "the live service under load",
+            "es": "el servicio vivo con carga",
+            "de": "der Live-Dienst unter Last",
+            "fr": "le service vivant sous charge",
+            "it": "il servizio vivo sotto carico",
+            "ja": "負荷時のライブサービス",
+            "zh": "负载下的实时服务",
+            "pt": "o serviço vivo sob carga"
+          }
         }
       ]
     },

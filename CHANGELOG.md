@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The live service bounds what clients can cost it:** the settings gain `request_timeout_s` (a client that goes quiet in the middle of a request is dropped instead of holding a thread), `max_connections` (at most that many requests are handled at once; the next one gets `503` with `Retry-After`) and `render_cache_entries` (the drawing of a map that has not changed is kept and handed out again; 0 turns it off). All three are checked at start-up like the other settings.
+- **A map is drawn after the engine has been released:** the route is split in two halves, `heatmap_plan` (checks the query and reads the map) and `heatmap_draw`, so a large PNG or SVG no longer holds the lock that the observations need; `heatmap_route` gives the same answers as before.
+- **The counters of accepted and refused requests are exact under many threads.**
+- Tests: 119 (before 112), 7 of them for the service under load.
+
 ## [0.0.7] - The live service can ask for a token, and must when it is open to other machines
 
 - **The live service can ask for a token, and must when it is open to other machines:** the settings gain `token_file`, the path of a file that holds the token (the environment variable `ARMOR_VISION_SERVICE_TOKEN` does the same; never both, and never in the settings file, so it is never in a repository). With a token every request, `GET /health` included, needs `Authorization: Bearer <token>`, compared in constant time, and anything else is an empty `401`. With `allow_remote` true the service does not start without one. A token of fewer than 24 characters or with odd characters is refused; the token is never printed, not even by `check-service-config`, which only says whether there is one.
