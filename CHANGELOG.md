@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.0.8] - The live service bounds what its clients can cost it, draws a map after the engine is released and keeps exact counters of accepted and refused requests under many threads
+
 - **The live service bounds what clients can cost it:** the settings gain `request_timeout_s` (a client that goes quiet in the middle of a request is dropped instead of holding a thread), `max_connections` (at most that many requests are handled at once; the next one gets `503` with `Retry-After`) and `render_cache_entries` (the drawing of a map that has not changed is kept and handed out again; 0 turns it off). All three are checked at start-up like the other settings.
 - **A map is drawn after the engine has been released:** the route is split in two halves, `heatmap_plan` (checks the query and reads the map) and `heatmap_draw`, so a large PNG or SVG no longer holds the lock that the observations need; `heatmap_route` gives the same answers as before.
 - **The counters of accepted and refused requests are exact under many threads.**
