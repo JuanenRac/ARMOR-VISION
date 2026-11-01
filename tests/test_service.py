@@ -14,7 +14,7 @@ from armor_vision.activity_config import ACTIVITY_EXAMPLE, parse_activity_config
 from armor_vision.cli import EXAMPLE_CONFIG, main
 from armor_vision.config import parse_config
 from armor_vision.heatmap_service import answer
-from armor_vision.service import SERVICE_EXAMPLE, LiveService, ServiceSettings, make_server, parse_service_settings
+from armor_vision.service import SERVICE_EXAMPLE, LiveService, ServiceConfigError, ServiceSettings, TOKEN_ENV, load_token, make_server, parse_service_settings
 
 
 def vision():
@@ -39,9 +39,9 @@ def record(t, camera="cam-front", box=(0.4, 0.6, 0.5, 0.8), count=1):
 class Running:
     """The service on a free port of this machine, in a thread."""
 
-    def __init__(self, settings=None, enabled=True):
+    def __init__(self, settings=None, enabled=True, token=None):
         parsed, _ = activity(enabled)
-        self.service = LiveService(vision(), parsed, settings or ServiceSettings(port=0))
+        self.service = LiveService(vision(), parsed, settings or ServiceSettings(port=0), token)
         self.server = make_server(self.service)
         self.port = self.server.server_address[1]
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -175,6 +175,83 @@ class ServiceTests(unittest.TestCase):
             self.assertEqual(main(["check-service-config", str(bad)]), 1)
             self.assertEqual(main(["check-service-config", str(Path(folder) / "none.json")]), 2)
             self.assertEqual(main(["service-example"]), 0)
+
+
+TOKEN = "t" * 12 + "K" * 12 + "-token"
+
+
+class TokenTests(unittest.TestCase):
+    def test_without_a_token_nothing_is_asked_for_and_the_example_has_none(self):
+        self.assertIsNone(SERVICE_EXAMPLE["token_file"])
+        with Running() as running:
+            self.assertEqual(running.call("GET", "/health")[0], 200)
+
+    def test_with_a_token_every_request_needs_it_and_a_wrong_one_is_a_401_that_says_nothing(self):
+        with Running(token=TOKEN) as running:
+            good = {"Authorization": f"Bearer {TOKEN}"}
+            for method, path in (("GET", "/health"), ("GET", "/heatmap"), ("POST", "/ingest"), ("PUT", "/ingest"), ("GET", "/nothing")):
+                for headers in ({}, {"Authorization": "Bearer wrong"}, {"Authorization": TOKEN}, {"Authorization": f"Basic {TOKEN}"}, {"Authorization": f"Bearer {TOKEN}x"}, {"Authorization": "Bearer "}):
+                    status, _, body = running.call(method, path, record(1) if method == "POST" else None, headers)
+                    self.assertEqual(status, 401, (method, path, headers))
+                    self.assertEqual(body, b"")
+            self.assertEqual(running.call("GET", "/health", None, good)[0], 200)
+            self.assertEqual(running.call("POST", "/ingest", record(1), good)[0], 200)
+            self.assertEqual(running.call("GET", "/heatmap", None, good)[0], 200)
+            self.assertEqual(json.loads(running.call("GET", "/health", None, good)[2])["accepted"], 1, "a refused request never reached the engine")
+
+    def test_a_remote_address_does_not_start_without_a_token(self):
+        settings, _ = parse_service_settings({"host": "0.0.0.0", "allow_remote": True})
+        assert settings is not None
+        parsed, _ = activity()
+        with self.assertRaises(ServiceConfigError):
+            LiveService(vision(), parsed, settings)
+        with self.assertRaises(ServiceConfigError):
+            load_token(settings, {})
+        self.assertEqual(LiveService(vision(), parsed, settings, TOKEN).authorized(f"Bearer {TOKEN}"), True)
+
+    def test_the_token_comes_from_a_file_or_the_environment_and_is_checked(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "token.txt"
+            path.write_text(TOKEN + "\n", encoding="utf-8")
+            settings, problems = parse_service_settings({"token_file": str(path)})
+            self.assertEqual(problems, [])
+            assert settings is not None
+            self.assertEqual(load_token(settings, {}), TOKEN)
+            self.assertEqual(load_token(parse_service_settings(None)[0], {TOKEN_ENV: TOKEN}), TOKEN)  # type: ignore[arg-type]
+            self.assertIsNone(load_token(parse_service_settings(None)[0], {}))  # type: ignore[arg-type]
+            with self.assertRaises(ServiceConfigError):
+                load_token(settings, {TOKEN_ENV: TOKEN})
+            for bad in ("short", "x" * 201, "has space in it " * 3, "tab\there" * 8):
+                path.write_text(bad, encoding="utf-8")
+                with self.assertRaises(ServiceConfigError) as error:
+                    load_token(settings, {})
+            with self.assertRaises(ServiceConfigError) as error:
+                load_token(parse_service_settings({"token_file": str(Path(folder) / "none.txt")})[0], {})  # type: ignore[arg-type]
+            self.assertNotIn(TOKEN, str(error.exception))
+        for bad in ({"token_file": 5}, {"token_file": ""}, {"token_file": True}):
+            self.assertIsNone(parse_service_settings(bad)[0], bad)
+
+    def test_the_command_refuses_a_remote_service_without_a_token_and_never_prints_the_token(self):
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+        with tempfile.TemporaryDirectory() as folder:
+            on = Path(folder) / "on.json"
+            on.write_text(json.dumps({**ACTIVITY_EXAMPLE, "enabled": True}), encoding="utf-8")
+            svc = Path(folder) / "svc.json"
+            svc.write_text(json.dumps({"host": "0.0.0.0", "allow_remote": True}), encoding="utf-8")
+            out, err = io.StringIO(), io.StringIO()
+            with redirect_stdout(out), redirect_stderr(err):
+                self.assertEqual(main(["serve", "--activity-config", str(on), "--service-config", str(svc)]), 2)
+                self.assertEqual(main(["check-service-config", str(svc)]), 1)
+            self.assertIn("token", err.getvalue())
+            tok = Path(folder) / "t.txt"
+            tok.write_text(TOKEN, encoding="utf-8")
+            svc.write_text(json.dumps({"host": "0.0.0.0", "allow_remote": True, "token_file": str(tok)}), encoding="utf-8")
+            out, err = io.StringIO(), io.StringIO()
+            with redirect_stdout(out), redirect_stderr(err):
+                self.assertEqual(main(["check-service-config", str(svc)]), 0)
+            self.assertIn("with a token", out.getvalue())
+            self.assertNotIn(TOKEN, out.getvalue() + err.getvalue())
 
 
 if __name__ == "__main__":

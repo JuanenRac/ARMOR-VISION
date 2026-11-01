@@ -13,11 +13,15 @@ capped by `max_body_bytes`, an observation by `max_detections`, and the number o
 """
 from __future__ import annotations
 
+import hmac
 import ipaddress
 import json
 import math
+import os
+import re
 import threading
 from dataclasses import dataclass
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import parse_qsl, urlsplit
@@ -37,6 +41,7 @@ SERVICE_EXAMPLE: dict[str, Any] = {
     "max_body_bytes": 65536,
     "max_detections": 64,
     "max_query_bytes": 512,
+    "token_file": None,
     "simulate": None,
 }
 _SIMULATE_KEYS = {"camera_id", "seed", "objects", "duration", "fps"}
@@ -63,7 +68,34 @@ class ServiceSettings:
     max_body_bytes: int = 65536
     max_detections: int = 64
     max_query_bytes: int = 512
+    token_file: str | None = None
     simulate: SimulateSettings | None = None
+
+
+TOKEN_ENV = "ARMOR_VISION_SERVICE_TOKEN"
+_TOKEN = re.compile(r"^[A-Za-z0-9._~+/=-]{24,200}$")
+
+
+def load_token(settings: "ServiceSettings", environ: dict[str, str] | None = None) -> str | None:
+    """The token the service asks for, from the file the settings name or from the environment (never from the settings file itself, so it is never in a repository), or None when there is none.
+    A token that is too short or has odd characters, a file that cannot be read, and both sources at once are errors. Nothing here ever prints the token."""
+    env = os.environ if environ is None else environ
+    from_env = env.get(TOKEN_ENV, "").strip()
+    if settings.token_file is not None and from_env:
+        raise ServiceConfigError(f"the token is given twice: by token_file and by {TOKEN_ENV}")
+    token = from_env
+    if settings.token_file is not None:
+        try:
+            token = Path(settings.token_file).read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeDecodeError) as exc:
+            raise ServiceConfigError(f"cannot read the token file {settings.token_file}: {type(exc).__name__}") from None
+    if not token:
+        if settings.allow_remote:
+            raise ServiceConfigError("allow_remote needs a token (token_file or the environment variable): the service does not start without one")
+        return None
+    if not _TOKEN.match(token):
+        raise ServiceConfigError("the token must be 24 to 200 characters of letters, digits and . _ ~ + / = -")
+    return token
 
 
 def _is_loopback(host: str) -> bool:
@@ -96,6 +128,7 @@ def parse_service_settings(raw: object) -> tuple[ServiceSettings | None, list[st
     body = raw.get("max_body_bytes", d.max_body_bytes)
     detections = raw.get("max_detections", d.max_detections)
     query = raw.get("max_query_bytes", d.max_query_bytes)
+    token_file = raw.get("token_file", d.token_file)
     if not isinstance(host, str) or not host:
         errors.append("host must be an address")
         host = d.host
@@ -116,6 +149,9 @@ def parse_service_settings(raw: object) -> tuple[ServiceSettings | None, list[st
     if not _whole(query) or not 64 <= query <= 4096:
         errors.append("max_query_bytes must be a whole number from 64 to 4096")
         query = d.max_query_bytes
+    if token_file is not None and (not isinstance(token_file, str) or not token_file or len(token_file) > 1024):
+        errors.append("token_file must be null or the path of a file that holds the token")
+        token_file = None
     simulate = None
     sim_raw = raw.get("simulate")
     if sim_raw is not None:
@@ -129,14 +165,17 @@ def parse_service_settings(raw: object) -> tuple[ServiceSettings | None, list[st
                 errors.append(f"simulate: {exc}")
     if errors:
         return None, errors
-    return ServiceSettings(str(host), int(port), bool(remote), int(body), int(detections), int(query), simulate), []
+    return ServiceSettings(str(host), int(port), bool(remote), int(body), int(detections), int(query), token_file, simulate), []
 
 
 class LiveService:
     """The engine in memory behind a lock; the HTTP part below only moves bytes in and out of it."""
 
-    def __init__(self, vision: VisionConfig, activity: ActivityConfig, settings: ServiceSettings) -> None:
+    def __init__(self, vision: VisionConfig, activity: ActivityConfig, settings: ServiceSettings, token: str | None = None) -> None:
         self.settings = settings
+        self._token = token
+        if settings.allow_remote and token is None:
+            raise ServiceConfigError("allow_remote needs a token: the service does not start without one")
         self._lock = threading.Lock()
         self._engine: ActivityEngine | None = ActivityEngine(vision, activity) if activity.enabled else None
         self._last: dict[str, float] = {}
@@ -177,6 +216,14 @@ class LiveService:
         with self._lock:
             return heatmap_route(self._engine, query)
 
+    def authorized(self, header: str | None) -> bool:
+        """True when no token is set, or when the request carries it (`Authorization: Bearer ...`), compared in constant time."""
+        if self._token is None:
+            return True
+        if not isinstance(header, str) or not header.startswith("Bearer "):
+            return False
+        return hmac.compare_digest(header[7:].strip().encode("utf-8"), self._token.encode("utf-8"))
+
     def health(self) -> dict[str, object]:
         with self._lock:
             engine = self._engine
@@ -207,7 +254,19 @@ def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:
         def _json(self, status: int, payload: dict[str, object]) -> None:
             self._send(status, "application/json", (json.dumps(payload, sort_keys=True) + "\n").encode())
 
+        def _denied(self) -> bool:
+            if service.authorized(self.headers.get("Authorization")):
+                return False
+            self.send_response(401)
+            self.send_header("WWW-Authenticate", "Bearer")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            service.refused_posts += 1
+            return True
+
         def do_GET(self) -> None:
+            if self._denied():
+                return
             if len(self.path) > settings.max_query_bytes:
                 return self._json(414, {"error": "request too long"})
             parts = urlsplit(self.path)
@@ -221,6 +280,8 @@ def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:
             self._send(*service.heatmap(dict(pairs)))
 
         def do_POST(self) -> None:
+            if self._denied():
+                return
             if urlsplit(self.path).path != "/ingest":
                 return self._json(404, {"error": "not found"})
             try:
@@ -239,6 +300,8 @@ def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:
             self._json(status, payload)
 
         def do_PUT(self) -> None:
+            if self._denied():
+                return
             self._json(405, {"error": "method not allowed"})
 
         do_DELETE = do_PATCH = do_PUT

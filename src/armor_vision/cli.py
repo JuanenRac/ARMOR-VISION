@@ -12,7 +12,7 @@ from .activity_config import ACTIVITY_EXAMPLE, parse_activity_config
 from .config import parse_config
 from .heatmap_service import QUERY_KEYS, ServiceError, answer
 from .pipeline import Pipeline
-from .service import SERVICE_EXAMPLE, LiveService, make_server, parse_service_settings
+from .service import SERVICE_EXAMPLE, LiveService, ServiceConfigError, load_token, make_server, parse_service_settings
 from .sources import FileSource, SourceError, SyntheticSource
 from .tracker import Detection
 
@@ -157,9 +157,9 @@ def _run_serve(args, config) -> int:
         print("error: the activity pipeline is off (enabled is false): there is nothing to serve", file=sys.stderr)
         return 1
     try:
-        service = LiveService(config, activity, settings)
+        service = LiveService(config, activity, settings, load_token(settings))
         server = make_server(service)
-    except (OSError, SourceError, KeyError, ValueError) as exc:
+    except (OSError, SourceError, KeyError, ValueError, ServiceConfigError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     print(f"armor-vision service on http://{settings.host}:{server.server_address[1]} ({len(service.health()['cameras'])} camera(s))", flush=True)  # type: ignore[arg-type]
@@ -231,7 +231,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {problem}", file=sys.stderr)
         if settings is None:
             return 2 if problems and problems[0].startswith("cannot read") else 1
-        print(f"ok: service on {settings.host}:{settings.port}")
+        try:
+            token = load_token(settings)
+        except ServiceConfigError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        print(f"ok: service on {settings.host}:{settings.port}, {'with' if token else 'without'} a token")
         return 0
     if args.action == "check-activity-config":
         activity, problems = _read_activity(args.file)
