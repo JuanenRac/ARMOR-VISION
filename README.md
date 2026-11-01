@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-97%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-107%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Honesty check - what runs today:** The zones, the motion check, the tracker, the rules and the 97 tests are real. There is **no real detector model yet** and nothing has run on a camera or on the Jetson Orin NX: the simulation uses scripted detections.
+**Honesty check - what runs today:** The zones, the motion check, the tracker, the rules and the 107 tests are real. There is **no real detector model yet** and nothing has run on a camera or on the Jetson Orin NX: the simulation uses scripted detections.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturity | Functional |
 | Role | Camera zones, masks and detection rules (family: Core Services, parent: ARMOR-SERVER) |
 | Stack | Python 3.11+, standard library only |
-| Tests | 97 (`python -m unittest discover -s tests`) |
+| Tests | 107 (`python -m unittest discover -s tests`) |
 | Runs on | Any computer |
 | On real hardware | None yet: no real detector, camera or Jetson (a simulation with scripted detections) |
 | License | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟡 | The zones, the motion check, the tracker and the rules work, but there is no real detector model yet: the simulation uses scripted detections. |
-| Tests | 🟢 | 97 tests pass (`python -m unittest discover -s tests`). |
+| Tests | 🟢 | 107 tests pass (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nothing has run on a camera or on the Jetson Orin NX. |
 | Documentation | 🟢 | Eight languages and the changelog are up to date. |
 
@@ -107,6 +107,7 @@ Nothing here is a safety function: there is no real detector model yet.
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | Prints an activity configuration to start from / validates one (exit 0 good, 1 invalid, 2 unreadable) |
 | `ActivityEngine`, `heatmap_route` | As a library: the engine and the handler of `GET /heatmap?camera=ID&format=json` (`png` and `svg` too), for the service that mounts it; the route answers 404 while the pipeline is off |
 | `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | Answers one `GET /heatmap` query from recorded detections and prints the answer as one JSON line (`status`, `content_type`, `body_base64`); this is what a server that mounts the route runs. Exit 0 for every answer of the route (also 404 when the pipeline is off and 400 for a bad query), 1 for a wrong configuration, 2 for a file that cannot be read |
+| `python -m armor_vision serve --activity-config FILE [--config FILE] [--service-config FILE]` | Runs the live service: the activity engine stays in memory, detections come in one observation at a time (`POST /ingest`) and `GET /heatmap` answers from that memory. It listens on 127.0.0.1 unless the settings file says `allow_remote`, keeps no secret and stores nothing on disk. Exit 1 for a wrong configuration or an activity pipeline that is off, 2 for a file that cannot be read or a port that cannot be opened |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -144,13 +145,13 @@ These values are constants of `tracker.py` and `motion.py` today; the configurat
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 97 tests
+python -m unittest discover -s tests   # 107 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 97 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 107 tests
 ```
 
 ## 🧪 Testing
@@ -168,6 +169,7 @@ python -I tools/armor_ci_validate.py
 | `test_characterization.py` | 2 | Fixes the output of the built-in simulation byte for byte, so that it cannot change while the activity pipeline is off |
 | `test_activity.py` | 27 | Activity configuration, synthetic and recorded sources, events, heat map (determinism, sum equals detections, nothing outside the grid, window, decay, memory), the `/heatmap` handler and the command line |
 | `test_heatmap_service.py` | 7 | The heat map route as a command: off is 404 whatever the data, on with no data is an empty map, counts in the three formats, bad queries, and a wrong configuration or file is an error and never an empty map |
+| `test_service.py` | 10 | The live service: the same map as the replayed file, off is 404 and 503, what is not understood is refused, the limits of the settings, bounded memory and the command |
 
 ## 🏗️ Build & Release
 
@@ -204,6 +206,7 @@ ARMOR-VISION/
 │   ├── sources.py heatmap.py            synthetic and recorded sources; heat map
 │   ├── activity.py                      events and the /heatmap handler
 │   ├── heatmap_service.py               the /heatmap route as a command
+│   ├── service.py                       the live service: the engine in memory, POST /ingest and GET /heatmap
 │   └── pipeline.py cli.py __main__.py   the whole chain and the command line
 ├── tests/                               the tests
 ├── docs/                                the guides of this repository

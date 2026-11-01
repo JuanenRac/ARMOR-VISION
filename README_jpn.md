@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-97%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-107%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、97 件のテストは実在します。**実際の検知モデルはまだありません**。カメラや Jetson Orin NX では何も動かしていません。シミュレーションは台本どおりの検知結果を使います。
+**正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、107 件のテストは実在します。**実際の検知モデルはまだありません**。カメラや Jetson Orin NX では何も動かしていません。シミュレーションは台本どおりの検知結果を使います。
 
 ---
 
@@ -40,7 +40,7 @@
 | 成熟度 | 機能する |
 | 役割 | カメラのゾーン、マスク、検出ルール（ファミリー：Core Services、親：ARMOR-SERVER） |
 | 技術 | Python 3.11+、標準ライブラリのみ |
-| テスト | 97 (`python -m unittest discover -s tests`) |
+| テスト | 107 (`python -m unittest discover -s tests`) |
 | 動作環境 | 任意のコンピューター |
 | 実機での確認 | まだありません：実際の検出器、カメラ、Jetson はなく、スクリプト化した検出によるシミュレーションのみ |
 | ライセンス | GPL-3.0-or-later |
@@ -56,7 +56,7 @@
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟡 | ゾーン、動きの確認、トラッカー、規則は動作しますが、実際の検出モデルはまだありません。シミュレーションはスクリプト化した検出結果を使います。 |
-| テスト | 🟢 | 97 件のテストが通ります（`python -m unittest discover -s tests`）。 |
+| テスト | 🟢 | 107 件のテストが通ります（`python -m unittest discover -s tests`）。 |
 | ハードウェア | 🔴 | カメラや Jetson Orin NX ではまだ何も動かしていません。 |
 | ドキュメント | 🟢 | 8 言語と変更履歴は最新です。 |
 
@@ -107,6 +107,7 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | 出発点となるアクティビティ設定を表示 / 設定を検証します（終了コード 0 正常、1 不正、2 読み取り不可） |
 | `ActivityEngine`, `heatmap_route` | ライブラリとして：エンジンと `GET /heatmap?camera=ID&format=json`（`png`、`svg` も可）のハンドラ。これを載せるサービス向けで、処理がオフの間はルートは 404 を返します |
 | `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | 記録された検出から `GET /heatmap` の問い合わせ 1 件に答え、答えを 1 行の JSON（`status`、`content_type`、`body_base64`）で出力します。ルートを載せるサーバーが実行するものです。ルートの答えはすべて終了コード 0（処理オフの 404 と不正な問い合わせの 400 も）、設定が誤りなら 1、読めないファイルなら 2 |
+| `python -m armor_vision serve --activity-config FILE [--config FILE] [--service-config FILE]` | ライブサービスを起動します。アクティビティエンジンはメモリに残り、検出は観測ごとに入り（`POST /ingest`）、`GET /heatmap` はそのメモリから答えます。設定ファイルに `allow_remote` がない限り 127.0.0.1 で待ち受け、秘密を持たず、ディスクには何も書きません。設定の誤りやアクティビティがオフの場合は終了コード 1、ファイルが読めない場合やポートを開けない場合は 2 |
 
 ```json
 {"schema": "armor.vision.event/v1", "type": "alert", "camera_id": "cam-front", "zone_id": "drive",
@@ -144,13 +145,13 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 97 tests
+python -m unittest discover -s tests   # 107 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 97 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 107 tests
 ```
 
 ## 🧪 テスト
@@ -168,6 +169,7 @@ python -I tools/armor_ci_validate.py
 | `test_characterization.py` | 2 | 組み込みシミュレーションの出力をバイト単位で固定し、アクティビティ処理がオフの間は変わらないようにします |
 | `test_activity.py` | 27 | アクティビティ設定、合成と記録のソース、イベント、ヒートマップ（決定性、合計が検出数と一致、グリッド外なし、ウィンドウ、減衰、メモリ）、`/heatmap` ハンドラ、コマンドライン |
 | `test_heatmap_service.py` | 7 | コマンドとしてのヒートマップのルート：オフならデータに関係なく 404、オンでデータなしなら空の地図、3 つの形式での件数、不正な問い合わせ、誤った設定やファイルはエラーであり空の地図にはならない |
+| `test_service.py` | 10 | ライブサービス：再生したファイルと同じマップ、オフなら 404 と 503、理解できないものは拒否、設定の上限、メモリの上限、コマンド |
 
 ## 🏗️ ビルドとリリース
 
@@ -204,6 +206,7 @@ ARMOR-VISION/
 │   ├── sources.py heatmap.py            合成・記録ソース、ヒートマップ
 │   ├── activity.py                      イベントと /heatmap ハンドラ
 │   ├── heatmap_service.py               /heatmap ルートをコマンドとして
+│   ├── service.py                       ライブサービス：メモリ上のエンジン、POST /ingest と GET /heatmap
 │   └── pipeline.py cli.py __main__.py   全体の流れとコマンドライン
 ├── tests/                               テスト
 ├── docs/                                このリポジトリのガイド

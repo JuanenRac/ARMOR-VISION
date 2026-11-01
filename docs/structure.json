@@ -149,6 +149,19 @@
           }
         },
         {
+          "name": "service.py",
+          "desc": {
+            "en": "the live service: the engine in memory, POST /ingest and GET /heatmap",
+            "es": "el servicio vivo: el motor en memoria, POST /ingest y GET /heatmap",
+            "de": "der Live-Dienst: die Engine im Speicher, POST /ingest und GET /heatmap",
+            "fr": "le service vivant : le moteur en mémoire, POST /ingest et GET /heatmap",
+            "it": "il servizio vivo: il motore in memoria, POST /ingest e GET /heatmap",
+            "ja": "ライブサービス：メモリ上のエンジン、POST /ingest と GET /heatmap",
+            "zh": "实时服务：内存中的引擎、POST /ingest 与 GET /heatmap",
+            "pt": "o serviço vivo: o motor em memória, POST /ingest e GET /heatmap"
+          }
+        },
+        {
           "name": "pipeline.py cli.py __main__.py",
           "desc": {
             "en": "the whole chain and the command line",
@@ -241,6 +254,19 @@
             "ja": "ヒートマップのルートをコマンドとして",
             "zh": "作为命令的热力图路由",
             "pt": "a rota do mapa de calor como comando"
+          }
+        },
+        {
+          "name": "test_service.py",
+          "desc": {
+            "en": "the live service",
+            "es": "el servicio vivo",
+            "de": "der Live-Dienst",
+            "fr": "le service vivant",
+            "it": "il servizio vivo",
+            "ja": "ライブサービス",
+            "zh": "实时服务",
+            "pt": "o serviço vivo"
           }
         }
       ]

@@ -12,6 +12,7 @@ from .activity_config import ACTIVITY_EXAMPLE, parse_activity_config
 from .config import parse_config
 from .heatmap_service import QUERY_KEYS, ServiceError, answer
 from .pipeline import Pipeline
+from .service import SERVICE_EXAMPLE, LiveService, make_server, parse_service_settings
 from .sources import FileSource, SourceError, SyntheticSource
 from .tracker import Detection
 
@@ -130,6 +131,47 @@ def _run_heatmap_route(args, config) -> int:
     return 0
 
 
+def _read_service_settings(path: str | None):
+    if path is None:
+        return parse_service_settings(None)
+    try:
+        raw = json.loads(Path(path).read_text(encoding="utf-8"), parse_constant=_no_constants)
+    except (OSError, ValueError) as exc:
+        return None, [f"cannot read {path}: {exc}"]
+    return parse_service_settings(raw)
+
+
+def _run_serve(args, config) -> int:
+    """The live service: the activity engine in memory, fed by POST /ingest, answering GET /heatmap. Runs until it is stopped."""
+    activity, problems = _read_activity(args.activity_config)
+    if activity is None:
+        for problem in problems:
+            print(f"error: {problem}", file=sys.stderr)
+        return 2 if problems and problems[0].startswith("cannot read") else 1
+    settings, problems = _read_service_settings(args.service_config)
+    if settings is None:
+        for problem in problems:
+            print(f"error: {problem}", file=sys.stderr)
+        return 2 if problems and problems[0].startswith("cannot read") else 1
+    if not activity.enabled:
+        print("error: the activity pipeline is off (enabled is false): there is nothing to serve", file=sys.stderr)
+        return 1
+    try:
+        service = LiveService(config, activity, settings)
+        server = make_server(service)
+    except (OSError, SourceError, KeyError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    print(f"armor-vision service on http://{settings.host}:{server.server_address[1]} ({len(service.health()['cameras'])} camera(s))", flush=True)  # type: ignore[arg-type]
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="armor-vision", description="ARMOR-VISION zones and detection rules")
     parser.add_argument("--version", action="version", version=f"armor-vision {__version__}")
@@ -156,6 +198,13 @@ def main(argv: list[str] | None = None) -> int:
     route.add_argument("--detections-file", metavar="FILE", help="recorded detections (JSON lines); without it the map is empty")
     for key in QUERY_KEYS:
         route.add_argument(f"--{key}", help=f"the {key} parameter of the query")
+    serve = sub.add_parser("serve", help="run the live service: the activity engine in memory, detections in by POST /ingest, the heat map out by GET /heatmap")
+    serve.add_argument("--config", help="configuration file (default: the built-in example)")
+    serve.add_argument("--activity-config", metavar="FILE", required=True, help="activity configuration; the service does not start unless it says enabled")
+    serve.add_argument("--service-config", metavar="FILE", help="settings of the service (address, port, limits); the defaults listen on 127.0.0.1:8765")
+    check_service = sub.add_parser("check-service-config", help="validate a settings file of the live service")
+    check_service.add_argument("file")
+    sub.add_parser("service-example", help="print the settings of the live service to start from")
     args = parser.parse_args(argv if argv is not None else sys.argv[1:] or ["simulate"])
     if args.action == "check-config":
         try:
@@ -172,6 +221,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.action == "activity-example":
         print(json.dumps(ACTIVITY_EXAMPLE, indent=2))
+        return 0
+    if args.action == "service-example":
+        print(json.dumps(SERVICE_EXAMPLE, indent=2))
+        return 0
+    if args.action == "check-service-config":
+        settings, problems = _read_service_settings(args.file)
+        for problem in problems:
+            print(f"error: {problem}", file=sys.stderr)
+        if settings is None:
+            return 2 if problems and problems[0].startswith("cannot read") else 1
+        print(f"ok: service on {settings.host}:{settings.port}")
         return 0
     if args.action == "check-activity-config":
         activity, problems = _read_activity(args.file)
@@ -195,6 +255,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if args.action == "heatmap-route":
         return _run_heatmap_route(args, config)
+    if args.action == "serve":
+        return _run_serve(args, config)
     if args.simulate_events or args.heatmap:
         return _run_activity(args, config)
     events, stats = simulate(config, args.mode)
