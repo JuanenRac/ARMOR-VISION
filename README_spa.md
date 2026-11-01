@@ -58,6 +58,9 @@ Cada línea es una parte de este repositorio y la luz dice hasta dónde llega ho
 | Software | 🟡 | Las zonas, la comprobación de movimiento, el seguimiento y las reglas funcionan, pero aún no hay un modelo detector real: la simulación usa detecciones guionizadas. |
 | Pruebas | 🟢 | Pasan 119 pruebas (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nada ha funcionado en una cámara ni en la Jetson Orin NX. |
+| Interfaz | 🟡 | Las rutas o los mensajes que ofrece están documentados y probados con un cliente; aún no los han usado todos los clientes |
+| Seguridad | 🟡 | El control de acceso, los límites de entrada o las firmas están implementados y probados en un ordenador; nadie ajeno al proyecto los ha revisado |
+| Integración | 🟠 | Sus mensajes se validan contra los esquemas compartidos y los vectores de conformidad de ARMOR-COMMON; no ha funcionado junto con el equipo real |
 | Documentación | 🟢 | Ocho idiomas y el historial de cambios están al día. |
 
 ## 🎯 Resumen

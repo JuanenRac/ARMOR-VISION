@@ -58,6 +58,9 @@ Jede Zeile ist ein Teil dieses Repositorys, und die Ampel sagt, wie weit er heut
 | Software | 🟡 | Die Zonen, die Bewegungsprüfung, die Verfolgung und die Regeln funktionieren, aber es gibt noch kein echtes Erkennungsmodell: Die Simulation nutzt geskriptete Erkennungen. |
 | Tests | 🟢 | 119 Tests bestehen (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nichts lief an einer Kamera oder auf dem Jetson Orin NX. |
+| Oberfläche | 🟡 | Die angebotenen Routen oder Nachrichten sind dokumentiert und mit einem Client getestet; noch nicht jeder Client hat sie benutzt |
+| Sicherheit | 🟡 | Zugriffskontrolle, Eingabegrenzen oder Signaturen sind umgesetzt und auf einem Rechner getestet; niemand außerhalb des Projekts hat sie geprüft |
+| Integration | 🟠 | Seine Nachrichten werden gegen die gemeinsamen Schemas und Konformitätsvektoren von ARMOR-COMMON geprüft; es lief noch nicht zusammen mit der echten Ausrüstung |
 | Dokumentation | 🟢 | Acht Sprachen und das Änderungsprotokoll sind aktuell. |
 
 ## 🎯 Überblick
