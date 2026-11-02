@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.0] - Zones and masks can be written as rectangles, a flood of detections cannot slow the tracker down and the errors of the pipeline can be told from a bug
+
 - **A zone or a mask can be written as a rectangle:** `"rect": {"x", "y", "w", "h"}` is read as its four corners, so the zones to ignore that the server keeps and the ones Studio draws can be used as they are; a zone gives `points` or `rect`, not both.
 - **A flood of detections cannot slow the tracker down:** the new `limits` of the configuration (`max_detections`, default 100, and `max_tracks`, default 200) keep the most certain detections of a frame and stop a camera from following more than that at once; what is left out is counted as a dropped detection.
 - **The errors of the pipeline can be told from a bug:** `UnknownCameraError` and `NoDetectorError`, both a `VisionError` (and still a `KeyError` and a `RuntimeError`), replace the bare ones.
