@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.1] - The vision event is versioned and can carry the radar tracks, a frame only looks at the visits of its own camera and a pipe inside a code span no longer splits a table cell in the README
+
 - **The vision event is versioned and can carry the radar tracks:** `make_event(..., radar_tracks=N)` writes the second version (`armor.vision.event/v2`, the same fields plus `radar_tracks`); without it the event stays the first version. Three tests pin both versions and the refusal of a bad count. Tests: 138 (before 135).
 - **A frame only looks at the visits of its own camera:** the rules keep the open visits of each camera apart, so ending the visits of an object that left no longer walks through the visits of every other camera (the events are the same).
 - **A pipe inside a code span no longer splits a table cell in the README:** the command that answers one heatmap query shows its output formats escaped, in the eight languages.
