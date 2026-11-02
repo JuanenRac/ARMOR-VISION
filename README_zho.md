@@ -109,7 +109,7 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 | `python -m armor_vision simulate --heatmap OUT --activity-config FILE` | 写出活动热力图（每个格子的计数，`OUT` 以 `.json`、`.png` 或 `.svg` 结尾）；只含汇总后的位置，绝不含图像 |
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | 打印一份可作起点的活动配置 / 校验一份配置（退出码 0 正常，1 无效，2 无法读取） |
 | `ActivityEngine`, `heatmap_route` | 作为库：引擎以及 `GET /heatmap?camera=ID&format=json`（也支持 `png` 和 `svg`）的处理器，供挂载它的服务使用；管线关闭时该路由返回 404 |
-| `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | 根据记录的检测结果回答一次 `GET /heatmap` 查询，并把答案作为一行 JSON（`status`、`content_type`、`body_base64`）输出；挂载该路由的服务器运行的就是它。路由的每个答案都以 0 退出（管线关闭时的 404 和查询有误时的 400 也是），配置错误退出 1，文件无法读取退出 2 |
+| `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json\|png\|svg] [--scale N]` | 根据记录的检测结果回答一次 `GET /heatmap` 查询，并把答案作为一行 JSON（`status`、`content_type`、`body_base64`）输出；挂载该路由的服务器运行的就是它。路由的每个答案都以 0 退出（管线关闭时的 404 和查询有误时的 400 也是），配置错误退出 1，文件无法读取退出 2 |
 | `python -m armor_vision replay FILE [--config FILE] [--mode MODE]` | 让记录的检测（JSON Lines）通过区域规则，并打印每个区域本会触发的事件及各区域计数（文件不可用或摄像头不在配置中时退出码为 2） |
 | `OnnxDetector`, `parse_onnx_settings` | 作为库：在 CPU 上运行 ONNX 模型的检测器（需要 `onnxruntime`，它不是依赖项；不构建就保持关闭） |
 | `python -m armor_vision serve --activity-config FILE [--config FILE] [--service-config FILE]` | 运行实时服务：活动引擎常驻内存，检测逐次观测传入（`POST /ingest`），`GET /heatmap` 直接从该内存应答。除非设置文件写明 `allow_remote`，否则只监听 127.0.0.1，除可要求的令牌外不保存任何密钥（向其他机器开放时必须在文件中提供令牌），也不向磁盘写入任何内容。配置错误或活动管线关闭时退出码为 1，文件无法读取或端口无法打开时为 2 设置文件中的上限：`request_timeout_s`（沉默的客户端会被断开）、`max_connections`（下一个连接会收到 503，请稍后再来）、`render_cache_entries`（保留多少张已绘制的地图；0 为关闭）。 |

@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A pipe inside a code span no longer splits a table cell in the README:** the command that answers one heatmap query shows its output formats escaped, in the eight languages.
+
 ## [0.1.0] - Zones and masks can be written as rectangles, a flood of detections cannot slow the tracker down and the errors of the pipeline can be told from a bug
 
 - **A zone or a mask can be written as a rectangle:** `"rect": {"x", "y", "w", "h"}` is read as its four corners, so the zones to ignore that the server keeps and the ones Studio draws can be used as they are; a zone gives `points` or `rect`, not both.
