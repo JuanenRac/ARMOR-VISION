@@ -52,6 +52,8 @@ python -m armor_vision check-activity-config FILE
 
 `authorizes_action` is always `false`: the event reports what was seen, and the server decides what to do. The message is not part of the ARMOR-COMMON contract yet.
 
+The event is versioned in its `schema`. The first version (`armor.vision.event/v1`) is the one above. The second (`armor.vision.event/v2`) has the same fields plus `radar_tracks`, a whole number (zero or more) with the radar tracks that agree with what the camera saw; `make_event(..., radar_tracks=N)` writes it. The consumer (the policy worker of ARMOR-SERVER-AI) accepts both: a first-version event takes the radar count the worker was started with, a second-version event brings its own, and any other `schema` is refused.
+
 ## As a library
 
 ```python

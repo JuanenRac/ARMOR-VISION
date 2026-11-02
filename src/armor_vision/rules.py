@@ -18,6 +18,7 @@ from .geometry import foot_point, point_in_polygon
 from .tracker import Track
 
 EVENT_SCHEMA = "armor.vision.event/v1"
+EVENT_SCHEMA_V2 = "armor.vision.event/v2"  # same fields plus radar_tracks
 
 
 @dataclass
@@ -77,11 +78,15 @@ class Evaluator:
         return events
 
 
-def make_event(camera_id: str, zone: Zone, track: Track, timestamp: float) -> dict:
+def make_event(camera_id: str, zone: Zone, track: Track, timestamp: float, radar_tracks: int | None = None) -> dict:
     """The message sent to the server. It reports what was seen; it never asks
-    for anything to be done: authorizes_action is always false."""
-    return {
-        "schema": EVENT_SCHEMA,
+    for anything to be done: authorizes_action is always false. Without
+    radar_tracks the event is the first version; with it (a whole number, zero
+    or more) it is the second, which carries the radar tracks that agree."""
+    if radar_tracks is not None and (isinstance(radar_tracks, bool) or not isinstance(radar_tracks, int) or radar_tracks < 0):
+        raise ValueError("radar_tracks must be a whole number, zero or more")
+    event = {
+        "schema": EVENT_SCHEMA if radar_tracks is None else EVENT_SCHEMA_V2,
         "type": zone.kind,
         "camera_id": camera_id,
         "zone_id": zone.zone_id,
@@ -94,3 +99,6 @@ def make_event(camera_id: str, zone: Zone, track: Track, timestamp: float) -> di
         "timestamp_ms": int(round(timestamp * 1000)),
         "authorizes_action": False,
     }
+    if radar_tracks is not None:
+        event["radar_tracks"] = radar_tracks
+    return event

@@ -230,3 +230,29 @@ class VisitsPerCameraTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EventVersionTests(unittest.TestCase):
+    def setUp(self):
+        from armor_vision.tracker import Track
+        from armor_vision.config import Zone
+        self.zone = Zone('z', 'Z', tuple(map(tuple, SQUARE)), (), 'alert', 1, 0.0)
+        self.track = Track(1, "person", (0.1, 0.1, 0.2, 0.2), 0.9, 0.0, 1.0)
+
+    def test_without_tracks_it_is_the_first_version(self):
+        from armor_vision.rules import make_event
+        event = make_event("c", self.zone, self.track, 1.0)
+        self.assertEqual(event["schema"], "armor.vision.event/v1")
+        self.assertNotIn("radar_tracks", event)
+
+    def test_with_tracks_it_is_the_second_version(self):
+        from armor_vision.rules import make_event
+        event = make_event("c", self.zone, self.track, 1.0, radar_tracks=2)
+        self.assertEqual(event["schema"], "armor.vision.event/v2")
+        self.assertEqual(event["radar_tracks"], 2)
+
+    def test_a_bad_count_is_refused(self):
+        from armor_vision.rules import make_event
+        for bad in (-1, True, 1.5):
+            with self.assertRaises(ValueError):
+                make_event("c", self.zone, self.track, 1.0, radar_tracks=bad)
