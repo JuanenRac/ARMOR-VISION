@@ -213,5 +213,20 @@ class RectangleLimitAndErrorTests(unittest.TestCase):
         self.assertIsInstance(caught.exception, RuntimeError)
 
 
+class VisitsPerCameraTests(unittest.TestCase):
+    def test_a_frame_of_one_camera_does_not_end_the_visits_of_another(self):
+        from armor_vision.config import CameraConfig, VisionConfig, Zone
+        from armor_vision.rules import Evaluator
+        from armor_vision.tracker import Track
+        zone = Zone("z", "Zone", tuple((x, y) for x, y in SQUARE), (), "alert", 2, 0.0)
+        cams = [CameraConfig(c, (zone,), (), 20, 1) for c in ("a", "b")]
+        evaluator = Evaluator(VisionConfig({c.camera_id: c for c in cams}))
+        track = Track(1, "person", (0.4, 0.4, 0.6, 0.6), 0.9, 0.0, 0.0)
+        self.assertEqual(evaluator.evaluate(cams[0], 0.0, [track]), [])
+        evaluator.evaluate(cams[1], 0.0, [track])          # camera b has its own track 1
+        self.assertEqual(len(evaluator.evaluate(cams[0], 1.0, [track])), 1)   # camera a's visit survived and fires on its second frame
+        self.assertEqual(sorted(evaluator._visits), ["a", "b"])
+
+
 if __name__ == "__main__":
     unittest.main()

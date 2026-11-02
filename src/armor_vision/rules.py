@@ -31,7 +31,7 @@ class _Visit:
 class Evaluator:
     def __init__(self, config: VisionConfig, mode: str | None = None) -> None:
         self._config = config
-        self._visits: dict[tuple[str, int, str], _Visit] = {}
+        self._visits: dict[str, dict[tuple[int, str], _Visit]] = {}   # per camera: a frame only looks at the visits of its own camera
         self.mode = mode
 
     def set_mode(self, mode: str | None) -> None:
@@ -53,20 +53,21 @@ class Evaluator:
         has not left, and coming back must not open a new visit."""
         events: list[dict] = []
         live = {(camera.camera_id, t.track_id) for t in (alive if alive is not None else tracks)}
-        for key in [k for k in self._visits if (k[0], k[1]) not in live and k[0] == camera.camera_id]:
-            del self._visits[key]   # the object is gone: its visits end
+        visits = self._visits.setdefault(camera.camera_id, {})
+        for key in [k for k in visits if (camera.camera_id, k[0]) not in live]:
+            del visits[key]   # the object is gone: its visits end
         for track in tracks:
             foot = foot_point(track.box)
             for zone in camera.zones:
-                key = (camera.camera_id, track.track_id, zone.zone_id)
+                key = (track.track_id, zone.zone_id)
                 inside = (self.watched(zone) and (not zone.labels or track.label in zone.labels)
                           and point_in_polygon(foot, zone.points))
                 if not inside:
-                    self._visits.pop(key, None)
+                    visits.pop(key, None)
                     continue
-                visit = self._visits.get(key)
+                visit = visits.get(key)
                 if visit is None:
-                    visit = self._visits[key] = _Visit(0, timestamp, started_stationary=track.stationary)
+                    visit = visits[key] = _Visit(0, timestamp, started_stationary=track.stationary)
                 visit.frames += 1
                 if visit.fired or visit.started_stationary:
                     continue
