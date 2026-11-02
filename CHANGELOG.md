@@ -4,6 +4,10 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A zone or a mask can be written as a rectangle:** `"rect": {"x", "y", "w", "h"}` is read as its four corners, so the zones to ignore that the server keeps and the ones Studio draws can be used as they are; a zone gives `points` or `rect`, not both.
+- **A flood of detections cannot slow the tracker down:** the new `limits` of the configuration (`max_detections`, default 100, and `max_tracks`, default 200) keep the most certain detections of a frame and stop a camera from following more than that at once; what is left out is counted as a dropped detection.
+- **The errors of the pipeline can be told from a bug:** `UnknownCameraError` and `NoDetectorError`, both a `VisionError` (and still a `KeyError` and a `RuntimeError`), replace the bare ones.
+
 ## [0.0.9] - Recorded detections can be run through the zone rules and an ONNX detector on the CPU that stays off unless it is built
 
 - **Recorded detections can be run through the zone rules:** the new command `replay FILE [--config FILE] [--mode MODE]` reads a file of recorded detections (the JSON-lines format of the activity pipeline) and prints the alerts and detections each zone would have raised, with their count per zone, so the zones, the masks and the inertia can be tuned offline on what the cameras really saw. Nothing is sent anywhere. A file that cannot be used, or a camera that is not in the configuration, exits with 2 and prints nothing: a recording of another house must not look like a quiet one.

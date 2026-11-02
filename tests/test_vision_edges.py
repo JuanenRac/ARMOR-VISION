@@ -9,7 +9,9 @@ from pathlib import Path
 from armor_vision import motion
 from armor_vision.cli import EXAMPLE_CONFIG, main
 from armor_vision.config import parse_config
-from armor_vision.geometry import point_in_polygon, valid_polygon
+from armor_vision.geometry import point_in_polygon, rect_polygon, valid_polygon
+from armor_vision.pipeline import NoDetectorError, Pipeline, UnknownCameraError, VisionError
+from armor_vision.tracker import Detection
 from armor_vision.motion import Frame, moved_cells, regions
 
 SQUARE = [[0.2, 0.2], [0.8, 0.2], [0.8, 0.8], [0.2, 0.8]]
@@ -162,6 +164,53 @@ class CommandLineTests(unittest.TestCase):
         code, out, _err = run("--version")
         self.assertEqual(code, 0)
         self.assertTrue(out.startswith("armor-vision "))
+
+
+class RectangleLimitAndErrorTests(unittest.TestCase):
+    def test_a_rectangle_is_the_same_zone_as_its_four_corners(self):
+        points, problem = rect_polygon({"x": 0.1, "y": 0.2, "w": 0.4, "h": 0.5})
+        self.assertIsNone(problem)
+        self.assertEqual(points, [[0.1, 0.2], [0.5, 0.2], [0.5, 0.7], [0.1, 0.7]])
+        config, errors = parse_config({"cameras": {"cam": {"zones": [{"id": "z", "rect": {"x": 0.1, "y": 0.2, "w": 0.4, "h": 0.5}}], "masks": [{"x": 0, "y": 0, "w": 0.2, "h": 0.2}]}}})
+        self.assertEqual(errors, [])
+        self.assertEqual(len(config.cameras["cam"].zones[0].points), 4)
+        self.assertEqual(len(config.cameras["cam"].masks), 1)
+
+    def test_every_way_a_rectangle_can_be_wrong(self):
+        for rect, fragment in [({"x": 0, "y": 0, "w": 1}, "exactly"), ({"x": 0, "y": 0, "w": 0, "h": 0.5}, "positive"), ({"x": 0.6, "y": 0, "w": 0.6, "h": 0.5}, "inside"),
+                               ({"x": 0, "y": 0, "w": True, "h": 0.5}, "finite"), ({"x": 0, "y": 0, "w": float("nan"), "h": 0.5}, "finite"), ("box", "exactly")]:
+            self.assertIn(fragment, rect_polygon(rect)[1], rect)
+        config, errors = parse_config({"cameras": {"cam": {"zones": [{"id": "z", "rect": {"x": 0, "y": 0, "w": 0.5, "h": 0.5}, "points": [[0, 0], [1, 0], [1, 1]]}]}}})
+        self.assertIsNone(config)
+        self.assertIn("not both", errors[0])
+
+    def test_the_limits_are_read_from_the_configuration_and_checked(self):
+        config, errors = parse_config({"cameras": {}, "limits": {"max_detections": 5, "max_tracks": 7}})
+        self.assertEqual((errors, config.max_detections, config.max_tracks), ([], 5, 7))
+        default, _ = parse_config({"cameras": {}})
+        self.assertEqual((default.max_detections, default.max_tracks), (100, 200))
+        for bad in ({"max_tracks": 0}, {"max_tracks": 1.5}, {"max_detections": 10_001}, {"other": 1}, "x"):
+            self.assertIsNone(parse_config({"cameras": {}, "limits": bad})[0], bad)
+
+    def test_a_flood_of_boxes_keeps_the_most_certain_ones_and_counts_the_rest(self):
+        config, _ = parse_config({"cameras": {"cam": {"zones": [{"id": "z", "points": [[0, 0], [1, 0], [1, 1], [0, 1]]}]}}, "limits": {"max_detections": 3, "max_tracks": 2}})
+        pipeline = Pipeline(config)
+        boxes = [Detection("person", 0.5 + i / 100, (i / 20, 0.1, i / 20 + 0.03, 0.2)) for i in range(10)]
+        pipeline.process_detections("cam", 0.0, boxes)
+        # three kept (the most certain), two followed at once, the third refused; seven trimmed before the tracker
+        self.assertEqual(pipeline.stats.dropped_detections, 7 + 1)
+
+    def test_the_errors_of_the_pipeline_can_be_told_from_a_bug(self):
+        config, _ = parse_config({"cameras": {"cam": {}}})
+        pipeline = Pipeline(config)
+        with self.assertRaises(UnknownCameraError) as caught:
+            pipeline.process_detections("nope", 0.0, [])
+        self.assertIsInstance(caught.exception, VisionError)
+        self.assertIsInstance(caught.exception, KeyError)
+        self.assertEqual(str(caught.exception), "camera 'nope' is not in the configuration")
+        with self.assertRaises(NoDetectorError) as caught:
+            pipeline.process_frame("cam", 0.0, Frame(2, 2, bytes(4)))
+        self.assertIsInstance(caught.exception, RuntimeError)
 
 
 if __name__ == "__main__":

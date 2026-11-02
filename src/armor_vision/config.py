@@ -11,9 +11,12 @@ import math
 from dataclasses import dataclass, field
 from typing import Any
 
-from .geometry import valid_polygon
+from .geometry import rect_polygon, valid_polygon
 
 ZONE_KINDS = ("alert", "detection")
+DEFAULT_MAX_DETECTIONS = 100
+DEFAULT_MAX_TRACKS = 200
+MAX_LIMIT = 10_000
 
 
 @dataclass(frozen=True)
@@ -40,10 +43,26 @@ class CameraConfig:
 class VisionConfig:
     cameras: dict[str, CameraConfig] = field(default_factory=dict)
     profiles: dict[str, tuple[str, ...]] = field(default_factory=dict)  # mode -> zone ids watched
+    max_detections: int = DEFAULT_MAX_DETECTIONS   # detections taken from one frame (the most certain ones); the rest are dropped
+    max_tracks: int = DEFAULT_MAX_TRACKS           # things followed at once per camera; a new one waits for room
 
 
 def _number(value: Any) -> bool:
     return not isinstance(value, bool) and isinstance(value, (int, float))
+
+
+def _shape(raw: Any, where: str, errors: list[str]) -> list | None:
+    """A polygon as a list of points, or as a rectangle {x, y, w, h}; the list of points when it is usable."""
+    if isinstance(raw, dict):
+        points, problem = rect_polygon(raw)
+        if problem:
+            errors.append(f"{where}: {problem}")
+        return points
+    problem = valid_polygon(raw)
+    if problem:
+        errors.append(f"{where}: {problem}")
+        return None
+    return raw
 
 
 def parse_config(raw: Any) -> tuple[VisionConfig | None, list[str]]:
@@ -52,7 +71,7 @@ def parse_config(raw: Any) -> tuple[VisionConfig | None, list[str]]:
     errors: list[str] = []
     if not isinstance(raw, dict):
         return None, ["the configuration must be an object"]
-    unknown = sorted(set(raw) - {"cameras", "profiles"})
+    unknown = sorted(set(raw) - {"cameras", "profiles", "limits"})
     if unknown:
         errors.append(f"unknown top-level field(s): {', '.join(unknown)}")
     cameras: dict[str, CameraConfig] = {}
@@ -87,7 +106,7 @@ def parse_config(raw: Any) -> tuple[VisionConfig | None, list[str]]:
             if not isinstance(zone, dict):
                 errors.append(f"{zone_where}: must be an object")
                 continue
-            unknown = sorted(set(zone) - {"id", "name", "points", "labels", "kind", "min_frames", "min_seconds"})
+            unknown = sorted(set(zone) - {"id", "name", "points", "rect", "labels", "kind", "min_frames", "min_seconds"})
             if unknown:
                 errors.append(f"{zone_where}: unknown field(s): {', '.join(unknown)}")
             zone_id = zone.get("id")
@@ -97,9 +116,11 @@ def parse_config(raw: Any) -> tuple[VisionConfig | None, list[str]]:
             if zone_id in all_zone_ids:
                 errors.append(f"{zone_where}: id {zone_id!r} is used twice")
             all_zone_ids.add(zone_id)
-            problem = valid_polygon(zone.get("points", []))
-            if problem:
-                errors.append(f"{zone_where} ({zone_id}): {problem}")
+            if "points" in zone and "rect" in zone:
+                errors.append(f"{zone_where} ({zone_id}): give points or rect, not both")
+                continue
+            zone_points = _shape(zone["rect"] if "rect" in zone else zone.get("points", []), f"{zone_where} ({zone_id})", errors)
+            if zone_points is None:
                 continue
             kind = zone.get("kind", "alert")
             if kind not in ZONE_KINDS:
@@ -118,7 +139,7 @@ def parse_config(raw: Any) -> tuple[VisionConfig | None, list[str]]:
                 errors.append(f"{zone_where} ({zone_id}): min_seconds must be a finite number, not negative")
                 min_seconds = 0
             zones.append(Zone(zone_id, str(zone.get("name", zone_id)),
-                              tuple((float(x), float(y)) for x, y in zone["points"]),
+                              tuple((float(x), float(y)) for x, y in zone_points),
                               tuple(labels), kind, int(min_frames), float(min_seconds)))
         masks: list[tuple[tuple[float, float], ...]] = []
         raw_masks = entry.get("masks", [])
@@ -126,11 +147,10 @@ def parse_config(raw: Any) -> tuple[VisionConfig | None, list[str]]:
             errors.append(f"{where}: masks must be a list")
             raw_masks = []
         for index, mask in enumerate(raw_masks):
-            problem = valid_polygon(mask)
-            if problem:
-                errors.append(f"{where} mask #{index + 1}: {problem}")
+            mask_points = _shape(mask, f"{where} mask #{index + 1}", errors)
+            if mask_points is None:
                 continue
-            masks.append(tuple((float(x), float(y)) for x, y in mask))
+            masks.append(tuple((float(x), float(y)) for x, y in mask_points))
         cameras[str(camera_id)] = CameraConfig(str(camera_id), tuple(zones), tuple(masks), int(threshold), int(min_cells))
     profiles: dict[str, tuple[str, ...]] = {}
     raw_profiles = raw.get("profiles", {})
@@ -145,6 +165,20 @@ def parse_config(raw: Any) -> tuple[VisionConfig | None, list[str]]:
             if zone_id not in all_zone_ids:
                 errors.append(f"profile {mode!r}: zone {zone_id!r} does not exist")
         profiles[str(mode)] = tuple(zone_ids)
+    raw_limits = raw.get("limits", {})
+    limits = {"max_detections": DEFAULT_MAX_DETECTIONS, "max_tracks": DEFAULT_MAX_TRACKS}
+    if not isinstance(raw_limits, dict):
+        errors.append("limits must be an object")
+        raw_limits = {}
+    for name in sorted(set(raw_limits) - set(limits)):
+        errors.append(f"limits: unknown field {name!r}")
+    for name in limits:
+        if name in raw_limits:
+            value = raw_limits[name]
+            if not _number(value) or isinstance(value, float) or not 1 <= value <= MAX_LIMIT:
+                errors.append(f"limits: {name} must be a whole number from 1 to {MAX_LIMIT}")
+            else:
+                limits[name] = int(value)
     if errors:
         return None, errors
-    return VisionConfig(cameras, profiles), []
+    return VisionConfig(cameras, profiles, limits["max_detections"], limits["max_tracks"]), []

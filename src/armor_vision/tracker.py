@@ -33,7 +33,9 @@ class Track:
 
 
 class Tracker:
-    def __init__(self) -> None:
+    def __init__(self, max_tracks: int | None = None) -> None:
+        self._max_tracks = max_tracks    # None = no limit
+        self.refused = 0                 # detections that started no track because the tracker was full
         self._tracks: dict[int, Track] = {}
         self._next_id = 1
 
@@ -74,6 +76,9 @@ class Tracker:
             seen.append(track)
         for index, detection in enumerate(detections):
             if index in used_detections:
+                continue
+            if self._max_tracks is not None and len(self._tracks) >= self._max_tracks:
+                self.refused += 1
                 continue
             track = Track(self._next_id, detection.label, detection.box, detection.confidence, timestamp, timestamp)
             self._next_id += 1

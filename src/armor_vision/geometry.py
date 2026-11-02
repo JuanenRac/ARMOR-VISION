@@ -7,6 +7,21 @@ Point = tuple[float, float]
 Box = tuple[float, float, float, float]  # x_min, y_min, x_max, y_max
 
 
+def rect_polygon(rect: object) -> tuple[list[list[float]] | None, str | None]:
+    """The four corners of a rectangle {x, y, w, h} (the form Studio draws and the server keeps for the zones to ignore), or why it cannot be used."""
+    if not isinstance(rect, dict) or set(rect) != {"x", "y", "w", "h"}:
+        return None, "a rectangle must be an object with exactly x, y, w and h"
+    for name in ("x", "y", "w", "h"):
+        value = rect[name]
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or value != value or value in (float("inf"), float("-inf")):
+            return None, "the numbers of a rectangle must be finite numbers"
+    x, y, w, h = (float(rect[n]) for n in ("x", "y", "w", "h"))
+    if w <= 0 or h <= 0 or x < 0 or y < 0 or x + w > 1.0 + 1e-9 or y + h > 1.0 + 1e-9:
+        return None, "a rectangle must have a positive size and stay inside 0..1"
+    x2, y2 = min(1.0, x + w), min(1.0, y + h)
+    return [[x, y], [x2, y], [x2, y2], [x, y2]], None
+
+
 def valid_polygon(points: Sequence[Sequence[float]]) -> str | None:
     """Why a polygon cannot be used, or None when it can."""
     if not isinstance(points, (list, tuple)) or len(points) < 3:

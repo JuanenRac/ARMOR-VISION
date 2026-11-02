@@ -11,12 +11,27 @@ from .rules import Evaluator
 from .tracker import Detection, Tracker
 
 
+class VisionError(Exception):
+    """What a caller can tell apart from a bug of its own: the request cannot be served."""
+
+
+class UnknownCameraError(VisionError, KeyError):
+    """The camera is not in the configuration (still a KeyError for callers written before)."""
+
+    def __str__(self) -> str:
+        return str(self.args[0]) if self.args else ""
+
+
+class NoDetectorError(VisionError, RuntimeError):
+    """process_frame was used on a pipeline built without a detector."""
+
+
 @dataclass
 class Stats:
     frames: int = 0
     detector_calls: int = 0
     skipped_by_motion: int = 0
-    dropped_detections: int = 0     # inside a mask, or with a malformed box
+    dropped_detections: int = 0     # inside a mask, malformed, or over the limits
     events: int = 0
 
 
@@ -37,9 +52,9 @@ class Pipeline:
         picture moved (outside the masks); the first frame only sets the reference."""
         camera = self._config.cameras.get(camera_id)
         if camera is None:
-            raise KeyError(f"camera {camera_id!r} is not in the configuration")
+            raise UnknownCameraError(f"camera {camera_id!r} is not in the configuration")
         if self._detector is None:
-            raise RuntimeError("process_frame needs a detector; use process_detections otherwise")
+            raise NoDetectorError("process_frame needs a detector; use process_detections otherwise")
         self.stats.frames += 1
         previous = self._previous.get(camera_id)
         self._previous[camera_id] = frame
@@ -57,7 +72,7 @@ class Pipeline:
     def process_detections(self, camera_id: str, timestamp: float, detections: list[Detection]) -> list[dict]:
         """Detections that already exist (from another service or a simulation)."""
         if camera_id not in self._config.cameras:
-            raise KeyError(f"camera {camera_id!r} is not in the configuration")
+            raise UnknownCameraError(f"camera {camera_id!r} is not in the configuration")
         self.stats.frames += 1
         return self._track(camera_id, timestamp, detections)
 
@@ -71,8 +86,15 @@ class Pipeline:
                 self.stats.dropped_detections += 1
                 continue
             kept.append(detection)
-        tracker = self._trackers.setdefault(camera_id, Tracker())
+        if len(kept) > self._config.max_detections:
+            # a detector that returns hundreds of boxes would cost O(n*m) in the tracker: the most certain ones are kept
+            trimmed = len(kept) - self._config.max_detections
+            kept = sorted(kept, key=lambda d: -d.confidence)[:self._config.max_detections]
+            self.stats.dropped_detections += trimmed
+        tracker = self._trackers.setdefault(camera_id, Tracker(self._config.max_tracks))
+        before = tracker.refused
         tracks = tracker.update(timestamp, kept)
+        self.stats.dropped_detections += tracker.refused - before
         events = self._evaluator.evaluate(camera, timestamp, tracks, tracker.tracks)
         self.stats.events += len(events)
         return events

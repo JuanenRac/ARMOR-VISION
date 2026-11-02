@@ -16,6 +16,7 @@ from .activity_config import ActivityConfig, CountLine
 from .config import VisionConfig, Zone
 from .geometry import centre, foot_point, point_in_polygon, segments_cross, valid_box
 from .heatmap import Heatmap, HeatmapSnapshot
+from .pipeline import UnknownCameraError
 from .sources import DetectionSource
 from .tracker import Detection, Track, Tracker
 
@@ -68,7 +69,7 @@ class ActivityEngine:
 
     def heatmap(self, camera_id: str) -> Heatmap:
         if camera_id not in self._maps:
-            raise KeyError(f"camera {camera_id!r} is not in the configuration")
+            raise UnknownCameraError(f"camera {camera_id!r} is not in the configuration")
         return self._maps[camera_id]
 
     def run(self, source: DetectionSource) -> list[dict]:
@@ -80,7 +81,7 @@ class ActivityEngine:
     def process(self, camera_id: str, timestamp: float, detections: list[Detection]) -> list[dict]:
         camera = self._vision.cameras.get(camera_id)
         if camera is None:
-            raise KeyError(f"camera {camera_id!r} is not in the configuration")
+            raise UnknownCameraError(f"camera {camera_id!r} is not in the configuration")
         if isinstance(timestamp, bool) or not isinstance(timestamp, (int, float)) or not math.isfinite(timestamp):
             raise ValueError("timestamp must be a finite number")
         heat = self._maps[camera_id]
@@ -96,7 +97,7 @@ class ActivityEngine:
             kept.append(d)
             if not heat_labels or d.label in heat_labels:
                 heat.add(timestamp, foot_point(d.box) if use_foot else centre(d.box))
-        tracker = self._trackers.setdefault(camera_id, Tracker())
+        tracker = self._trackers.setdefault(camera_id, Tracker(self._vision.max_tracks))
         seen = tracker.update(timestamp, kept)
         alive = {t.track_id: t for t in tracker.tracks}
         events: list[dict] = []
