@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 o successiva">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Linguaggio">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-119%20passing-2ea44f.svg" alt="Test">
+  <img src="https://img.shields.io/badge/Tests-129%20passing-2ea44f.svg" alt="Test">
   <img src="https://img.shields.io/badge/Version-0.0.8-0f6cbd.svg" alt="Versione">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturità">
 </p>
 
 ---
 
-**Controllo di onestà - cosa funziona oggi:** Le zone, il controllo del movimento, il tracciamento, le regole e i 119 test sono reali. **Non esiste ancora un vero modello di rilevamento** e nulla è stato eseguito su una telecamera o sulla Jetson Orin NX: la simulazione usa rilevamenti scriptati.
+**Controllo di onestà - cosa funziona oggi:** Le zone, il controllo del movimento, il tracciamento, le regole e i 129 test sono reali. **Non esiste ancora un vero modello di rilevamento** e nulla è stato eseguito su una telecamera o sulla Jetson Orin NX: la simulazione usa rilevamenti scriptati.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturità | Funzionale |
 | Ruolo | Zone, maschere e regole di rilevamento delle telecamere (famiglia: Core Services, padre: ARMOR-SERVER) |
 | Tecnologia | Python 3.11+, solo libreria standard |
-| Test | 119 (`python -m unittest discover -s tests`) |
+| Test | 129 (`python -m unittest discover -s tests`) |
 | Gira su | Qualsiasi computer |
 | Su hardware reale | Ancora nessuno: né rilevatore reale, né telecamera, né Jetson (una simulazione con rilevamenti scriptati) |
 | Licenza | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Area | Stato | Cosa significa qui |
 |---|---|---|
 | Software | 🟡 | Le zone, il controllo del movimento, il tracciamento e le regole funzionano, ma non c'è ancora un vero modello di rilevamento: la simulazione usa rilevamenti da script. |
-| Test | 🟢 | Superano 119 test (`python -m unittest discover -s tests`). |
+| Test | 🟢 | Superano 129 test (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nulla ha girato su una telecamera né sulla Jetson Orin NX. |
 | Interfaccia | 🟡 | Le rotte o i messaggi offerti sono documentati e provati con un client; non tutti i client li hanno ancora usati |
 | Sicurezza | 🟡 | Il controllo degli accessi, i limiti d'ingresso o le firme sono implementati e provati su un computer; nessuno al di fuori del progetto li ha rivisti |
@@ -110,6 +110,8 @@ Nulla qui è una funzione di sicurezza: non esiste ancora un vero modello di ril
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | Stampa una configurazione di attività di partenza / ne convalida una (codice 0 buono, 1 non valida, 2 illeggibile) |
 | `ActivityEngine`, `heatmap_route` | Come libreria: il motore e il gestore di `GET /heatmap?camera=ID&format=json` (anche `png` e `svg`), per il servizio che lo monta; la rotta risponde 404 finché la pipeline è spenta |
 | `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | Risponde a una richiesta `GET /heatmap` da rilevamenti registrati e stampa la risposta come una riga JSON (`status`, `content_type`, `body_base64`); è ciò che esegue un server che monta la rotta. Codice 0 per ogni risposta della rotta (anche 404 a pipeline spenta e 400 per una richiesta errata), 1 per una configurazione errata, 2 per un file illeggibile |
+| `python -m armor_vision replay FILE [--config FILE] [--mode MODE]` | Fa passare rilevamenti registrati (JSON Lines) per le regole di zona e stampa gli eventi che ogni zona avrebbe generato, con il conteggio per zona (uscita 2 se il file non è utilizzabile o la telecamera non è nella configurazione) |
+| `OnnxDetector`, `parse_onnx_settings` | Come libreria: un rilevatore che esegue un modello ONNX sulla CPU (richiede `onnxruntime`, che non è una dipendenza; spento finché non lo si costruisce) |
 | `python -m armor_vision serve --activity-config FILE [--config FILE] [--service-config FILE]` | Avvia il servizio vivo: il motore di attività resta in memoria, le rilevazioni arrivano un'osservazione alla volta (`POST /ingest`) e `GET /heatmap` risponde da quella memoria. Ascolta su 127.0.0.1 salvo che il file di impostazioni dica `allow_remote`, non custodisce altro segreto che il token che può richiedere (deve averne uno, in un file, se è aperto ad altre macchine) e non scrive nulla su disco. Esce con 1 per una configurazione errata o attività spenta, con 2 per un file illeggibile o una porta che non si apre Limiti nel file di impostazioni: `request_timeout_s` (un client che tace viene chiuso), `max_connections` (al successivo si dice di tornare con un 503) e `render_cache_entries` (quante mappe disegnate si tengono; 0 la spegne). |
 
 ```json
@@ -148,13 +150,13 @@ Oggi questi valori sono costanti di `tracker.py` e `motion.py`; il file di confi
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 119 tests
+python -m unittest discover -s tests   # 129 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 119 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 129 tests
 ```
 
 ## 🧪 Test

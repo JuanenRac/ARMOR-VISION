@@ -63,6 +63,14 @@ events = pipeline.process_detections("cam-front", timestamp, [Detection("person"
 
 `process_frame(camera_id, timestamp, frame)` takes a grey `Frame` and a detector, and asks the detector only when the picture moved. The only detector in this version is `ScriptedDetector`; asking `load_detector("tensorrt")` raises `DetectorUnavailable` because the model for the Jetson Orin NX is not written yet.
 
+## Replaying recorded detections
+
+`python -m armor_vision replay FILE [--config FILE] [--mode MODE]` runs a file of recorded detections (one JSON object per line: `camera_id`, `timestamp`, `detections`) through the zone rules and prints one event per line followed by `{"stats", "events_per_zone"}`. With `--mode` only the zones of that arming mode are watched, as in the service. The exit code is 2 for a file that cannot be used (the whole file is refused) and for a camera of the file that is not in the configuration.
+
+## The ONNX detector (library, off unless built)
+
+`parse_onnx_settings({"model": "model.onnx", "labels": ["person", "car"], "input_size": 640, "min_confidence": 0.4, "merge_iou": 0.5, "max_detections": 50})` checks the settings whole; `load_detector("onnx", settings)` opens the model with `onnxruntime` (install it yourself; it is not a dependency). The model has one input `[1, 3, S, S]` (float32, RGB 0..1; the grey frame is repeated on three channels) and one output `[N, 6]` or `[1, N, 6]` with rows `x1, y1, x2, y2, score, class` in pixels of the input.
+
 ## Activity events and heat map (off by default)
 
 A separate pipeline turns detections into activity events and a heat map. It is **off** unless the activity configuration says `"enabled": true`: without it `--simulate-events` and `--heatmap` exit with 3 and write nothing, and everything above behaves exactly as before. `activity-example` prints a configuration to start from.

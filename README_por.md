@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-119%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-129%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Verificação de honestidade - o que funciona hoje:** As zonas, a verificação de movimento, o seguidor, as regras e os 119 testes são reais. **Ainda não há nenhum modelo detetor real** e nada correu numa câmara nem no Jetson Orin NX: a simulação usa deteções com guião.
+**Verificação de honestidade - o que funciona hoje:** As zonas, a verificação de movimento, o seguidor, as regras e os 129 testes são reais. **Ainda não há nenhum modelo detetor real** e nada correu numa câmara nem no Jetson Orin NX: a simulação usa deteções com guião.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturidade | Funcional |
 | Função | Zonas, máscaras e regras de deteção de câmaras (família: Core Services, pai: ARMOR-SERVER) |
 | Tecnologia | Python 3.11+, só biblioteca padrão |
-| Testes | 119 (`python -m unittest discover -s tests`) |
+| Testes | 129 (`python -m unittest discover -s tests`) |
 | Funciona em | Qualquer computador |
 | Em hardware real | Nenhum ainda: nem detetor real, nem câmara, nem Jetson (uma simulação com deteções guionizadas) |
 | Licença | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 | Área | Estado | O que significa aqui |
 |---|---|---|
 | Software | 🟡 | As zonas, a verificação de movimento, o seguimento e as regras funcionam, mas ainda não há um modelo detetor real: a simulação usa deteções com guião. |
-| Testes | 🟢 | Passam 119 testes (`python -m unittest discover -s tests`). |
+| Testes | 🟢 | Passam 129 testes (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nada funcionou numa câmara nem no Jetson Orin NX. |
 | Interface | 🟡 | As rotas ou mensagens que oferece estão documentadas e testadas com um cliente; ainda nem todos os clientes as usaram |
 | Segurança | 🟡 | O controlo de acesso, os limites de entrada ou as assinaturas estão implementados e testados num computador; ninguém fora do projeto os reviu |
@@ -110,6 +110,8 @@ Nada aqui é uma função de segurança: ainda não há um modelo de deteção r
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | Imprime uma configuração de atividade para começar / valida uma (código 0 bom, 1 inválida, 2 ilegível) |
 | `ActivityEngine`, `heatmap_route` | Como biblioteca: o motor e o tratador de `GET /heatmap?camera=ID&format=json` (também `png` e `svg`), para o serviço que o monta; a rota responde 404 enquanto a cadeia estiver desligada |
 | `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | Responde a um pedido `GET /heatmap` a partir de deteções gravadas e imprime a resposta como uma linha JSON (`status`, `content_type`, `body_base64`); é o que executa um servidor que monta a rota. Código 0 para qualquer resposta da rota (também 404 com a cadeia desligada e 400 num pedido errado), 1 se a configuração estiver errada, 2 se um ficheiro não puder ser lido |
+| `python -m armor_vision replay FILE [--config FILE] [--mode MODE]` | Passa deteções gravadas (JSON Lines) pelas regras de zona e imprime os eventos que cada zona teria gerado, com a contagem por zona (saída 2 se o ficheiro não servir ou a câmara não estiver na configuração) |
+| `OnnxDetector`, `parse_onnx_settings` | Como biblioteca: um detetor que executa um modelo ONNX no CPU (precisa de `onnxruntime`, que não é dependência; desligado enquanto não for construído) |
 | `python -m armor_vision serve --activity-config FILE [--config FILE] [--service-config FILE]` | Executa o serviço vivo: o motor de atividade fica em memória, as deteções entram uma observação de cada vez (`POST /ingest`) e `GET /heatmap` responde a partir dessa memória. Escuta em 127.0.0.1 a não ser que o ficheiro de definições diga `allow_remote`, não guarda mais segredo do que o token que pode exigir (tem de o ter, num ficheiro, se estiver aberto a outras máquinas) e não escreve nada em disco. Sai com 1 se a configuração estiver errada ou a atividade desligada, com 2 se um ficheiro não puder ser lido ou a porta não abrir Limites no ficheiro de definições: `request_timeout_s` (um cliente que fica calado é cortado), `max_connections` (ao seguinte diz-se que volte com um 503) e `render_cache_entries` (quantos mapas desenhados se guardam; 0 desliga-o). |
 
 ```json
@@ -148,13 +150,13 @@ Estes valores são hoje constantes de `tracker.py` e `motion.py`; o ficheiro de 
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 119 tests
+python -m unittest discover -s tests   # 129 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 119 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 129 tests
 ```
 
 ## 🧪 Testes

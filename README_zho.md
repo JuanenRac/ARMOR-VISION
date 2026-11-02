@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-119%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-129%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 119 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
+**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 129 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
 
 ---
 
@@ -40,7 +40,7 @@
 | 成熟度 | 可用 |
 | 角色 | 摄像头区域、遮罩和检测规则（家族：Core Services，上级：ARMOR-SERVER） |
 | 技术栈 | Python 3.11+，仅标准库 |
-| 测试 | 119 (`python -m unittest discover -s tests`) |
+| 测试 | 129 (`python -m unittest discover -s tests`) |
 | 运行位置 | 任何计算机 |
 | 真实硬件 | 暂无：没有真实的检测器、摄像头或 Jetson（使用脚本化检测的模拟） |
 | 许可证 | GPL-3.0-or-later |
@@ -56,7 +56,7 @@
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 防区、移动检查、跟踪器和规则都能工作，但目前还没有真实的检测模型：模拟使用的是脚本化的检测结果。 |
-| 测试 | 🟢 | 119 项测试通过（`python -m unittest discover -s tests`）。 |
+| 测试 | 🟢 | 129 项测试通过（`python -m unittest discover -s tests`）。 |
 | 硬件 | 🔴 | 还没有在摄像头或 Jetson Orin NX 上运行过。 |
 | 界面 | 🟡 | 提供的路由或消息已有文档，并用客户端测试过；尚未被所有客户端使用 |
 | 安全 | 🟡 | 访问控制、输入限制或签名已实现并在计算机上测试；项目之外无人审查过 |
@@ -110,6 +110,8 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | 打印一份可作起点的活动配置 / 校验一份配置（退出码 0 正常，1 无效，2 无法读取） |
 | `ActivityEngine`, `heatmap_route` | 作为库：引擎以及 `GET /heatmap?camera=ID&format=json`（也支持 `png` 和 `svg`）的处理器，供挂载它的服务使用；管线关闭时该路由返回 404 |
 | `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | 根据记录的检测结果回答一次 `GET /heatmap` 查询，并把答案作为一行 JSON（`status`、`content_type`、`body_base64`）输出；挂载该路由的服务器运行的就是它。路由的每个答案都以 0 退出（管线关闭时的 404 和查询有误时的 400 也是），配置错误退出 1，文件无法读取退出 2 |
+| `python -m armor_vision replay FILE [--config FILE] [--mode MODE]` | 让记录的检测（JSON Lines）通过区域规则，并打印每个区域本会触发的事件及各区域计数（文件不可用或摄像头不在配置中时退出码为 2） |
+| `OnnxDetector`, `parse_onnx_settings` | 作为库：在 CPU 上运行 ONNX 模型的检测器（需要 `onnxruntime`，它不是依赖项；不构建就保持关闭） |
 | `python -m armor_vision serve --activity-config FILE [--config FILE] [--service-config FILE]` | 运行实时服务：活动引擎常驻内存，检测逐次观测传入（`POST /ingest`），`GET /heatmap` 直接从该内存应答。除非设置文件写明 `allow_remote`，否则只监听 127.0.0.1，除可要求的令牌外不保存任何密钥（向其他机器开放时必须在文件中提供令牌），也不向磁盘写入任何内容。配置错误或活动管线关闭时退出码为 1，文件无法读取或端口无法打开时为 2 设置文件中的上限：`request_timeout_s`（沉默的客户端会被断开）、`max_connections`（下一个连接会收到 503，请稍后再来）、`render_cache_entries`（保留多少张已绘制的地图；0 为关闭）。 |
 
 ```json
@@ -148,13 +150,13 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 119 tests
+python -m unittest discover -s tests   # 129 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 119 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 129 tests
 ```
 
 ## 🧪 测试

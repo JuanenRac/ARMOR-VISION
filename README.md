@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-119%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-129%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.0.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Honesty check - what runs today:** The zones, the motion check, the tracker, the rules and the 119 tests are real. There is **no real detector model yet** and nothing has run on a camera or on the Jetson Orin NX: the simulation uses scripted detections.
+**Honesty check - what runs today:** The zones, the motion check, the tracker, the rules and the 129 tests are real. There is **no real detector model yet** and nothing has run on a camera or on the Jetson Orin NX: the simulation uses scripted detections.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturity | Functional |
 | Role | Camera zones, masks and detection rules (family: Core Services, parent: ARMOR-SERVER) |
 | Stack | Python 3.11+, standard library only |
-| Tests | 119 (`python -m unittest discover -s tests`) |
+| Tests | 129 (`python -m unittest discover -s tests`) |
 | Runs on | Any computer |
 | On real hardware | None yet: no real detector, camera or Jetson (a simulation with scripted detections) |
 | License | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟡 | The zones, the motion check, the tracker and the rules work, but there is no real detector model yet: the simulation uses scripted detections. |
-| Tests | 🟢 | 119 tests pass (`python -m unittest discover -s tests`). |
+| Tests | 🟢 | 129 tests pass (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nothing has run on a camera or on the Jetson Orin NX. |
 | Interface | 🟡 | The routes or messages it offers are documented and tested with a client; not every client has used them yet |
 | Security | 🟡 | Access control, input limits or signatures are implemented and tested on a computer; nobody outside the project has reviewed them |
@@ -110,6 +110,8 @@ Nothing here is a safety function: there is no real detector model yet.
 | `python -m armor_vision activity-example` / `check-activity-config FILE` | Prints an activity configuration to start from / validates one (exit 0 good, 1 invalid, 2 unreadable) |
 | `ActivityEngine`, `heatmap_route` | As a library: the engine and the handler of `GET /heatmap?camera=ID&format=json` (`png` and `svg` too), for the service that mounts it; the route answers 404 while the pipeline is off |
 | `python -m armor_vision heatmap-route --activity-config FILE [--detections-file FILE] [--camera ID] [--format json|png|svg] [--scale N]` | Answers one `GET /heatmap` query from recorded detections and prints the answer as one JSON line (`status`, `content_type`, `body_base64`); this is what a server that mounts the route runs. Exit 0 for every answer of the route (also 404 when the pipeline is off and 400 for a bad query), 1 for a wrong configuration, 2 for a file that cannot be read |
+| `python -m armor_vision replay FILE [--config FILE] [--mode MODE]` | Runs recorded detections (JSON lines) through the zone rules and prints the events each zone would have raised, with the count per zone (exit 2 for a file that cannot be used or a camera that is not in the configuration) |
+| `OnnxDetector`, `parse_onnx_settings` | As a library: a detector that runs an ONNX model on the CPU (needs `onnxruntime`, which is not a dependency; off unless it is built) |
 | `python -m armor_vision serve --activity-config FILE [--config FILE] [--service-config FILE]` | Runs the live service: the activity engine stays in memory, detections come in one observation at a time (`POST /ingest`) and `GET /heatmap` answers from that memory. It listens on 127.0.0.1 unless the settings file says `allow_remote`, keeps no secret but the token it may ask for (it must have one, in a file, when it is open to other machines) and stores nothing on disk. Exit 1 for a wrong configuration or an activity pipeline that is off, 2 for a file that cannot be read or a port that cannot be opened Limits in the settings file: `request_timeout_s` (a client that goes quiet is dropped), `max_connections` (the next one is told to come back with 503) and `render_cache_entries` (how many drawn maps are kept; 0 turns it off). |
 
 ```json
@@ -148,13 +150,13 @@ These values are constants of `tracker.py` and `motion.py` today; the configurat
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 119 tests
+python -m unittest discover -s tests   # 129 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 119 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 129 tests
 ```
 
 ## 🧪 Testing

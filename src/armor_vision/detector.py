@@ -33,7 +33,13 @@ class ScriptedDetector:
         return self._script(frame, hints)
 
 
-def load_detector(name: str) -> Detector:
+def load_detector(name: str, settings: object = None) -> Detector:
+    """`onnx` needs the settings of `onnx_detector.parse_onnx_settings`; the others are not written."""
+    if name == "onnx":
+        from .onnx_detector import OnnxDetector, OnnxSettings
+        if not isinstance(settings, OnnxSettings):
+            raise DetectorUnavailable("the ONNX detector needs its settings (model, labels): see onnx_detector.parse_onnx_settings")
+        return OnnxDetector(settings)
     if name == "tensorrt":
         raise DetectorUnavailable(
             "the TensorRT detector for the Jetson Orin NX is not written yet; "

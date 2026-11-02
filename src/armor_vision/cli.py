@@ -12,6 +12,7 @@ from .activity_config import ACTIVITY_EXAMPLE, parse_activity_config
 from .config import parse_config
 from .heatmap_service import QUERY_KEYS, ServiceError, answer
 from .pipeline import Pipeline
+from .replay import replay
 from .service import SERVICE_EXAMPLE, LiveService, ServiceConfigError, load_token, make_server, parse_service_settings
 from .sources import FileSource, SourceError, SyntheticSource
 from .tracker import Detection
@@ -189,6 +190,10 @@ def main(argv: list[str] | None = None) -> int:
     sim.add_argument("--seed", type=int, default=1, help="seed of the synthetic scene")
     sim.add_argument("--objects", type=int, default=3, help="people in the synthetic scene")
     sim.add_argument("--duration", type=float, default=60.0, help="seconds of the synthetic scene")
+    replay_parser = sub.add_parser("replay", help="run a file of recorded detections (JSON lines) through the zone rules and print the events each zone would have raised")
+    replay_parser.add_argument("detections_file")
+    replay_parser.add_argument("--config", help="configuration file (default: the built-in example)")
+    replay_parser.add_argument("--mode", help="arming mode, e.g. away or home")
     check_activity = sub.add_parser("check-activity-config", help="validate an activity configuration file")
     check_activity.add_argument("file")
     sub.add_parser("activity-example", help="print an activity configuration to start from")
@@ -258,6 +263,16 @@ def main(argv: list[str] | None = None) -> int:
         for error in errors:
             print(f"error: {error}", file=sys.stderr)
         return 1
+    if args.action == "replay":
+        try:
+            events, stats, per_zone = replay(config, FileSource(args.detections_file), args.mode)
+        except (SourceError, KeyError) as exc:
+            print(f"error: {exc.args[0] if isinstance(exc, KeyError) else exc}", file=sys.stderr)
+            return 2
+        for event in events:
+            print(json.dumps(event, sort_keys=True))
+        print(json.dumps({"stats": stats, "events_per_zone": per_zone}, sort_keys=True))
+        return 0
     if args.action == "heatmap-route":
         return _run_heatmap_route(args, config)
     if args.action == "serve":
