@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.0.9] - Recorded detections can be run through the zone rules and an ONNX detector on the CPU that stays off unless it is built
+
 - **Recorded detections can be run through the zone rules:** the new command `replay FILE [--config FILE] [--mode MODE]` reads a file of recorded detections (the JSON-lines format of the activity pipeline) and prints the alerts and detections each zone would have raised, with their count per zone, so the zones, the masks and the inertia can be tuned offline on what the cameras really saw. Nothing is sent anywhere. A file that cannot be used, or a camera that is not in the configuration, exits with 2 and prints nothing: a recording of another house must not look like a quiet one.
 - **An ONNX detector that runs on the CPU, off unless it is built:** `OnnxDetector` (with `parse_onnx_settings`, and `load_detector("onnx", settings)`) runs a model with one image input and rows `x1, y1, x2, y2, score, class` as output, applies the confidence threshold, merges overlapping boxes of the same class and limits the count. `onnxruntime` is not a dependency: without it the detector says so. The model path, the labels and the thresholds are in a settings object that is checked whole. It has only been tested with a stand-in for the session; no real model has been run.
 - Tests: 129 (before 119).
