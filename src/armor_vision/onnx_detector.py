@@ -96,7 +96,7 @@ def decode(rows: Any, settings: OnnxSettings) -> list[Detection]:
 def _numpy_tensor(frame: Frame, size: int) -> Any:
     """The grey frame as a `[1, 3, size, size]` float32 tensor (nearest-neighbour resize)."""
     try:
-        import numpy
+        import numpy  # type: ignore[import-not-found,import-untyped,unused-ignore]
     except ImportError as exc:
         raise DetectorUnavailable("the ONNX detector needs numpy (it comes with onnxruntime)") from exc
     grey = numpy.frombuffer(frame.pixels, dtype=numpy.uint8).reshape(frame.height, frame.width)
@@ -112,7 +112,7 @@ class OnnxDetector:
         self._to_tensor = to_tensor
         if session is None:
             try:
-                import onnxruntime  # type: ignore[import-untyped,unused-ignore]
+                import onnxruntime  # type: ignore[import-not-found,import-untyped,unused-ignore]
             except ImportError as exc:
                 raise DetectorUnavailable("the ONNX detector needs the onnxruntime package; it is not installed") from exc
             try:
