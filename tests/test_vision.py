@@ -35,6 +35,12 @@ def grey(value, width=160, height=90):
     return Frame(width, height, bytes([value]) * (width * height))
 
 
+def patch(value, changed_to, width=160, height=90):
+    """A grey frame whose top third (all the width) is `changed_to`: the rest stays at `value`, so the typical change of the picture is none and the patch is movement."""
+    rows = height // 3
+    return Frame(width, height, bytes([changed_to]) * (width * rows) + bytes([value]) * (width * (height - rows)))
+
+
 class GeometryTests(unittest.TestCase):
     def test_point_in_polygon_inside_outside_and_edge(self):
         self.assertTrue(point_in_polygon((0.5, 0.5), SQUARE))
@@ -134,13 +140,17 @@ class MotionTests(unittest.TestCase):
         self.assertEqual((box[0], box[1]), (0.0, 0.0))
 
     def test_threshold_and_mask(self):
-        small = moved_cells(grey(0), grey(20), 25)
+        small = moved_cells(grey(0), patch(0, 20), 25)
         self.assertEqual(small, set())
-        everything = moved_cells(grey(0), grey(100), 25)
-        self.assertEqual(len(everything), GRID_COLUMNS * GRID_ROWS)
-        masked = moved_cells(grey(0), grey(100), 25, masks=(tuple(map(tuple, SQUARE)),))
-        self.assertLess(len(masked), len(everything))
-        self.assertNotIn((GRID_COLUMNS // 2, GRID_ROWS // 2), masked)
+        patched = moved_cells(grey(0), patch(0, 100), 25)
+        self.assertEqual(len(patched), GRID_COLUMNS * 3)
+        masked = moved_cells(grey(0), patch(0, 100), 25, masks=(tuple((x, y * 0.4) for x, y in SQUARE),))
+        self.assertLess(len(masked), len(patched))
+        self.assertNotIn((GRID_COLUMNS // 2, 1), masked)
+
+    def test_the_whole_picture_changing_alike_is_exposure_not_movement(self):
+        self.assertEqual(moved_cells(grey(0), grey(100), 25), set())
+        self.assertEqual(moved_cells(grey(200), grey(60), 25), set())
 
     def test_regions_join_neighbours_only(self):
         boxes = regions({(0, 0), (1, 0), (5, 5)})
@@ -320,7 +330,7 @@ class PipelineMotionTests(unittest.TestCase):
         self.assertEqual(pipeline.process_frame("cam", 0.2, still), [])
         self.assertEqual(detector.calls, 0)
         for step in range(1, 7):
-            pipeline.process_frame("cam", step * 0.2 + 0.2, grey(10 + 60 * (step % 2)))
+            pipeline.process_frame("cam", step * 0.2 + 0.2, patch(10, 10 + 60 * (step % 2)))
         self.assertGreaterEqual(detector.calls, 5)
         self.assertEqual(pipeline.stats.frames, 8)
         self.assertGreaterEqual(pipeline.stats.events, 1)

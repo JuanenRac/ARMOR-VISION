@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The movement check decides per pixel, like the one of the server:** a pixel has changed when it differs from the previous picture by more than `motion_threshold` after the typical change of the whole picture is taken away, so a camera's automatic exposure, a cloud or the switch to infrared no longer wakes the detector; the grid is only used to say where it moved (a cell moves when a tenth of its pixels changed) and the masks are left out of the median.
+
 ## [0.1.1] - The vision event is versioned and can carry the radar tracks, a frame only looks at the visits of its own camera and a pipe inside a code span no longer splits a table cell in the README
 
 - **The vision event is versioned and can carry the radar tracks:** `make_event(..., radar_tracks=N)` writes the second version (`armor.vision.event/v2`, the same fields plus `radar_tracks`); without it the event stays the first version. Three tests pin both versions and the refusal of a bad count. Tests: 138 (before 135).

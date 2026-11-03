@@ -101,7 +101,7 @@ class MotionEdgeTests(unittest.TestCase):
 
     def test_a_change_under_a_mask_is_not_movement_and_a_change_outside_it_is(self):
         quiet = Frame(64, 48, b"\x10" * (64 * 48))
-        loud = Frame(64, 48, bytes([0xF0] * (64 * 48)))
+        loud = Frame(64, 48, bytes([0xF0] * (64 * 20)) + bytes([0x10] * (64 * 28)))
         everything = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
         self.assertTrue(moved_cells(quiet, loud, 30))
         self.assertEqual(moved_cells(quiet, loud, 30, masks=(tuple(everything),)), set())
