@@ -10,7 +10,7 @@ from armor_vision.cli import EXAMPLE_CONFIG, main, simulate
 from armor_vision.config import parse_config
 from armor_vision.detector import DetectorUnavailable, ScriptedDetector, load_detector
 from armor_vision.geometry import iou, point_in_polygon, valid_box, valid_polygon
-from armor_vision.motion import GRID_COLUMNS, GRID_ROWS, Frame, moved_cells, regions
+from armor_vision.motion import GRID_COLUMNS, Frame, moved_cells, regions
 from armor_vision.pipeline import Pipeline
 from armor_vision.tracker import Detection, Tracker
 
