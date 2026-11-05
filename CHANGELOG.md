@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The movement model is the one of the shared repository:** `motion_core.py` is a byte-for-byte copy of the one in ARMOR-COMMON (the observation service of the server uses the same file); the grid, the masks of a camera and the regions of the pipeline are built on it, regions can also be read as rectangles `{x, y, w, h}`, and a test fails when the copy differs from the original.
 - **The launchers find the shared repository through `ARMOR_COMMON_DIR`:** `build`, `build-test`, `test` and `run` (`.sh` and `.bat`) use the folder named by that variable when it is set and the sibling `ARMOR-COMMON` folder otherwise, so a checkout with another layout builds without changing a file.
 - **The movement check decides per pixel, like the one of the server:** a pixel has changed when it differs from the previous picture by more than `motion_threshold` after the typical change of the whole picture is taken away, so a camera's automatic exposure, a cloud or the switch to infrared no longer wakes the detector; the grid is only used to say where it moved (a cell moves when a tenth of its pixels changed) and the masks are left out of the median.
 
