@@ -38,7 +38,7 @@ class Frame:
 
 
 _MASKED: dict[tuple, frozenset] = {}
-_PIXEL_MASKS: dict[tuple, bytes | None] = {}
+_PIXEL_MASKS: dict[tuple, bytes] = {}
 
 
 def _masked_cells(masks: tuple) -> frozenset:
@@ -61,8 +61,8 @@ def _pixel_mask(masks: tuple, width: int, height: int) -> bytes | None:
     if not masked:
         return None
     key = (masks, width, height)
-    found = _PIXEL_MASKS.get(key, False)
-    if found is False:
+    found = _PIXEL_MASKS.get(key)
+    if found is None:
         pixels = bytearray(b"" * (width * height))
         for column, row in masked:
             for y in range(row * height // GRID_ROWS, (row + 1) * height // GRID_ROWS):
