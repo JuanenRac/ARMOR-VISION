@@ -28,6 +28,7 @@ from urllib.parse import parse_qsl, urlsplit
 
 from .activity import ActivityEngine, HeatmapPlan, heatmap_draw, heatmap_plan
 from .activity_config import ActivityConfig
+from .context_lines import parse_context_lines
 from .config import VisionConfig
 from .sources import FileSource, SourceError, SyntheticSource
 
@@ -234,6 +235,19 @@ class LiveService:
             self.accepted_posts += 1
         return 200, {"schema": SERVICE_SCHEMA, "events": len(events)}
 
+    def apply_context(self, context: object) -> tuple[int, dict[str, object]]:
+        """The context of the server (`cameras[].lines`): the counting lines of each camera replace the ones held. A camera with invalid lines loses only its own; the answer counts what was taken and what was left out. 503 when the pipeline is off, 400 when the context is not usable."""
+        if self._engine is None:
+            self.refuse()
+            return 503, {"error": "activity_off"}
+        lines, problems = parse_context_lines(context)
+        if not isinstance(context, dict) or not isinstance(context.get("cameras", []), list):
+            self.refuse()
+            return 400, {"error": problems[0]}
+        with self._lock:
+            unknown = self._engine.set_camera_lines(lines)
+        return 200, {"schema": SERVICE_SCHEMA, "cameras": len(lines) - len(unknown), "ignored": len(problems) + len(unknown)}
+
     def refuse(self) -> None:
         """One more request refused (counted under its own lock: the handlers run in many threads)."""
         with self._count_lock:
@@ -329,7 +343,8 @@ def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:
         def do_POST(self) -> None:
             if self._denied():
                 return
-            if urlsplit(self.path).path != "/ingest":
+            route = urlsplit(self.path).path
+            if route not in ("/ingest", "/context"):
                 return self._json(404, {"error": "not found"})
             try:
                 length = int(self.headers.get("Content-Length", ""))
@@ -343,7 +358,7 @@ def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:
             except (ValueError, UnicodeDecodeError):
                 service.refuse()
                 return self._json(400, {"error": "not JSON"})
-            status, payload = service.ingest(record)
+            status, payload = service.apply_context(record) if route == "/context" else service.ingest(record)
             self._json(status, payload)
 
         def do_PUT(self) -> None:

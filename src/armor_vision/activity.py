@@ -60,12 +60,19 @@ class ActivityEngine:
         self._presence: dict[tuple[str, int, str], _Presence] = {}
         self._last_foot: dict[tuple[str, int], tuple[float, float]] = {}
         self._maps = {camera_id: Heatmap(activity.heatmap) for camera_id in vision.cameras}
+        self._camera_lines: dict[str, tuple[CountLine, ...]] = {}
         self.dropped_detections = 0
         self.events = 0
 
     @property
     def camera_ids(self) -> list[str]:
         return sorted(self._maps)
+
+    def set_camera_lines(self, lines: dict[str, tuple[CountLine, ...]]) -> list[str]:
+        """Replace the counting lines of the cameras (those the server drew) and return the ids of the cameras that are not in the configuration, which are ignored. They count together with the global ones of the configuration."""
+        known = {camera_id: tuple(found) for camera_id, found in lines.items() if camera_id in self._maps}
+        self._camera_lines = known
+        return sorted(set(lines) - set(known))
 
     def heatmap(self, camera_id: str) -> Heatmap:
         if camera_id not in self._maps:
@@ -154,7 +161,7 @@ class ActivityEngine:
         events: list[dict] = []
         for key in [k for k in self._last_foot if k[0] == camera_id and k[1] not in alive]:
             del self._last_foot[key]
-        lines = self._activity.events.lines
+        lines = self._activity.events.lines + self._camera_lines.get(camera_id, ())
         for track in seen:
             foot = foot_point(track.box)
             previous = self._last_foot.get((camera_id, track.track_id))
