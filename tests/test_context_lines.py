@@ -1,6 +1,5 @@
 """The counting lines each camera gets from the context of the server: read per camera, applied to the engine, taken by the live service."""
 import copy
-import json
 import unittest
 
 from armor_vision.activity import ActivityEngine
