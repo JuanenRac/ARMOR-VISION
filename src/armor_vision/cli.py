@@ -4,16 +4,18 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import threading
 from pathlib import Path
 
 from . import __version__
 from .activity import ActivityEngine
 from .activity_config import ACTIVITY_EXAMPLE, parse_activity_config
 from .config import parse_config
+from .context_sync import AI_TOKEN_ENV, SyncError, SyncSettings, check_url, read_token, run_forever, sync_once
 from .heatmap_service import QUERY_KEYS, ServiceError, answer
 from .pipeline import Pipeline
 from .replay import replay
-from .service import SERVICE_EXAMPLE, LiveService, ServiceConfigError, load_token, make_server, parse_service_settings
+from .service import SERVICE_EXAMPLE, TOKEN_ENV, LiveService, ServiceConfigError, load_token, make_server, parse_service_settings
 from .sources import FileSource, SourceError, SyntheticSource
 from .tracker import Detection
 
@@ -173,6 +175,38 @@ def _run_serve(args, config) -> int:
     return 0
 
 
+def _run_sync_context(args) -> int:
+    """Hands the context of the server (the counting lines of each camera) to a running service, once or every --interval seconds. Exit 0, 1 for a wrong option, 2 when a round cannot be done (once only)."""
+    try:
+        settings = SyncSettings(
+            server_url=check_url(args.server, "--server"), service_url=check_url(args.service, "--service"),
+            ai_token=read_token(args.ai_token_file, AI_TOKEN_ENV) or "", service_token=read_token(args.service_token_file, TOKEN_ENV),
+            timeout_s=args.timeout, max_bytes=args.max_bytes, ca_file=args.ca_file)
+    except SyncError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    if not settings.ai_token:
+        print(f"error: the token of the server is needed (--ai-token-file or {AI_TOKEN_ENV})", file=sys.stderr)
+        return 1
+    if not 1 <= args.timeout <= 120 or not 1024 <= args.max_bytes <= 4_194_304 or (args.interval != 0 and not 5 <= args.interval <= 86_400):
+        print("error: --timeout is 1 to 120 seconds, --max-bytes 1024 to 4194304 and --interval 0 (once) or 5 to 86400 seconds", file=sys.stderr)
+        return 1
+    if args.interval == 0:
+        try:
+            answer = sync_once(settings)
+        except SyncError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(answer, sort_keys=True))
+        return 0
+    stop = threading.Event()
+    try:
+        return run_forever(settings, args.interval, stop)
+    except KeyboardInterrupt:
+        stop.set()
+        return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="armor-vision", description="ARMOR-VISION zones and detection rules")
     parser.add_argument("--version", action="version", version=f"armor-vision {__version__}")
@@ -207,6 +241,15 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--config", help="configuration file (default: the built-in example)")
     serve.add_argument("--activity-config", metavar="FILE", required=True, help="activity configuration; the service does not start unless it says enabled")
     serve.add_argument("--service-config", metavar="FILE", help="settings of the service (address, port, limits); the defaults listen on 127.0.0.1:8765")
+    sync = sub.add_parser("sync-context", help="ask the server for its context and hand it to a running service (the counting lines of each camera), once or on an interval")
+    sync.add_argument("--server", required=True, help="address of ARMOR-SERVER, for example http://127.0.0.1:8080")
+    sync.add_argument("--service", default="http://127.0.0.1:8765", help="address of the live service (default: http://127.0.0.1:8765)")
+    sync.add_argument("--ai-token-file", metavar="FILE", help=f"file with the token of the observation service of the server (or the variable {AI_TOKEN_ENV})")
+    sync.add_argument("--service-token-file", metavar="FILE", help=f"file with the token the live service asks for, if it has one (or the variable {TOKEN_ENV})")
+    sync.add_argument("--ca-file", metavar="FILE", help="certificate that signs the server when it answers over https")
+    sync.add_argument("--interval", type=float, default=0, help="seconds between rounds; 0 (the default) does one round and stops")
+    sync.add_argument("--timeout", type=float, default=10, help="seconds to wait for each answer")
+    sync.add_argument("--max-bytes", type=int, default=262_144, help="the most bytes taken from an answer")
     check_service = sub.add_parser("check-service-config", help="validate a settings file of the live service")
     check_service.add_argument("file")
     sub.add_parser("service-example", help="print the settings of the live service to start from")
@@ -243,6 +286,8 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print(f"ok: service on {settings.host}:{settings.port}, {'with' if token else 'without'} a token")
         return 0
+    if args.action == "sync-context":
+        return _run_sync_context(args)
     if args.action == "check-activity-config":
         activity, problems = _read_activity(args.file)
         for problem in problems:

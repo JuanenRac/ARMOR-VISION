@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The client that carries the context of the server to the service:** `python -m armor_vision sync-context` asks the server for its context (`GET /api/v1/ai/context`, with the token of the observation service) and hands it to the live service (`POST /context`), once or every few seconds, so the counting lines drawn in Studio reach the service by themselves. It never follows a redirect, limits the size of what it takes, never prints a token, and does nothing until it is started. Tests: 10 more, run against a stand-in server and a real service on this machine.
+
 ## [0.1.3] - Simulation bench: tools/simulationbench.py runs the command line of the service end to end against the simulated camera scenes it ships with (an alert for the person in the driveway while armed away and none at home,... (and 1 more changes)
 
 - **Simulation bench:** `tools/simulation_bench.py` runs the command line of the service end to end against the simulated camera scenes it ships with (an alert for the person in the driveway while armed away and none at home, repeatable runs, the activity events, the heat map written as a valid picture, and the refusals) and the workflow `Simulation bench` runs it on every push. No camera, detector model or network is involved.
