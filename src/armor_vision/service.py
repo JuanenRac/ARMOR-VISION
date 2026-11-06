@@ -33,6 +33,7 @@ from .config import VisionConfig
 from .sources import FileSource, SourceError, SyntheticSource
 
 SERVICE_SCHEMA = "armor.vision.service/v1"
+COUNTS_SCHEMA = "armor.vision.counts/v1"
 MAX_BODY_HARD = 1024 * 1024
 MAX_DETECTIONS_HARD = 256
 SERVICE_EXAMPLE: dict[str, Any] = {
@@ -248,6 +249,14 @@ class LiveService:
             unknown = self._engine.set_camera_lines(lines)
         return 200, {"schema": SERVICE_SCHEMA, "cameras": len(lines) - len(unknown), "ignored": len(problems) + len(unknown)}
 
+    def counts(self) -> tuple[int, dict[str, object]]:
+        """The crossings of the counting lines, per camera and line. 404 while the pipeline is off, as if the route did not exist."""
+        with self._lock:
+            engine = self._engine
+            if engine is None:
+                return 404, {"error": "not found"}
+            return 200, {"schema": COUNTS_SCHEMA, "cameras": engine.line_counts()}
+
     def refuse(self) -> None:
         """One more request refused (counted under its own lock: the handlers run in many threads)."""
         with self._count_lock:
@@ -333,6 +342,10 @@ def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:
             parts = urlsplit(self.path)
             if parts.path == "/health":
                 return self._json(200, service.health())
+            if parts.path == "/counts":
+                if parts.query:
+                    return self._json(400, {"error": "no parameters"})
+                return self._json(*service.counts())
             if parts.path != "/heatmap":
                 return self._json(404, {"error": "not found"})
             pairs = parse_qsl(parts.query, keep_blank_values=True)

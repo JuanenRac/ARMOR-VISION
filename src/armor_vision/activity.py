@@ -61,6 +61,7 @@ class ActivityEngine:
         self._last_foot: dict[tuple[str, int], tuple[float, float]] = {}
         self._maps = {camera_id: Heatmap(activity.heatmap) for camera_id in vision.cameras}
         self._camera_lines: dict[str, tuple[CountLine, ...]] = {}
+        self._line_counts: dict[tuple[str, str], dict[str, int]] = {}   # (camera, line) -> crossings to the left and to the right since the start; one entry per line, never per crossing
         self.dropped_detections = 0
         self.events = 0
 
@@ -72,7 +73,19 @@ class ActivityEngine:
         """Replace the counting lines of the cameras (those the server drew) and return the ids of the cameras that are not in the configuration, which are ignored. They count together with the global ones of the configuration."""
         known = {camera_id: tuple(found) for camera_id, found in lines.items() if camera_id in self._maps}
         self._camera_lines = known
+        alive = {(camera_id, line.line_id) for camera_id in self._maps for line in self._activity.events.lines + known.get(camera_id, ())}
+        self._line_counts = {key: value for key, value in self._line_counts.items() if key in alive}   # the count of a line that was taken away goes with it
         return sorted(set(lines) - set(known))
+
+    def line_counts(self) -> dict[str, dict[str, dict[str, int]]]:
+        """The crossings counted so far: camera -> line -> {"to_left", "to_right"}. Every line of every camera is listed, with zeros before anything crossed. Counts only: no track, no label, no picture."""
+        out: dict[str, dict[str, dict[str, int]]] = {}
+        for camera_id in sorted(self._maps):
+            lines = self._activity.events.lines + self._camera_lines.get(camera_id, ())
+            if not lines:
+                continue
+            out[camera_id] = {line.line_id: dict(self._line_counts.get((camera_id, line.line_id), {"to_left": 0, "to_right": 0})) for line in sorted(lines, key=lambda item: item.line_id)}
+        return out
 
     def heatmap(self, camera_id: str) -> Heatmap:
         if camera_id not in self._maps:
@@ -173,6 +186,7 @@ class ActivityEngine:
                     continue
                 if segments_cross(previous, foot, line.a, line.b):
                     direction = "to_left" if _side(line, foot) > 0 else "to_right"
+                    self._line_counts.setdefault((camera_id, line.line_id), {"to_left": 0, "to_right": 0})[direction] += 1
                     events.append(_event("line_cross", camera_id, timestamp, track, line_id=line.line_id, direction=direction))
         return events
 
