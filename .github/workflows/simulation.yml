@@ -1,0 +1,36 @@
+# =============================================================================
+# A.R.M.O.R. - the simulation bench of ARMOR-VISION
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D)
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+# The command line of the service, run end to end against the simulated camera scenes it ships with (python tools/simulation_bench.py): the arming modes, the activity
+# events, the heat map and the refusals. No camera, no detector model and no network are involved.
+# A green run says the rules behave as described on simulated scenes; it says nothing about a real camera or the speed of the hardware.
+name: Simulation bench
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulated-scenes:
+    name: Service against simulated camera scenes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run the bench
+        run: python tools/simulation_bench.py

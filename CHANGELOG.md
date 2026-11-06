@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Simulation bench:** `tools/simulation_bench.py` runs the command line of the service end to end against the simulated camera scenes it ships with (an alert for the person in the driveway while armed away and none at home, repeatable runs, the activity events, the heat map written as a valid picture, and the refusals) and the workflow `Simulation bench` runs it on every push. No camera, detector model or network is involved.
 - **Counting lines per camera, read from the server's context:** `parse_context_lines` reads `cameras[].lines` of the server's context (up to sixteen per camera, the format Studio draws), `ActivityEngine.set_camera_lines` counts their crossings together with the global ones, and the live service takes the context with `POST /context` (same sign-in as `/ingest`, 503 while the pipeline is off). A camera with invalid lines loses only its own; a camera that is not configured is ignored. Tests: 9 more.
 
 ## [0.1.2] - The movement model is the one of the shared repository: motioncore.py is a byte-for-byte copy of the one in ARMOR-COMMON (the observation service of the server uses the same file); the grid, the masks of a camera and the... (and 2 more changes)
