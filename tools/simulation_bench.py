@@ -26,7 +26,7 @@ import os
 import subprocess
 import sys
 import tempfile
-import xml.dom.minidom
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -74,7 +74,7 @@ def main() -> int:
         valid = False
         if made.returncode == 0 and picture.is_file():
             try:
-                valid = xml.dom.minidom.parse(str(picture)).documentElement.tagName == "svg"
+                valid = ET.parse(picture).getroot().tag.endswith("svg")
             except Exception:  # noqa: BLE001 - any parse error is a failed check
                 valid = False
         check("the heat map is written as a valid picture", valid, made.stderr)
