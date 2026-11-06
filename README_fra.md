@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 ou ultérieure">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Langage">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-138%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-151%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturité">
 </p>
 
 ---
 
-**Vérification d'honnêteté - ce qui fonctionne aujourd'hui :** Les zones, le contrôle du mouvement, le suivi, les règles et les 138 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
+**Vérification d'honnêteté - ce qui fonctionne aujourd'hui :** Les zones, le contrôle du mouvement, le suivi, les règles et les 151 tests sont réels. **Il n'existe pas encore de vrai modèle de détection** et rien n'a tourné sur une caméra ni sur la Jetson Orin NX : la simulation utilise des détections scénarisées.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturité | Fonctionnel |
 | Rôle | Zones, masques et règles de détection des caméras (famille : Core Services, parent : ARMOR-SERVER) |
 | Technologie | Python 3.11+, bibliothèque standard uniquement |
-| Tests | 138 (`python -m unittest discover -s tests`) |
+| Tests | 151 (`python -m unittest discover -s tests`) |
 | Fonctionne sur | N'importe quel ordinateur |
 | Sur matériel réel | Aucun pour l'instant : ni détecteur réel, ni caméra, ni Jetson (une simulation avec des détections scriptées) |
 | Licence | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Chaque ligne est une partie de ce dépôt et le feu dit où elle en est aujourd'
 | Domaine | État | Ce que cela veut dire ici |
 |---|---|---|
 | Logiciel | 🟡 | Les zones, le contrôle du mouvement, le suivi et les règles fonctionnent, mais il n'y a pas encore de vrai modèle détecteur : la simulation utilise des détections scénarisées. |
-| Tests | 🟢 | 138 tests réussissent (`python -m unittest discover -s tests`). |
+| Tests | 🟢 | 151 tests réussissent (`python -m unittest discover -s tests`). |
 | Matériel | 🔴 | Rien n'a tourné sur une caméra ni sur le Jetson Orin NX. |
 | Interface | 🟡 | Les routes ou les messages proposés sont documentés et testés avec un client ; tous les clients ne les ont pas encore utilisés |
 | Sécurité | 🟡 | Le contrôle d'accès, les limites d'entrée ou les signatures sont implémentés et testés sur un ordinateur ; personne hors du projet ne les a relus |
@@ -150,13 +150,13 @@ Ces valeurs sont aujourd'hui des constantes de `tracker.py` et `motion.py` ; le 
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 138 tests
+python -m unittest discover -s tests   # 151 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 138 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 151 tests
 ```
 
 ## 🧪 Tests
