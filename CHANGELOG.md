@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The example address in the help of sync-context uses the current port of the server** (18080, not the old 8080).
+
 ## [0.1.4] - The crossings of each counting line, as numbers: the engine keeps how many crossings each line has had to the left and to the right, and GET /counts of the live service lists them per camera and line (armor.vision.counts/v1),... (and 1 more changes)
 
 - **The crossings of each counting line, as numbers:** the engine keeps how many crossings each line has had to the left and to the right, and `GET /counts` of the live service lists them per camera and line (`armor.vision.counts/v1`), so the server can show them. Nothing but counts is kept or handed out. Tests: 9 more.

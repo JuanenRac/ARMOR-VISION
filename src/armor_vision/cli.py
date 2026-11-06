@@ -242,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--activity-config", metavar="FILE", required=True, help="activity configuration; the service does not start unless it says enabled")
     serve.add_argument("--service-config", metavar="FILE", help="settings of the service (address, port, limits); the defaults listen on 127.0.0.1:8765")
     sync = sub.add_parser("sync-context", help="ask the server for its context and hand it to a running service (the counting lines of each camera), once or on an interval")
-    sync.add_argument("--server", required=True, help="address of ARMOR-SERVER, for example http://127.0.0.1:8080")
+    sync.add_argument("--server", required=True, help="address of ARMOR-SERVER, for example http://127.0.0.1:18080")
     sync.add_argument("--service", default="http://127.0.0.1:8765", help="address of the live service (default: http://127.0.0.1:8765)")
     sync.add_argument("--ai-token-file", metavar="FILE", help=f"file with the token of the observation service of the server (or the variable {AI_TOKEN_ENV})")
     sync.add_argument("--service-token-file", metavar="FILE", help=f"file with the token the live service asks for, if it has one (or the variable {TOKEN_ENV})")
