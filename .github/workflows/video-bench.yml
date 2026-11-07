@@ -1,0 +1,66 @@
+# =============================================================================
+# A.R.M.O.R. - the video bench of ARMOR-VISION
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D)
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+# A recorded clip (a dark scene, then a white block that crosses it; no person) is served as an RTSP stream by a test server in a container and read back through ffmpeg as a camera
+# would be read (tools/video_bench.py): the quiet seconds give no movement and the crossing is movement that goes from the left to the right.
+# A green run says the video path works on a recorded clip; it says nothing about a real camera, its compression, its lighting or the speed of the hardware.
+name: Video bench
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recorded-clip:
+    name: Recorded clip over RTSP into the movement model
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+
+      - name: Make the clip
+        run: python tools/video_bench.py --make-clip "$RUNNER_TEMP/clip.mp4"
+
+      - name: Read the clip as a file
+        run: python tools/video_bench.py --source "$RUNNER_TEMP/clip.mp4"
+
+      - name: Start the test RTSP server
+        run: |
+          docker run -d --name rtsp-test --network host bluenviron/mediamtx:1.9.3
+          for _ in $(seq 1 30); do (exec 3<>/dev/tcp/127.0.0.1/8554) 2>/dev/null && break; sleep 1; done
+
+      - name: Play the clip into the server, in a loop
+        run: |
+          nohup ffmpeg -nostdin -hide_banner -loglevel error -re -stream_loop -1 -i "$RUNNER_TEMP/clip.mp4" -c copy -f rtsp -rtsp_transport tcp rtsp://127.0.0.1:8554/bench > "$RUNNER_TEMP/publisher.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/publisher.pid"
+          sleep 5
+
+      - name: Read the stream
+        run: python tools/video_bench.py --source rtsp://127.0.0.1:8554/bench --seconds 16
+
+      - name: Show what the test server and the publisher said
+        if: ${{ always() }}
+        run: |
+          docker logs rtsp-test 2>&1 | tail -20 || true
+          tail -20 "$RUNNER_TEMP/publisher.log" || true
+          kill "$(cat "$RUNNER_TEMP/publisher.pid")" 2>/dev/null || true
+          docker rm -f rtsp-test || true
