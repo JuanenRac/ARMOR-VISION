@@ -12,9 +12,10 @@ What it checks:
 
     still       the seconds without anything moving give no moved cell
     crossing    the block crossing the scene is movement, in one place that goes from the left to the right
+    lights      (with --lights) a room whose light goes on, with nobody in it, is no movement in any cell: the change of the whole picture is taken away
     gone        a stream that is not there is reported at once instead of hanging
 
-    python tools/video_bench.py --make-clip clip.mp4             # writes the clip (needs ffmpeg)
+    python tools/video_bench.py --make-clip clip.mp4             # writes the clip and clip_lights.mp4 (needs ffmpeg)
     python tools/video_bench.py --source clip.mp4                # reads a file, or an rtsp:// address, and prints SIMULATION_VIDEO=PASS or FAIL
 
 A green run says the video path (ffmpeg, the frames, the movement model) works on a recorded clip. It says nothing about a real camera, its compression, its lighting or the speed of
@@ -49,6 +50,22 @@ def make_clip(path: Path, ffmpeg: str = "ffmpeg") -> None:
              f"[scene][block]overlay=x='if(lt(t,{STILL_SECONDS}),-100,(t-{STILL_SECONDS})*35)':y=60:eval=frame")
     subprocess.run([ffmpeg, "-y", "-nostdin", "-hide_banner", "-loglevel", "error", "-filter_complex", graph, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-g", "10",
                     "-movflags", "+faststart", str(path)], check=True, timeout=120)  # noqa: S603
+
+
+def make_lights_clip(path: Path, ffmpeg: str = "ffmpeg") -> None:
+    """A room whose light goes from dim to bright after three seconds: every pixel changes by the same amount, with a little noise on top. Nobody is in it."""
+    graph = (f"color=c=0x282828:s={WIDTH}x{HEIGHT}:r=10:d=3[dim];color=c=0x787878:s={WIDTH}x{HEIGHT}:r=10:d=3[bright];[dim][bright]concat=n=2:v=1:a=0,noise=alls=6:allf=t")
+    subprocess.run([ffmpeg, "-y", "-nostdin", "-hide_banner", "-loglevel", "error", "-filter_complex", graph, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-g", "10",
+                    "-movflags", "+faststart", str(path)], check=True, timeout=120)  # noqa: S603
+
+
+def lights(source: str) -> None:
+    frames = list(video_source.read_frames(source, WIDTH, HEIGHT, FPS, max_frames=40, idle_timeout=30.0))
+    check("lights: the clip gives pictures", len(frames) >= 25, f"{len(frames)} pictures")
+    shift = max(abs(sum(b.pixels) - sum(a.pixels)) / len(a.pixels) for a, b in zip(frames, frames[1:], strict=False)) if len(frames) > 1 else 0
+    check("lights: the light really changes between the pictures", shift > 40, f"largest mean change {shift:.1f}")
+    moved = sum(1 for a, b in zip(frames, frames[1:], strict=False) if motion.moved_cells(a, b, PIXEL_THRESHOLD))
+    check("lights: a light that goes on is not movement in any cell", moved == 0, f"{moved} pairs of pictures with moved cells")
 
 
 def runs(flags: list[bool], wanted: bool) -> int:
@@ -91,16 +108,21 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--make-clip", type=Path, metavar="FILE", help="write the test clip there and stop")
     parser.add_argument("--source", help="an rtsp:// address or the clip file")
+    parser.add_argument("--lights", metavar="FILE", help="read the clip of the light that goes on too (made with --make-clip, next to the first one)")
     parser.add_argument("--seconds", type=float, default=float(CLIP_SECONDS + 2), help="how much of the stream to read (a little more than the clip, so that both halves are in it)")
     parser.add_argument("--ffmpeg", default="ffmpeg")
     args = parser.parse_args(argv)
     if args.make_clip:
         make_clip(args.make_clip, args.ffmpeg)
-        print(f"wrote {args.make_clip}")
+        lights_path = args.make_clip.with_name(args.make_clip.stem + "_lights" + args.make_clip.suffix)
+        make_lights_clip(lights_path, args.ffmpeg)
+        print(f"wrote {args.make_clip} and {lights_path}")
         return 0
     if not args.source:
         parser.error("--source or --make-clip is needed")
     play(args.source, args.seconds)
+    if args.lights:
+        lights(args.lights)
     try:
         list(video_source.read_frames("rtsp://127.0.0.1:9/none", WIDTH, HEIGHT, FPS, max_frames=3, idle_timeout=15.0))
         check("gone: a stream that is not there is reported", False, "pictures came from nowhere")

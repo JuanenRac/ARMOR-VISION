@@ -3,7 +3,7 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D)
 # GPL-3.0-or-later - see LICENSE
 # =============================================================================
-# A recorded clip (a dark scene, then a white block that crosses it; no person) is served as an RTSP stream by a test server in a container and read back through ffmpeg as a camera
+# A recorded clip (a dark scene, then a white block that crosses it; and a room whose light goes on; no person) is served as an RTSP stream by a test server in a container and read back through ffmpeg as a camera
 # would be read (tools/video_bench.py): the quiet seconds give no movement and the crossing is movement that goes from the left to the right.
 # A green run says the video path works on a recorded clip; it says nothing about a real camera, its compression, its lighting or the speed of the hardware.
 name: Video bench
@@ -41,7 +41,7 @@ jobs:
         run: python tools/video_bench.py --make-clip "$RUNNER_TEMP/clip.mp4"
 
       - name: Read the clip as a file
-        run: python tools/video_bench.py --source "$RUNNER_TEMP/clip.mp4"
+        run: python tools/video_bench.py --source "$RUNNER_TEMP/clip.mp4" --lights "$RUNNER_TEMP/clip_lights.mp4"
 
       - name: Start the test RTSP server
         run: |
