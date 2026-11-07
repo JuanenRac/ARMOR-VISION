@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-170%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-184%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.4-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Verificação de honestidade - o que funciona hoje:** As zonas, a verificação de movimento, o seguidor, as regras e os 170 testes são reais. **Ainda não há nenhum modelo detetor real** e nada correu numa câmara nem no Jetson Orin NX: a simulação usa deteções com guião.
+**Verificação de honestidade - o que funciona hoje:** As zonas, a verificação de movimento, o seguidor, as regras e os 184 testes são reais. **Ainda não há nenhum modelo detetor real** e nada correu numa câmara nem no Jetson Orin NX: a simulação usa deteções com guião.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturidade | Funcional |
 | Função | Zonas, máscaras e regras de deteção de câmaras (família: Core Services, pai: ARMOR-SERVER) |
 | Tecnologia | Python 3.11+, só biblioteca padrão |
-| Testes | 170 (`python -m unittest discover -s tests`) |
+| Testes | 184 (`python -m unittest discover -s tests`) |
 | Funciona em | Qualquer computador |
 | Em hardware real | Nenhum ainda: nem detetor real, nem câmara, nem Jetson (uma simulação com deteções guionizadas) |
 | Licença | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 | Área | Estado | O que significa aqui |
 |---|---|---|
 | Software | 🟡 | As zonas, a verificação de movimento, o seguimento e as regras funcionam, mas ainda não há um modelo detetor real: a simulação usa deteções com guião. |
-| Testes | 🟢 | Passam 170 testes (`python -m unittest discover -s tests`). |
+| Testes | 🟢 | Passam 184 testes (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nada funcionou numa câmara nem no Jetson Orin NX. |
 | Interface | 🟡 | As rotas ou mensagens que oferece estão documentadas e testadas com um cliente; ainda nem todos os clientes as usaram |
 | Segurança | 🟡 | O controlo de acesso, os limites de entrada ou as assinaturas estão implementados e testados num computador; ninguém fora do projeto os reviu |
@@ -150,13 +150,13 @@ Estes valores são hoje constantes de `tracker.py` e `motion.py`; o ficheiro de 
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 170 tests
+python -m unittest discover -s tests   # 184 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 170 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 184 tests
 ```
 
 ## 🧪 Testes
