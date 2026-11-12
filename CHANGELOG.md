@@ -4,28 +4,20 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.6] - Activity events, new simulated capabilities and TensorRT detector
+
 - **More tests of the opening of a TensorRT engine and of the context command:** the packages of the Jetson are replaced by stand-ins so that every way the engine can fail to open is tried on a computer (no file, no packages, a file that is not an engine of this version, an error of the runtime, a good engine), and the command that hands the server's context to the service is tried with one round that fails and with the loop that the person stops.
 - **The delivery of events to the server refuses a port that is not a number from 1 to 65535 and closes the answer of a refusing server:** an address such as `https://host:abc` used to pass the settings and then fail on every event; it now stops the service settings with its reason. New tests of abuse: names that only start like this machine, odd spellings of an address, a token that tries to add a header, odd bytes in the token file, a server that redirects (the token goes to nobody else), a flood of events, an event that cannot be written as JSON and a seeded fuzz of the settings.
-
 - **The service can hand its activity events to the server:** the optional `delivery` object of the service settings (`url`, `token_file`, `kinds`, `queue_max`, `timeout_s`; off, `null`, by default) makes the live service post each event of the chosen kinds (`zone_enter`, `dwell` and `loiter` unless the settings say otherwise) to `POST /api/v1/ai/activity-events` of the server with the bearer token of the observation service. The token comes from the file or from `ARMOR_VISION_DELIVERY_TOKEN`, never from the settings file; the address must be https or this machine; the events wait in a bounded queue (the oldest is dropped and counted) and one thread sends them, so a slow or absent server never holds up a detection. The `notify: false` that a profile of the arming mode puts on the events of its zones travels untouched, so the server records the event and does not tell the people the alarms go to. `GET /health` counts what was sent, refused and dropped.
-
 - **A TensorRT detector for the Jetson Orin NX behind the same interface:** `load_detector("tensorrt", settings)` opens a serialized engine with the Jetson packages; the engine is an interface, so `TensorrtDetector` runs on any machine with `SimulatedEngine` and says its evidence is `simulator`. The reading of a real engine has never run on a Jetson.
-
 - **Two streams from one camera:** `parse_stream_pair` and `analysis_frames` read the small stream for the movement check and the detector, and `SegmentRecorder` copies the main stream without decoding it into segments named by their start time.
-
 - **Clips with the seconds before and after the event, and retention by type:** `ClipPlanner` picks the recorded segments of each event from `pre_seconds` before to `post_seconds` after it (and extends the clip while the event goes on), and `plan_retention` lists what may be erased by type of event; nothing is erased unless the caller gives the function that erases.
-
 - **Speed in a zone, objects left behind and PTZ follow:** `SpeedEstimator` works from four reference points of the picture and their place on the ground, `AbandonedObjectDetector` reports a bag-like object alone for long enough, and `PtzFollower` computes the speeds that would centre the followed object (it never sends a command to a camera).
-
 - **Masks and sensitivity by hour, with profiles for day, night and away:** `parse_schedule` and `Pipeline(..., schedule=...)` change the masks, the grey difference and the cells needed according to the time of the frame, the weekday and the arming mode.
-
 - **The event can say where the objects are heading:** `track_vectors` and `Pipeline(..., with_vectors=True)` add the optional `vectors` (a unit direction and a speed per followed object, at most 16) that the shared contract of the vision event now describes.
-
 - **Search by meaning, licence plates and faces, all off by default:** each has its own switch, cannot be turned on without acknowledging its privacy notice (in the eight languages), raises `FeatureDisabled` while off, compares faces only with people who enrolled with consent, and has only simulated readers (`evidence: simulator`).
-
 - **Detection zones and mode profiles read from the server's context:** `parse_context_detection` reads `cameras[].detection` (up to sixteen zones per camera in the shape of this configuration, and one profile per arming mode with the zones watched), `ActivityEngine.set_camera_detection` reports the zones that the profile of the context's mode watches (every zone when the mode has no profile) together with the configured ones, and `POST /context` takes them with the counting lines. A camera with invalid zones loses only its own; the sensitivity of a profile sets the lowest confidence that counts in the zones of the server (`events.sensitivity_floor` of the activity configuration: low 0.7, normal 0.5, high 0.3 by default, never lower for a lower sensitivity) and `notify: false` of a profile puts `notify: false` in the events of those zones, so the server does not tell the people; the zones of the configuration are not affected. Tests: 20 more.
-
-- Tests: 317 (before 210).
+- Tests: 327 (before 210).
 
 ## [0.1.5] - The CI checks the coverage floor of this repository: a workflow of its own runs `tools/coverage_check.py` on every push and fails when the lines or the branches covered by the tests fall under the numbers of `docs/coverage_threshold.json` (
 
