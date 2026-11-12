@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The command line and the motion core have a coverage floor and tests for their edges:** `docs/coverage_threshold.json` holds the least the tests may cover (lines and branches) and `tools/coverage_check.py` runs the tests with coverage and fails under it. The new tests reach the files the heat map route and the live service cannot read, a map that cannot be answered, the service started and stopped, and in the motion core a frame of the wrong size, the mask of ignore rectangles and a mask of the wrong size. The command line has 97 % of its lines covered (it had 93 %) and the motion core 100 % (it had 75 %).
+
 - **Tests for the edges of the context client and of the ONNX detector:** a certificate file that cannot be used, an answer of the service with a wrong status or that is not JSON, what the sync loop says when rounds fail and recover, a runtime or a model that cannot be opened, the tensor made from a grey frame and the two shapes of the model output (14 tests).
 
 - **A source of grey frames from a video stream or file:** `armor_vision.video_source.read_frames` reads an `rtsp://` or `rtsps://` address (or a file) through ffmpeg and yields the frames the movement model takes. It starts ffmpeg without a shell or standard input, refuses addresses that carry a user name or a password and any other scheme, keeps width, height and rate inside limits and reports a stream that is not there or goes quiet instead of hanging. It only reads. Tests: 14 more.
