@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Tests for the edges of the context client and of the ONNX detector:** a certificate file that cannot be used, an answer of the service with a wrong status or that is not JSON, what the sync loop says when rounds fail and recover, a runtime or a model that cannot be opened, the tensor made from a grey frame and the two shapes of the model output (14 tests).
+
 - **A source of grey frames from a video stream or file:** `armor_vision.video_source.read_frames` reads an `rtsp://` or `rtsps://` address (or a file) through ffmpeg and yields the frames the movement model takes. It starts ffmpeg without a shell or standard input, refuses addresses that carry a user name or a password and any other scheme, keeps width, height and rate inside limits and reports a stream that is not there or goes quiet instead of hanging. It only reads. Tests: 14 more.
 - **A video bench:** `tools/video_bench.py` and the workflow `Video bench` serve a recorded clip (a still scene and then a block that crosses it, no person) as an RTSP stream from a test server, read it back through ffmpeg and check that the quiet seconds give no movement, that the crossing is movement that goes from the left to the right, that a room whose light goes on, with nobody in it, is no movement in any cell, and that a stream that is not there is reported. It proves the video path on a recorded clip; a real camera is still to be tried.
 - **The example address in the help of sync-context uses the current port of the server** (18080, not the old 8080).
