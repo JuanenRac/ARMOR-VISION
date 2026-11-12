@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.5] - The CI checks the coverage floor of this repository: a workflow of its own runs `tools/coverage_check.py` on every push and fails when the lines or the branches covered by the tests fall under the numbers of `docs/coverage_threshold.json` (
+
 - **The CI checks the coverage floor of this repository:** a workflow of its own runs `tools/coverage_check.py` on every push and fails when the lines or the branches covered by the tests fall under the numbers of `docs/coverage_threshold.json` (the shared workflow checks a floor only where there is a `package.json`).
 
 - **The command line and the motion core have a coverage floor and tests for their edges:** `docs/coverage_threshold.json` holds the least the tests may cover (lines and branches) and `tools/coverage_check.py` runs the tests with coverage and fails under it. The new tests reach the files the heat map route and the live service cannot read, a map that cannot be answered, the service started and stopped, and in the motion core a frame of the wrong size, the mask of ignore rectangles and a mask of the wrong size. The command line has 97 % of its lines covered (it had 93 %) and the motion core 100 % (it had 75 %).
