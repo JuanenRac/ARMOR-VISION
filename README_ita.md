@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 o successiva">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Linguaggio">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-184%20passing-2ea44f.svg" alt="Test">
+  <img src="https://img.shields.io/badge/Tests-210%20passing-2ea44f.svg" alt="Test">
   <img src="https://img.shields.io/badge/Version-0.1.4-0f6cbd.svg" alt="Versione">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturità">
 </p>
 
 ---
 
-**Controllo di onestà - cosa funziona oggi:** Le zone, il controllo del movimento, il tracciamento, le regole e i 184 test sono reali. **Non esiste ancora un vero modello di rilevamento** e nulla è stato eseguito su una telecamera o sulla Jetson Orin NX: la simulazione usa rilevamenti scriptati.
+**Controllo di onestà - cosa funziona oggi:** Le zone, il controllo del movimento, il tracciamento, le regole e i 210 test sono reali. **Non esiste ancora un vero modello di rilevamento** e nulla è stato eseguito su una telecamera o sulla Jetson Orin NX: la simulazione usa rilevamenti scriptati.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturità | Funzionale |
 | Ruolo | Zone, maschere e regole di rilevamento delle telecamere (famiglia: Core Services, padre: ARMOR-SERVER) |
 | Tecnologia | Python 3.11+, solo libreria standard |
-| Test | 184 (`python -m unittest discover -s tests`) |
+| Test | 210 (`python -m unittest discover -s tests`) |
 | Gira su | Qualsiasi computer |
 | Su hardware reale | Ancora nessuno: né rilevatore reale, né telecamera, né Jetson (una simulazione con rilevamenti scriptati) |
 | Licenza | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Area | Stato | Cosa significa qui |
 |---|---|---|
 | Software | 🟡 | Le zone, il controllo del movimento, il tracciamento e le regole funzionano, ma non c'è ancora un vero modello di rilevamento: la simulazione usa rilevamenti da script. |
-| Test | 🟢 | Superano 184 test (`python -m unittest discover -s tests`). |
+| Test | 🟢 | Superano 210 test (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nulla ha girato su una telecamera né sulla Jetson Orin NX. |
 | Interfaccia | 🟡 | Le rotte o i messaggi offerti sono documentati e provati con un client; non tutti i client li hanno ancora usati |
 | Sicurezza | 🟡 | Il controllo degli accessi, i limiti d'ingresso o le firme sono implementati e provati su un computer; nessuno al di fuori del progetto li ha rivisti |
@@ -150,13 +150,13 @@ Oggi questi valori sono costanti di `tracker.py` e `motion.py`; il file di confi
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 184 tests
+python -m unittest discover -s tests   # 210 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 184 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 210 tests
 ```
 
 ## 🧪 Test
