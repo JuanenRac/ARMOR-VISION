@@ -4,7 +4,7 @@ The server keeps up to sixteen detection zones per camera (drawn in Studio) and 
 `cameras[].detection` of its context, in the same shape as the zones of the configuration of this service. This reads that object into the same `Zone` the activity pipeline uses and picks,
 for the mode the context names, the zones that are watched. A mode with no profile watches every zone (an unknown mode never watches less). Each camera is checked on its own: a camera
 whose zones are not valid loses only its own zones (fail closed for that camera) and the problem is reported, the others are kept. The sensitivity and the notify flag of a profile are read
-and checked but not applied here. Nothing here talks to a network.
+and checked here and applied by the activity engine. Nothing here talks to a network.
 """
 from __future__ import annotations
 
@@ -29,6 +29,9 @@ class ModeProfile:
 class CameraDetection:
     zones: tuple[Zone, ...]
     profiles: dict[str, ModeProfile]
+
+    def profile(self, mode: str | None) -> ModeProfile | None:
+        return self.profiles.get(mode) if mode else None
 
     def watched(self, mode: str | None) -> tuple[Zone, ...]:
         """The zones that count in a mode: all of them when the mode is unknown or has no profile, else the ones its profile lists."""

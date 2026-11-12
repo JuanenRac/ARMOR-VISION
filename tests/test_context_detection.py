@@ -136,5 +136,71 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(answer[1]["ignored"], 2)
 
 
+def walk_with(engine, confidence):
+    out = []
+    for t in (0.0, 0.5):
+        out += engine.process(CAM, t, [Detection("person", confidence, (0.45, 0.4, 0.55, 0.6))])
+    return out
+
+
+class SensitivityAndNotifyTests(unittest.TestCase):
+    def engine(self, sensitivity, notify=True, floors=None):
+        raw = copy.deepcopy(ACTIVITY_EXAMPLE)
+        if floors:
+            raw["events"]["sensitivity_floor"] = floors
+        config, errors = parse_activity_config(raw)
+        assert config is not None, errors
+        engine = ActivityEngine(vision(), config)
+        found, mode, _ = parse_context_detection(context(camera([ZONE], {"home": {"watch": ["porch"], "sensitivity": sensitivity, "notify": notify}})))
+        engine.set_camera_detection(found, mode)
+        return engine
+
+    def entered(self, engine, confidence):
+        return [e for e in walk_with(engine, confidence) if e["type"] == "zone_enter" and e["zone_id"] == "porch"]
+
+    def test_the_sensitivity_of_the_profile_sets_the_lowest_confidence_that_counts(self):
+        self.assertEqual(self.entered(self.engine("low"), 0.6), [])
+        self.assertTrue(self.entered(self.engine("low"), 0.8))
+        self.assertEqual(self.entered(self.engine("normal"), 0.4), [])
+        self.assertTrue(self.entered(self.engine("normal"), 0.6))
+        self.assertTrue(self.entered(self.engine("high"), 0.4))
+        self.assertEqual(self.entered(self.engine("high"), 0.2), [])
+
+    def test_the_floors_are_values_of_the_configuration(self):
+        floors = {"low": 0.9, "normal": 0.8, "high": 0.1}
+        self.assertEqual(self.entered(self.engine("normal", floors=floors), 0.7), [])
+        self.assertTrue(self.entered(self.engine("high", floors=floors), 0.2))
+
+    def test_the_floors_are_checked(self):
+        for bad in ({"low": 0.3, "normal": 0.5, "high": 0.7}, {"low": 2, "normal": 0.5, "high": 0.1}, {"low": 0.5}, "x", {"low": True, "normal": 0.5, "high": 0.1}):
+            raw = copy.deepcopy(ACTIVITY_EXAMPLE)
+            raw["events"]["sensitivity_floor"] = bad
+            self.assertIsNone(parse_activity_config(raw)[0], bad)
+
+    def test_a_zone_of_the_configuration_ignores_the_floor(self):
+        events = walk_with(self.engine("low"), 0.3)
+        self.assertFalse([e for e in events if e["zone_id"] == "porch"])
+        engine = ActivityEngine(vision(), activity())
+        found, mode, _ = parse_context_detection(context(camera([ZONE], {"home": {"watch": ["porch"], "sensitivity": "low"}})))
+        engine.set_camera_detection(found, mode)
+        configured = [e for e in engine.process(CAM, 0.0, [Detection("person", 0.3, (0.5, 0.7, 0.7, 0.95))]) if e["zone_id"] == "drive"]
+        self.assertTrue(configured)
+
+    def test_notify_false_travels_in_the_events_of_the_zones_of_the_server_only(self):
+        quiet = walk_with(self.engine("normal", notify=False), 0.9)
+        porch = [e for e in quiet if e["zone_id"] == "porch"]
+        self.assertTrue(porch and all(e["notify"] is False for e in porch))
+        self.assertFalse([e for e in quiet if e["zone_id"] != "porch" and "notify" in e])
+        loud = [e for e in walk_with(self.engine("normal", notify=True), 0.9) if e["zone_id"] == "porch"]
+        self.assertTrue(loud and all("notify" not in e for e in loud))
+
+    def test_a_mode_without_profile_has_no_floor_and_tells(self):
+        engine = ActivityEngine(vision(), activity())
+        found, _, _ = parse_context_detection(context(camera([ZONE], {"away": {"watch": ["porch"], "sensitivity": "low", "notify": False}})))
+        engine.set_camera_detection(found, "home")
+        events = [e for e in walk_with(engine, 0.1) if e["zone_id"] == "porch"]
+        self.assertTrue(events and all("notify" not in e for e in events))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -63,6 +63,7 @@ class ActivityEngine:
         self._maps = {camera_id: Heatmap(activity.heatmap) for camera_id in vision.cameras}
         self._camera_lines: dict[str, tuple[CountLine, ...]] = {}
         self._camera_zones: dict[str, tuple[Zone, ...]] = {}
+        self._camera_rules: dict[str, tuple[float, bool]] = {}   # per camera with zones of the server: the lowest confidence that counts and whether the people are told
         self._line_counts: dict[tuple[str, str], dict[str, int]] = {}   # (camera, line) -> crossings to the left and to the right since the start; one entry per line, never per crossing
         self.dropped_detections = 0
         self.events = 0
@@ -82,6 +83,8 @@ class ActivityEngine:
     def set_camera_detection(self, detection: dict[str, CameraDetection], mode: str | None) -> list[str]:
         """Replace the detection zones the server drew (only the ones its profile for `mode` watches; every zone when the mode has no profile) and return the ids of the cameras that are not in the configuration, which are ignored. A zone whose id is already in the configuration of its camera is left out: the configured one stays. They report together with the zones of the configuration."""
         known: dict[str, tuple[Zone, ...]] = {}
+        rules: dict[str, tuple[float, bool]] = {}
+        floors = dict(zip(("low", "normal", "high"), self._activity.events.sensitivity_floor, strict=True))
         for camera_id, found in detection.items():
             if camera_id not in self._maps:
                 continue
@@ -89,7 +92,10 @@ class ActivityEngine:
             watched = tuple(zone for zone in found.watched(mode) if zone.zone_id not in taken)
             if watched:
                 known[camera_id] = watched
+                profile = found.profile(mode)
+                rules[camera_id] = (floors[profile.sensitivity] if profile else 0.0, profile.notify if profile else True)
         self._camera_zones = known
+        self._camera_rules = rules
         return sorted(set(detection) - set(self._maps))
 
     def line_counts(self) -> dict[str, dict[str, dict[str, int]]]:
@@ -136,13 +142,21 @@ class ActivityEngine:
         seen = tracker.update(timestamp, kept)
         alive = {t.track_id: t for t in tracker.tracks}
         events: list[dict] = []
-        events.extend(self._zone_events(camera_id, camera.zones + self._camera_zones.get(camera_id, ()), timestamp, seen, alive))
+        extra = self._camera_zones.get(camera_id, ())
+        floor, notify = self._camera_rules.get(camera_id, (0.0, True))
+        extra_ids = {z.zone_id for z in extra}
+        zone_events = self._zone_events(camera_id, camera.zones + extra, timestamp, seen, alive, extra_ids, floor)
+        if not notify:
+            for event in zone_events:
+                if event.get("zone_id") in extra_ids:
+                    event["notify"] = False   # the people the alarms go to are not told of this one; it is still reported
+        events.extend(zone_events)
         events.extend(self._line_events(camera_id, timestamp, seen, alive))
         self.events += len(events)
         return events
 
     def _zone_events(self, camera_id: str, zones: tuple[Zone, ...], timestamp: float, seen: list[Track],
-                     alive: dict[int, Track]) -> list[dict]:
+                     alive: dict[int, Track], floor_ids: frozenset[str] | set[str] = frozenset(), floor: float = 0.0) -> list[dict]:
         cfg = self._activity.events
         events: list[dict] = []
         for key in sorted(k for k in self._presence if k[0] == camera_id and (k[1] not in alive or timestamp - alive[k[1]].last_seen > cfg.lost_seconds)):
@@ -153,7 +167,8 @@ class ActivityEngine:
             foot = foot_point(track.box)
             for zone in zones:
                 key = (camera_id, track.track_id, zone.zone_id)
-                inside = (not zone.labels or track.label in zone.labels) and point_in_polygon(foot, zone.points)
+                inside = ((not zone.labels or track.label in zone.labels) and point_in_polygon(foot, zone.points)
+                          and (zone.zone_id not in floor_ids or track.confidence >= floor))
                 presence = self._presence.get(key)
                 if not inside:
                     if presence is not None:

@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-275%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-281%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、275 件のテストは実在します。Jetson Orin NX 用の検知器（TensorRT）、2 本のストリーム、クリップ、速度、置き去り物、PTZ 追従、時間帯設定、第 2 段階は書かれており、模擬のエンジンとソースでのみテストされています。カメラや Jetson Orin NX では何も動かしていません。
+**正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、281 件のテストは実在します。Jetson Orin NX 用の検知器（TensorRT）、2 本のストリーム、クリップ、速度、置き去り物、PTZ 追従、時間帯設定、第 2 段階は書かれており、模擬のエンジンとソースでのみテストされています。カメラや Jetson Orin NX では何も動かしていません。
 
 ---
 
@@ -40,7 +40,7 @@
 | 成熟度 | 機能する |
 | 役割 | カメラのゾーン、マスク、検出ルール（ファミリー：Core Services、親：ARMOR-SERVER） |
 | 技術 | Python 3.11+、標準ライブラリのみ |
-| テスト | 275 (`python -m unittest discover -s tests`) |
+| テスト | 281 (`python -m unittest discover -s tests`) |
 | 動作環境 | 任意のコンピューター |
 | 実機での確認 | まだありません：実際の検出器、カメラ、Jetson はなく、スクリプト化した検出によるシミュレーションのみ |
 | ライセンス | GPL-3.0-or-later |
@@ -56,7 +56,7 @@
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟡 | ゾーン、動きの確認、トラッカー、規則は動作しますが、実際の検出モデルはまだありません。シミュレーションはスクリプト化した検出結果を使います。 |
-| テスト | 🟢 | 275 件のテストが通ります（`python -m unittest discover -s tests`）。 |
+| テスト | 🟢 | 281 件のテストが通ります（`python -m unittest discover -s tests`）。 |
 | ハードウェア | 🔴 | カメラや Jetson Orin NX ではまだ何も動かしていません。 |
 | インターフェース | 🟡 | 提供するルートやメッセージは文書化され、クライアントで試験済みです。すべてのクライアントがまだ使ったわけではありません |
 | セキュリティ | 🟡 | アクセス制御、入力の制限、署名のいずれかは実装されコンピューター上で試験済みですが、プロジェクト外の誰もレビューしていません |
@@ -131,7 +131,7 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 | `zones[]` | `id`、`name`、`kind`（`alert` または `detection`）、`labels`、`min_frames`、`min_seconds`、`points`（多角形、0〜1）。ボックスの足元で判定 |
 | `masks[]` | 動きを無視する多角形。中心が内側にある検出は破棄されます |
 | `profiles` | 警戒モードごとに監視するゾーン（`away`、`home` など） |
-| `アクティビティ設定（別ファイル）` | `enabled`（既定 `false`）、`heatmap`（`cols`、`rows`、`window_seconds`、`half_life_seconds`、`slices`、65536 までの `max_cells`、`position`、`labels`）、`events`（`dwell_seconds`、`loiter_seconds`、`loiter_radius`、`lost_seconds`、`labels`、`id`・`a`・`b` を持つ `lines[]`）。ヒートマップは重みを最大値で割って正規化します |
+| `アクティビティ設定（別ファイル）` | `enabled`（既定 `false`）、`heatmap`（`cols`、`rows`、`window_seconds`、`half_life_seconds`、`slices`、65536 までの `max_cells`、`position`、`labels`）、`events`（`dwell_seconds`、`loiter_seconds`、`loiter_radius`、`lost_seconds`、`labels`、`id`・`a`・`b` を持つ `lines[]`、`sensitivity_floor`（`low`、`normal`、`high`））。ヒートマップは重みを最大値で割って正規化します |
 
 | 制限 | 値 |
 |---|---|
@@ -150,13 +150,13 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 275 tests
+python -m unittest discover -s tests   # 281 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 275 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 281 tests
 ```
 
 ## 🧪 テスト

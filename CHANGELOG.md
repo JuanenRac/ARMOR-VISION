@@ -18,9 +18,9 @@ All notable changes to this project are documented here.
 
 - **Search by meaning, licence plates and faces, all off by default:** each has its own switch, cannot be turned on without acknowledging its privacy notice (in the eight languages), raises `FeatureDisabled` while off, compares faces only with people who enrolled with consent, and has only simulated readers (`evidence: simulator`).
 
-- **Detection zones and mode profiles read from the server's context:** `parse_context_detection` reads `cameras[].detection` (up to sixteen zones per camera in the shape of this configuration, and one profile per arming mode with the zones watched), `ActivityEngine.set_camera_detection` reports the zones that the profile of the context's mode watches (every zone when the mode has no profile) together with the configured ones, and `POST /context` takes them with the counting lines. A camera with invalid zones loses only its own; the sensitivity and notify flag of a profile are checked but not applied yet. Tests: 14 more.
+- **Detection zones and mode profiles read from the server's context:** `parse_context_detection` reads `cameras[].detection` (up to sixteen zones per camera in the shape of this configuration, and one profile per arming mode with the zones watched), `ActivityEngine.set_camera_detection` reports the zones that the profile of the context's mode watches (every zone when the mode has no profile) together with the configured ones, and `POST /context` takes them with the counting lines. A camera with invalid zones loses only its own; the sensitivity of a profile sets the lowest confidence that counts in the zones of the server (`events.sensitivity_floor` of the activity configuration: low 0.7, normal 0.5, high 0.3 by default, never lower for a lower sensitivity) and `notify: false` of a profile puts `notify: false` in the events of those zones, so the server does not tell the people; the zones of the configuration are not affected. Tests: 20 more.
 
-- Tests: 275 (before 210).
+- Tests: 281 (before 210).
 
 ## [0.1.5] - The CI checks the coverage floor of this repository: a workflow of its own runs `tools/coverage_check.py` on every push and fails when the lines or the branches covered by the tests fall under the numbers of `docs/coverage_threshold.json` (
 

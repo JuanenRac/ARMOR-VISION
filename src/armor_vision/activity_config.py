@@ -45,6 +45,7 @@ class EventSettings:
     lost_seconds: float = 2.0                # not seen this long: the visit to a zone is over (a `zone_exit`)
     labels: tuple[str, ...] = ()
     lines: tuple[CountLine, ...] = ()
+    sensitivity_floor: tuple[float, float, float] = (0.7, 0.5, 0.3)   # the lowest confidence that counts in a zone of the server under a profile of low, normal and high sensitivity
 
 
 @dataclass(frozen=True)
@@ -119,8 +120,24 @@ def parse_heatmap(raw: Any, errors: list[str]) -> HeatmapSettings:
                            str(position), labels)
 
 
+def _floor(raw: Any, errors: list[str]) -> tuple[float, float, float]:
+    """{"low", "normal", "high"}: each a number from 0 to 1, and a lower sensitivity never asks for less than a higher one."""
+    default = EventSettings().sensitivity_floor
+    if not isinstance(raw, dict) or set(raw) != {"low", "normal", "high"}:
+        errors.append("events: sensitivity_floor must be an object with low, normal and high")
+        return default
+    values = [raw["low"], raw["normal"], raw["high"]]
+    if not all(_num(v) and 0.0 <= v <= 1.0 for v in values):
+        errors.append("events: sensitivity_floor values must be numbers from 0 to 1")
+        return default
+    if not values[0] >= values[1] >= values[2]:
+        errors.append("events: sensitivity_floor must satisfy low >= normal >= high")
+        return default
+    return float(values[0]), float(values[1]), float(values[2])
+
+
 def parse_events(raw: Any, errors: list[str]) -> EventSettings:
-    section = _section(raw, "events", {"dwell_seconds", "loiter_seconds", "loiter_radius", "lost_seconds", "labels", "lines"}, errors)
+    section = _section(raw, "events", {"dwell_seconds", "loiter_seconds", "loiter_radius", "lost_seconds", "labels", "lines", "sensitivity_floor"}, errors)
     d = EventSettings()
     values: dict[str, float] = {}
     for key, default, low, high in (("dwell_seconds", d.dwell_seconds, 0.0, 86400.0),
@@ -167,7 +184,8 @@ def parse_events(raw: Any, errors: list[str]) -> EventSettings:
                 continue
             line_labels = _labels(line["labels"], where, errors) if "labels" in line else ()
             lines.append(CountLine(line_id, ends[0], ends[1], line_labels))
-    return EventSettings(values["dwell_seconds"], values["loiter_seconds"], values["loiter_radius"], values["lost_seconds"], labels, tuple(lines))
+    floor = _floor(section.get("sensitivity_floor"), errors) if "sensitivity_floor" in section else d.sensitivity_floor
+    return EventSettings(values["dwell_seconds"], values["loiter_seconds"], values["loiter_radius"], values["lost_seconds"], labels, tuple(lines), floor)
 
 
 def parse_activity_config(raw: Any) -> tuple[ActivityConfig | None, list[str]]:
