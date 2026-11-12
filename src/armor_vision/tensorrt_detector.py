@@ -101,7 +101,7 @@ class TensorrtEngine:
             raise DetectorUnavailable(f"cannot open the TensorRT engine {path}: {exc}") from exc
 
     def infer(self, frame: Frame, size: int) -> Any:    # pragma: no cover - needs a Jetson
-        import numpy
+        import numpy  # type: ignore[import-not-found,import-untyped,unused-ignore]
         cuda = self._cuda
         tensor = numpy.ascontiguousarray(self._to_tensor(frame, size), dtype=numpy.float32)
         output = numpy.empty(tuple(self._engine.get_tensor_shape(self._engine.get_tensor_name(1))), dtype=numpy.float32)

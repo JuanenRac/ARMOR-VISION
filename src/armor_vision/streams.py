@@ -42,8 +42,9 @@ def parse_stream_pair(raw: Any) -> tuple[StreamPair | None, list[str]]:
     errors = [f"unknown field(s): {', '.join(sorted(set(raw) - PAIR_FIELDS))}"] if set(raw) - PAIR_FIELDS else []
     sources: dict[str, str] = {}
     for name in ("analysis", "record"):
+        candidate: Any = raw.get(name)
         try:
-            sources[name] = check_source(raw.get(name))
+            sources[name] = check_source(candidate)
         except VideoSourceError as error:
             errors.append(f"{name}: {error}")
     if len(sources) == 2 and sources["analysis"] == sources["record"]:

@@ -70,8 +70,8 @@ class Schedule:
 
     def _clock(self, timestamp: float) -> tuple[int, int]:
         if self.utc_offset_minutes is None:
-            moment = time.localtime(timestamp)
-            return moment.tm_hour * 60 + moment.tm_min, moment.tm_wday
+            local = time.localtime(timestamp)
+            return local.tm_hour * 60 + local.tm_min, local.tm_wday
         moment = datetime.fromtimestamp(timestamp, timezone.utc) + timedelta(minutes=self.utc_offset_minutes)
         return moment.hour * 60 + moment.minute, moment.weekday()
 
@@ -122,7 +122,8 @@ def _window(entry: Any, where: str, errors: list[str]) -> Window | None:
         errors.append(f"{where}: name is required (day, night, away or your own)")
     minutes = []
     for key in ("from", "to"):
-        match = CLOCK.match(entry.get(key)) if isinstance(entry.get(key), str) else None
+        text = entry.get(key)
+        match = CLOCK.match(text) if isinstance(text, str) else None
         if not match:
             errors.append(f"{where}: {key} is a time HH:MM")
             minutes.append(0)

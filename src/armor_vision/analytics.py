@@ -140,7 +140,7 @@ def parse_speed_settings(raw: Any) -> tuple[SpeedSettings | None, list[str]]:
     limit = raw.get("limit_kmh")
     if limit is not None and (not _number(limit) or not 0 < limit <= 1000):
         errors.append("limit_kmh must be a number above 0 (or left out)")
-    if errors or calibration is None:
+    if errors or calibration is None or zone is None:
         return None, errors
     return SpeedSettings(tuple((float(x), float(y)) for x, y in zone), calibration, float(values["window_seconds"]), float(values["min_seconds"]),
                          None if limit is None else float(limit), float(values["report_every"]), float(values["max_kmh"])), []
@@ -223,15 +223,15 @@ def parse_abandoned_settings(raw: Any) -> tuple[AbandonedSettings | None, list[s
         return None, ["the settings must be an object"]
     errors = [f"unknown field(s): {', '.join(sorted(set(raw) - fields))}"] if set(raw) - fields else []
     defaults = AbandonedSettings()
-    lists = {}
+    lists: dict[str, Any] = {}
     for name, default in (("labels", defaults.labels), ("owner_labels", defaults.owner_labels)):
         value = raw.get(name, list(default))
         if not isinstance(value, list) or not value or not all(isinstance(v, str) and v for v in value):
             errors.append(f"{name} must be a list of names")
         lists[name] = value
-    values = {}
-    for name, default, low, high in (("min_seconds", defaults.min_seconds, 1.0, 86400.0), ("owner_distance", defaults.owner_distance, 0.01, 1.5)):
-        value = raw.get(name, default)
+    values: dict[str, Any] = {}
+    for name, fallback, low, high in (("min_seconds", defaults.min_seconds, 1.0, 86400.0), ("owner_distance", defaults.owner_distance, 0.01, 1.5)):
+        value = raw.get(name, fallback)
         if not _number(value) or not low <= value <= high:
             errors.append(f"{name} must be a number from {low:g} to {high:g}")
         values[name] = value
