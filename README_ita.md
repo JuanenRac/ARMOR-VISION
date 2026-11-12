@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 o successiva">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Linguaggio">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-281%20passing-2ea44f.svg" alt="Test">
+  <img src="https://img.shields.io/badge/Tests-295%20passing-2ea44f.svg" alt="Test">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Versione">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturità">
 </p>
 
 ---
 
-**Controllo di onestà - cosa funziona oggi:** Le zone, il controllo del movimento, il tracciamento, le regole e i 281 test sono reali. Il rilevatore per la Jetson Orin NX (TensorRT), i due flussi, le clip, la velocità, gli oggetti abbandonati, il tracciamento PTZ, l'orario e la seconda fase sono scritti e provati solo con motori e sorgenti simulati: nulla è stato eseguito su una telecamera o sulla Jetson Orin NX.
+**Controllo di onestà - cosa funziona oggi:** Le zone, il controllo del movimento, il tracciamento, le regole e i 295 test sono reali. Il rilevatore per la Jetson Orin NX (TensorRT), i due flussi, le clip, la velocità, gli oggetti abbandonati, il tracciamento PTZ, l'orario e la seconda fase sono scritti e provati solo con motori e sorgenti simulati: nulla è stato eseguito su una telecamera o sulla Jetson Orin NX.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturità | Funzionale |
 | Ruolo | Zone, maschere e regole di rilevamento delle telecamere (famiglia: Core Services, padre: ARMOR-SERVER) |
 | Tecnologia | Python 3.11+, solo libreria standard |
-| Test | 281 (`python -m unittest discover -s tests`) |
+| Test | 295 (`python -m unittest discover -s tests`) |
 | Gira su | Qualsiasi computer |
 | Su hardware reale | Ancora nessuno: né rilevatore reale, né telecamera, né Jetson (una simulazione con rilevamenti scriptati) |
 | Licenza | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Area | Stato | Cosa significa qui |
 |---|---|---|
 | Software | 🟡 | Le zone, il controllo del movimento, il tracciamento e le regole funzionano, ma non c'è ancora un vero modello di rilevamento: la simulazione usa rilevamenti da script. |
-| Test | 🟢 | Superano 281 test (`python -m unittest discover -s tests`). |
+| Test | 🟢 | Superano 295 test (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nulla ha girato su una telecamera né sulla Jetson Orin NX. |
 | Interfaccia | 🟡 | Le rotte o i messaggi offerti sono documentati e provati con un client; non tutti i client li hanno ancora usati |
 | Sicurezza | 🟡 | Il controllo degli accessi, i limiti d'ingresso o le firme sono implementati e provati su un computer; nessuno al di fuori del progetto li ha rivisti |
@@ -150,13 +150,13 @@ Oggi questi valori sono costanti di `tracker.py` e `motion.py`; il file di confi
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 281 tests
+python -m unittest discover -s tests   # 295 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 281 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 295 tests
 ```
 
 ## 🧪 Test
@@ -176,6 +176,7 @@ python -I tools/armor_ci_validate.py
 | `test_heatmap_service.py` | 7 | La rotta della mappa di calore come comando: spenta dà 404 qualunque siano i dati, accesa senza dati dà una mappa vuota, conteggi nei tre formati, richieste errate, e una configurazione o un file errati sono un errore e mai una mappa vuota |
 | `test_service.py` | 15 | Il servizio vivo: la stessa mappa del file riprodotto, spento dà 404 e 503, ciò che non si capisce viene rifiutato, i limiti delle impostazioni, memoria limitata e il comando |
 | `test_service_load.py` | 7 | Il servizio vivo sotto carico leggero e con client che si comportano male: i nuovi limiti e i loro intervalli, un client che tace viene chiuso, le richieste contemporanee sono limitate, contatori esatti con molti thread, il disegno di una mappa invariata viene riusato ed è limitato, e una mappa in corso di disegno non trattiene le osservazioni |
+| `test_delivery.py` | 14 | La consegna degli eventi al server: spenta di default, il token mai nelle impostazioni, solo https o questa macchina, una coda limitata e `notify:false` trasmesso intatto |
 | `test_tensorrt_and_streams.py` | 21 | Il rilevatore TensorRT con motore simulato, la coppia di flussi e il registratore, le clip con pre e post-cattura e la conservazione per tipo |
 | `test_analytics_schedule_phase2.py` | 30 | Velocità in una zona, oggetti abbandonati, il seguitore PTZ, i vettori di un evento, l'orario e la seconda fase spenta per impostazione predefinita |
 
@@ -219,6 +220,7 @@ ARMOR-VISION/
 │   ├── activity.py                      eventi e gestore /heatmap
 │   ├── heatmap_service.py               la rotta /heatmap come comando
 │   ├── service.py                       il servizio vivo: il motore in memoria, POST /ingest e GET /heatmap
+│   ├── delivery.py                      la consegna degli eventi al server (spenta di default)
 │   └── pipeline.py cli.py __main__.py   tutta la catena e la riga di comando
 ├── tests/                               i test
 ├── docs/                                le guide di questo repository

@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-281%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-295%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 281 个测试都是真实的。面向 Jetson Orin NX 的检测器（TensorRT）、双码流、片段、速度、遗留物、PTZ 跟随、时间表和第二阶段都已编写，并且只用模拟的引擎和来源测试过：没有在任何摄像头或 Jetson Orin NX 上运行过。
+**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 295 个测试都是真实的。面向 Jetson Orin NX 的检测器（TensorRT）、双码流、片段、速度、遗留物、PTZ 跟随、时间表和第二阶段都已编写，并且只用模拟的引擎和来源测试过：没有在任何摄像头或 Jetson Orin NX 上运行过。
 
 ---
 
@@ -40,7 +40,7 @@
 | 成熟度 | 可用 |
 | 角色 | 摄像头区域、遮罩和检测规则（家族：Core Services，上级：ARMOR-SERVER） |
 | 技术栈 | Python 3.11+，仅标准库 |
-| 测试 | 281 (`python -m unittest discover -s tests`) |
+| 测试 | 295 (`python -m unittest discover -s tests`) |
 | 运行位置 | 任何计算机 |
 | 真实硬件 | 暂无：没有真实的检测器、摄像头或 Jetson（使用脚本化检测的模拟） |
 | 许可证 | GPL-3.0-or-later |
@@ -56,7 +56,7 @@
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 防区、移动检查、跟踪器和规则都能工作，但目前还没有真实的检测模型：模拟使用的是脚本化的检测结果。 |
-| 测试 | 🟢 | 281 项测试通过（`python -m unittest discover -s tests`）。 |
+| 测试 | 🟢 | 295 项测试通过（`python -m unittest discover -s tests`）。 |
 | 硬件 | 🔴 | 还没有在摄像头或 Jetson Orin NX 上运行过。 |
 | 界面 | 🟡 | 提供的路由或消息已有文档，并用客户端测试过；尚未被所有客户端使用 |
 | 安全 | 🟡 | 访问控制、输入限制或签名已实现并在计算机上测试；项目之外无人审查过 |
@@ -150,13 +150,13 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 281 tests
+python -m unittest discover -s tests   # 295 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 281 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 295 tests
 ```
 
 ## 🧪 测试
@@ -176,6 +176,7 @@ python -I tools/armor_ci_validate.py
 | `test_heatmap_service.py` | 7 | 作为命令的热力图路由：关闭时无论数据如何都返回 404，开启但没有数据时返回空图，三种格式下的计数，错误的查询，以及错误的配置或文件会报错，绝不会变成空图 |
 | `test_service.py` | 15 | 实时服务：与回放文件相同的地图，关闭时返回 404 和 503，无法理解的内容被拒绝，设置的限制，内存有上限，以及命令 |
 | `test_service_load.py` | 7 | 轻负载和行为不良的客户端下的实时服务：新的上限及其范围、沉默的客户端被断开、同时请求数有上限、多线程下计数器精确、未变化地图的绘制被复用且有上限、正在绘制的地图不会阻塞观测 |
+| `test_delivery.py` | 14 | 向服务器投递事件：默认关闭，令牌绝不放在设置里，仅限 https 或本机，有上限的队列，`notify:false` 原样传递 |
 | `test_tensorrt_and_streams.py` | 21 | 使用模拟引擎的 TensorRT 检测器、码流对与录制器、带前后捕获的片段以及按类型的保留 |
 | `test_analytics_schedule_phase2.py` | 30 | 区域内速度、遗留物、PTZ 跟随器、事件的向量、时间表以及默认关闭的第二阶段 |
 
@@ -219,6 +220,7 @@ ARMOR-VISION/
 │   ├── activity.py                      事件与 /heatmap 处理器
 │   ├── heatmap_service.py               作为命令的 /heatmap 路由
 │   ├── service.py                       实时服务：内存中的引擎、POST /ingest 与 GET /heatmap
+│   ├── delivery.py                      向服务器投递事件（默认关闭）
 │   └── pipeline.py cli.py __main__.py   整个流程与命令行
 ├── tests/                               测试
 ├── docs/                                本仓库的指南

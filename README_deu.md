@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 oder neuer">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Sprache">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-281%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-295%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Reifegrad">
 </p>
 
 ---
 
-**Ehrlichkeitsprüfung - was heute läuft:** Die Zonen, die Bewegungsprüfung, die Verfolgung, die Regeln und die 281 Tests sind real. Der Detektor für den Jetson Orin NX (TensorRT), die zwei Streams, die Clips, Geschwindigkeit, zurückgelassene Objekte, PTZ-Verfolgung, der Zeitplan und die zweite Phase sind geschrieben und nur mit simulierten Engines und Quellen getestet: nichts lief auf einer Kamera oder auf dem Jetson Orin NX.
+**Ehrlichkeitsprüfung - was heute läuft:** Die Zonen, die Bewegungsprüfung, die Verfolgung, die Regeln und die 295 Tests sind real. Der Detektor für den Jetson Orin NX (TensorRT), die zwei Streams, die Clips, Geschwindigkeit, zurückgelassene Objekte, PTZ-Verfolgung, der Zeitplan und die zweite Phase sind geschrieben und nur mit simulierten Engines und Quellen getestet: nichts lief auf einer Kamera oder auf dem Jetson Orin NX.
 
 ---
 
@@ -40,7 +40,7 @@
 | Reifegrad | Funktionsfähig |
 | Rolle | Kamerazonen, Masken und Erkennungsregeln (Familie: Core Services, übergeordnet: ARMOR-SERVER) |
 | Technik | Python 3.11+, nur Standardbibliothek |
-| Tests | 281 (`python -m unittest discover -s tests`) |
+| Tests | 295 (`python -m unittest discover -s tests`) |
 | Läuft auf | Jeder Computer |
 | Auf echter Hardware | Noch keiner: weder echter Detektor noch Kamera noch Jetson (eine Simulation mit geskripteten Erkennungen) |
 | Lizenz | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Jede Zeile ist ein Teil dieses Repositorys, und die Ampel sagt, wie weit er heut
 | Bereich | Stand | Was das hier bedeutet |
 |---|---|---|
 | Software | 🟡 | Die Zonen, die Bewegungsprüfung, die Verfolgung und die Regeln funktionieren, aber es gibt noch kein echtes Erkennungsmodell: Die Simulation nutzt geskriptete Erkennungen. |
-| Tests | 🟢 | 281 Tests bestehen (`python -m unittest discover -s tests`). |
+| Tests | 🟢 | 295 Tests bestehen (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nichts lief an einer Kamera oder auf dem Jetson Orin NX. |
 | Oberfläche | 🟡 | Die angebotenen Routen oder Nachrichten sind dokumentiert und mit einem Client getestet; noch nicht jeder Client hat sie benutzt |
 | Sicherheit | 🟡 | Zugriffskontrolle, Eingabegrenzen oder Signaturen sind umgesetzt und auf einem Rechner getestet; niemand außerhalb des Projekts hat sie geprüft |
@@ -150,13 +150,13 @@ Diese Werte sind heute Konstanten in `tracker.py` und `motion.py`; die Konfigura
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 281 tests
+python -m unittest discover -s tests   # 295 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 281 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 295 tests
 ```
 
 ## 🧪 Tests
@@ -176,6 +176,7 @@ python -I tools/armor_ci_validate.py
 | `test_heatmap_service.py` | 7 | Die Heatmap-Route als Befehl: aus ist 404, egal welche Daten, an ohne Daten ist eine leere Karte, Zählungen in den drei Formaten, fehlerhafte Anfragen, und eine falsche Konfiguration oder Datei ist ein Fehler und nie eine leere Karte |
 | `test_service.py` | 15 | Der Live-Dienst: dieselbe Karte wie die abgespielte Datei, aus ist 404 und 503, Unverstandenes wird abgelehnt, die Grenzen der Einstellungen, begrenzter Speicher und der Befehl |
 | `test_service_load.py` | 7 | Der Live-Dienst unter leichter Last und mit sich schlecht benehmenden Clients: die neuen Grenzen und ihre Bereiche, ein verstummter Client wird getrennt, die gleichzeitigen Anfragen sind begrenzt, exakte Zähler bei vielen Threads, die Zeichnung einer unveränderten Karte wird wiederverwendet und begrenzt, und eine Karte, die gezeichnet wird, hält die Beobachtungen nicht auf |
+| `test_delivery.py` | 14 | Die Zustellung von Ereignissen an den Server: standardmäßig aus, das Token nie in den Einstellungen, nur https oder dieser Rechner, eine begrenzte Warteschlange und `notify:false` unverändert |
 | `test_tensorrt_and_streams.py` | 21 | Der TensorRT-Detektor mit simulierter Engine, das Streampaar und der Recorder, die Clips mit Vor- und Nachlauf und die Aufbewahrung nach Typ |
 | `test_analytics_schedule_phase2.py` | 30 | Geschwindigkeit in einer Zone, zurückgelassene Objekte, der PTZ-Verfolger, die Vektoren eines Ereignisses, der Zeitplan und die standardmäßig ausgeschaltete zweite Phase |
 
@@ -219,6 +220,7 @@ ARMOR-VISION/
 │   ├── activity.py                      Ereignisse und der /heatmap-Handler
 │   ├── heatmap_service.py               die /heatmap-Route als Befehl
 │   ├── service.py                       der Live-Dienst: die Engine im Speicher, POST /ingest und GET /heatmap
+│   ├── delivery.py                      die Zustellung von Ereignissen an den Server (standardmäßig aus)
 │   └── pipeline.py cli.py __main__.py   die ganze Kette und die Kommandozeile
 ├── tests/                               die Tests
 ├── docs/                                die Anleitungen dieses Repositorys

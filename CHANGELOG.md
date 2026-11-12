@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The service can hand its activity events to the server:** the optional `delivery` object of the service settings (`url`, `token_file`, `kinds`, `queue_max`, `timeout_s`; off, `null`, by default) makes the live service post each event of the chosen kinds (`zone_enter`, `dwell` and `loiter` unless the settings say otherwise) to `POST /api/v1/ai/activity-events` of the server with the bearer token of the observation service. The token comes from the file or from `ARMOR_VISION_DELIVERY_TOKEN`, never from the settings file; the address must be https or this machine; the events wait in a bounded queue (the oldest is dropped and counted) and one thread sends them, so a slow or absent server never holds up a detection. The `notify: false` that a profile of the arming mode puts on the events of its zones travels untouched, so the server records the event and does not tell the people the alarms go to. `GET /health` counts what was sent, refused and dropped.
+
 - **A TensorRT detector for the Jetson Orin NX behind the same interface:** `load_detector("tensorrt", settings)` opens a serialized engine with the Jetson packages; the engine is an interface, so `TensorrtDetector` runs on any machine with `SimulatedEngine` and says its evidence is `simulator`. The reading of a real engine has never run on a Jetson.
 
 - **Two streams from one camera:** `parse_stream_pair` and `analysis_frames` read the small stream for the movement check and the detector, and `SegmentRecorder` copies the main stream without decoding it into segments named by their start time.

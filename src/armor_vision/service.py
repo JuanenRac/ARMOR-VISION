@@ -30,6 +30,7 @@ from .activity import ActivityEngine, HeatmapPlan, heatmap_draw, heatmap_plan
 from .activity_config import ActivityConfig
 from .context_detection import parse_context_detection
 from .context_lines import parse_context_lines
+from .delivery import DeliverySettings, EventDeliverer, parse_delivery_settings
 from .config import VisionConfig
 from .sources import FileSource, SourceError, SyntheticSource
 
@@ -49,6 +50,7 @@ SERVICE_EXAMPLE: dict[str, Any] = {
     "render_cache_entries": 16,
     "token_file": None,
     "simulate": None,
+    "delivery": None,
 }
 _SIMULATE_KEYS = {"camera_id", "seed", "objects", "duration", "fps"}
 
@@ -79,6 +81,7 @@ class ServiceSettings:
     render_cache_entries: int = 16
     token_file: str | None = None
     simulate: SimulateSettings | None = None
+    delivery: DeliverySettings | None = None
 
 
 TOKEN_ENV = "ARMOR_VISION_SERVICE_TOKEN"
@@ -184,16 +187,19 @@ def parse_service_settings(raw: object) -> tuple[ServiceSettings | None, list[st
                 simulate = SimulateSettings(**sim_raw)
             except (SourceError, TypeError) as exc:
                 errors.append(f"simulate: {exc}")
+    delivery, delivery_problems = parse_delivery_settings(raw.get("delivery"))
+    errors.extend(delivery_problems)
     if errors:
         return None, errors
-    return ServiceSettings(str(host), int(port), bool(remote), int(body), int(detections), int(query), int(timeout), int(connections), int(cache), token_file, simulate), []
+    return ServiceSettings(str(host), int(port), bool(remote), int(body), int(detections), int(query), int(timeout), int(connections), int(cache), token_file, simulate, delivery), []
 
 
 class LiveService:
     """The engine in memory behind a lock; the HTTP part below only moves bytes in and out of it."""
 
-    def __init__(self, vision: VisionConfig, activity: ActivityConfig, settings: ServiceSettings, token: str | None = None) -> None:
+    def __init__(self, vision: VisionConfig, activity: ActivityConfig, settings: ServiceSettings, token: str | None = None, deliverer: EventDeliverer | None = None) -> None:
         self.settings = settings
+        self._deliverer = deliverer
         self._token = token
         if settings.allow_remote and token is None:
             raise ServiceConfigError("allow_remote needs a token: the service does not start without one")
@@ -233,6 +239,8 @@ class LiveService:
                 return refuse(409, "time goes backwards for this camera")
             events = self._engine.process(observation.camera_id, observation.timestamp, list(observation.detections))
             self._last[observation.camera_id] = observation.timestamp
+        if self._deliverer is not None:
+            self._deliverer.offer(events)   # never blocks and never raises: the server decides what is worth an alarm
         with self._count_lock:
             self.accepted_posts += 1
         return 200, {"schema": SERVICE_SCHEMA, "events": len(events)}
@@ -303,7 +311,8 @@ class LiveService:
             engine = self._engine
             return {"schema": SERVICE_SCHEMA, "status": "ok", "activity": engine is not None, "cameras": [] if engine is None else engine.camera_ids,
                     "accepted": self.accepted_posts, "refused": self.refused_posts,
-                    "dropped_detections": 0 if engine is None else engine.dropped_detections}
+                    "dropped_detections": 0 if engine is None else engine.dropped_detections,
+                    **({"delivery": self._deliverer.counters()} if self._deliverer is not None else {})}
 
 
 def _handler(service: LiveService) -> type[BaseHTTPRequestHandler]:

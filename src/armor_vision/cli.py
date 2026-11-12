@@ -15,6 +15,7 @@ from .context_sync import AI_TOKEN_ENV, SyncError, SyncSettings, check_url, read
 from .heatmap_service import QUERY_KEYS, ServiceError, answer
 from .pipeline import Pipeline
 from .replay import replay
+from .delivery import DeliveryConfigError, EventDeliverer, load_delivery_token
 from .service import SERVICE_EXAMPLE, TOKEN_ENV, LiveService, ServiceConfigError, load_token, make_server, parse_service_settings
 from .sources import FileSource, SourceError, SyntheticSource
 from .tracker import Detection
@@ -160,9 +161,10 @@ def _run_serve(args, config) -> int:
         print("error: the activity pipeline is off (enabled is false): there is nothing to serve", file=sys.stderr)
         return 1
     try:
-        service = LiveService(config, activity, settings, load_token(settings))
+        deliverer = EventDeliverer(settings.delivery, load_delivery_token(settings.delivery)) if settings.delivery is not None else None
+        service = LiveService(config, activity, settings, load_token(settings), deliverer)
         server = make_server(service)
-    except (OSError, SourceError, KeyError, ValueError, ServiceConfigError) as exc:
+    except (OSError, SourceError, KeyError, ValueError, ServiceConfigError, DeliveryConfigError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     print(f"armor-vision service on http://{settings.host}:{server.server_address[1]} ({len(service.health()['cameras'])} camera(s))", flush=True)  # type: ignore[arg-type]
