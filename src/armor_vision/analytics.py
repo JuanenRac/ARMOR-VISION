@@ -58,7 +58,7 @@ def _solve(matrix: list[list[float]], vector: list[float]) -> list[float] | None
         for r in range(n):
             if r != col:
                 factor = rows[r][col] / rows[col][col]
-                rows[r] = [a - factor * b for a, b in zip(rows[r], rows[col])]
+                rows[r] = [a - factor * b for a, b in zip(rows[r], rows[col], strict=True)]
     return [rows[i][n] / rows[i][i] for i in range(n)]
 
 
@@ -79,7 +79,7 @@ class Calibration:
         if len({(float(p[0]), float(p[1])) for p in image}) < 4 or len({(float(p[0]), float(p[1])) for p in ground}) < 4:
             return None, ["the reference points must all be different"]
         matrix, vector = [], []
-        for (x, y), (u, v) in zip(image, ground):
+        for (x, y), (u, v) in zip(image, ground, strict=True):
             matrix.append([x, y, 1, 0, 0, 0, -u * x, -u * y])
             vector.append(u)
             matrix.append([0, 0, 0, x, y, 1, -v * x, -v * y])
@@ -89,7 +89,7 @@ class Calibration:
             return None, ["the reference points are in a line or repeat a direction: they cannot define the ground plane"]
         calibration = cls(tuple(solution))
         # a calibration whose own points do not come back to the ground is a numeric accident: refuse it
-        for point, expected in zip(image, ground):
+        for point, expected in zip(image, ground, strict=True):
             got = calibration.to_ground((float(point[0]), float(point[1])))
             if got is None or math.dist(got, (float(expected[0]), float(expected[1]))) > 1e-6 * (1.0 + math.hypot(*map(float, expected))):
                 return None, ["the reference points do not give a usable ground plane"]
