@@ -58,6 +58,14 @@ def _loopback(host: str) -> bool:
         return False
 
 
+def _port_ok(parts: Any) -> bool:
+    try:
+        port = parts.port
+    except ValueError:
+        return False
+    return port is None or 1 <= port <= 65535
+
+
 def _whole(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
@@ -80,6 +88,8 @@ def parse_delivery_settings(raw: object) -> tuple[DeliverySettings | None, list[
         parts = urlsplit(url)
         if parts.scheme not in ("http", "https") or not parts.hostname or parts.username or parts.password or parts.query or parts.fragment or parts.path not in ("", "/"):
             errors.append("delivery.url must be an origin (scheme, host, optional port) and nothing else")
+        elif not _port_ok(parts):
+            errors.append("delivery.url has a port that is not a number from 1 to 65535")
         elif parts.scheme == "http" and not _loopback(parts.hostname):
             errors.append("delivery.url must be https unless it is this machine: the token would travel in clear")
     token_file = raw.get("token_file", DELIVERY_EXAMPLE["token_file"])
@@ -135,7 +145,9 @@ def http_post(url: str, body: bytes, token: str, timeout: int) -> int:
         with urllib.request.build_opener(_NoRedirect).open(request, timeout=timeout) as answer:   # noqa: S310 - http(s) only, checked by the settings
             return int(answer.status)
     except urllib.error.HTTPError as exc:
-        return int(exc.code)
+        code = int(exc.code)
+        exc.close()
+        return code
     except (urllib.error.URLError, OSError, ValueError):
         return 0
 
