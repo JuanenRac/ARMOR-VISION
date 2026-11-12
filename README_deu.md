@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 oder neuer">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Sprache">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-295%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-317%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Reifegrad">
 </p>
 
 ---
 
-**Ehrlichkeitsprüfung - was heute läuft:** Die Zonen, die Bewegungsprüfung, die Verfolgung, die Regeln und die 295 Tests sind real. Der Detektor für den Jetson Orin NX (TensorRT), die zwei Streams, die Clips, Geschwindigkeit, zurückgelassene Objekte, PTZ-Verfolgung, der Zeitplan und die zweite Phase sind geschrieben und nur mit simulierten Engines und Quellen getestet: nichts lief auf einer Kamera oder auf dem Jetson Orin NX.
+**Ehrlichkeitsprüfung - was heute läuft:** Die Zonen, die Bewegungsprüfung, die Verfolgung, die Regeln und die 317 Tests sind real. Der Detektor für den Jetson Orin NX (TensorRT), die zwei Streams, die Clips, Geschwindigkeit, zurückgelassene Objekte, PTZ-Verfolgung, der Zeitplan und die zweite Phase sind geschrieben und nur mit simulierten Engines und Quellen getestet: nichts lief auf einer Kamera oder auf dem Jetson Orin NX.
 
 ---
 
@@ -40,7 +40,7 @@
 | Reifegrad | Funktionsfähig |
 | Rolle | Kamerazonen, Masken und Erkennungsregeln (Familie: Core Services, übergeordnet: ARMOR-SERVER) |
 | Technik | Python 3.11+, nur Standardbibliothek |
-| Tests | 295 (`python -m unittest discover -s tests`) |
+| Tests | 317 (`python -m unittest discover -s tests`) |
 | Läuft auf | Jeder Computer |
 | Auf echter Hardware | Noch keiner: weder echter Detektor noch Kamera noch Jetson (eine Simulation mit geskripteten Erkennungen) |
 | Lizenz | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Jede Zeile ist ein Teil dieses Repositorys, und die Ampel sagt, wie weit er heut
 | Bereich | Stand | Was das hier bedeutet |
 |---|---|---|
 | Software | 🟡 | Die Zonen, die Bewegungsprüfung, die Verfolgung und die Regeln funktionieren, aber es gibt noch kein echtes Erkennungsmodell: Die Simulation nutzt geskriptete Erkennungen. |
-| Tests | 🟢 | 295 Tests bestehen (`python -m unittest discover -s tests`). |
+| Tests | 🟢 | 317 Tests bestehen (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nichts lief an einer Kamera oder auf dem Jetson Orin NX. |
 | Oberfläche | 🟡 | Die angebotenen Routen oder Nachrichten sind dokumentiert und mit einem Client getestet; noch nicht jeder Client hat sie benutzt |
 | Sicherheit | 🟡 | Zugriffskontrolle, Eingabegrenzen oder Signaturen sind umgesetzt und auf einem Rechner getestet; niemand außerhalb des Projekts hat sie geprüft |
@@ -150,13 +150,13 @@ Diese Werte sind heute Konstanten in `tracker.py` und `motion.py`; die Konfigura
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 295 tests
+python -m unittest discover -s tests   # 317 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 295 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 317 tests
 ```
 
 ## 🧪 Tests
