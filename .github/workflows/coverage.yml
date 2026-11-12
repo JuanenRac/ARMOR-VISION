@@ -1,0 +1,44 @@
+# =============================================================================
+# A.R.M.O.R. - floor of the test coverage for a Python repository
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D)
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+# The shared CI workflow checks the coverage floor only where there is a package.json. This repository is Python: tools/coverage_check.py runs the tests with coverage and fails
+# when lines or branches fall under the numbers of docs/coverage_threshold.json.
+name: Test coverage floor
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    name: Check the test coverage floor
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      # Some tests compare this repository with the shared one, which a checkout does not bring.
+      - name: Fetch the repository the tests compare against
+        run: git clone --depth 1 https://github.com/JuanenRac/ARMOR-COMMON.git ../ARMOR-COMMON
+
+      - name: Install the coverage tool
+        run: python -m pip install --quiet coverage
+
+      - name: Check the floor
+        run: python tools/coverage_check.py
+        env:
+          PYTHONPATH: src
+          ARMOR_REQUIRE_SIBLINGS: "1"
