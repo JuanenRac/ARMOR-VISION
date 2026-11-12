@@ -3,11 +3,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .analytics import track_vectors
 from .config import VisionConfig
 from .detector import Detector
 from .geometry import centre, point_in_polygon, valid_box
 from .motion import Frame, moved_cells, regions
-from .rules import Evaluator
+from .rules import MAX_VECTORS, Evaluator
+from .schedule import Schedule
 from .tracker import Detection, Tracker
 
 
@@ -36,8 +38,10 @@ class Stats:
 
 
 class Pipeline:
-    def __init__(self, config: VisionConfig, detector: Detector | None = None, mode: str | None = None) -> None:
+    def __init__(self, config: VisionConfig, detector: Detector | None = None, mode: str | None = None, schedule: Schedule | None = None, with_vectors: bool = False) -> None:
         self._config = config
+        self._with_vectors = with_vectors   # events carry the vectors of the followed objects (the contract's optional `vectors`)
+        self._schedule = schedule     # masks and sensitivity by hour of the day (None: the ones of the camera, always)
         self._detector = detector
         self._evaluator = Evaluator(config, mode)
         self._trackers: dict[str, Tracker] = {}
@@ -61,8 +65,12 @@ class Pipeline:
         if previous is None:
             self.stats.skipped_by_motion += 1
             return []
-        cells = moved_cells(previous, frame, camera.motion_threshold, camera.masks)
-        if len(cells) < camera.motion_min_cells:
+        threshold, masks, min_cells = camera.motion_threshold, camera.masks, camera.motion_min_cells
+        if self._schedule is not None:
+            effective = self._schedule.effective(camera, timestamp, self._evaluator.mode)
+            threshold, masks, min_cells = effective.motion_threshold, effective.masks, effective.motion_min_cells
+        cells = moved_cells(previous, frame, threshold, masks)
+        if len(cells) < min_cells:
             self.stats.skipped_by_motion += 1
             return []
         self.stats.detector_calls += 1
@@ -96,5 +104,9 @@ class Pipeline:
         tracks = tracker.update(timestamp, kept)
         self.stats.dropped_detections += tracker.refused - before
         events = self._evaluator.evaluate(camera, timestamp, tracks, tracker.tracks)
+        if self._with_vectors and events:
+            vectors = track_vectors(tracker.tracks, MAX_VECTORS)
+            for event in events:
+                event["vectors"] = vectors
         self.stats.events += len(events)
         return events

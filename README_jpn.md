@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-210%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-261%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、210 件のテストは実在します。**実際の検知モデルはまだありません**。カメラや Jetson Orin NX では何も動かしていません。シミュレーションは台本どおりの検知結果を使います。
+**正直さのチェック - 今日動いているもの:** ゾーン、動きの確認、追跡、ルール、261 件のテストは実在します。Jetson Orin NX 用の検知器（TensorRT）、2 本のストリーム、クリップ、速度、置き去り物、PTZ 追従、時間帯設定、第 2 段階は書かれており、模擬のエンジンとソースでのみテストされています。カメラや Jetson Orin NX では何も動かしていません。
 
 ---
 
@@ -40,7 +40,7 @@
 | 成熟度 | 機能する |
 | 役割 | カメラのゾーン、マスク、検出ルール（ファミリー：Core Services、親：ARMOR-SERVER） |
 | 技術 | Python 3.11+、標準ライブラリのみ |
-| テスト | 210 (`python -m unittest discover -s tests`) |
+| テスト | 261 (`python -m unittest discover -s tests`) |
 | 動作環境 | 任意のコンピューター |
 | 実機での確認 | まだありません：実際の検出器、カメラ、Jetson はなく、スクリプト化した検出によるシミュレーションのみ |
 | ライセンス | GPL-3.0-or-later |
@@ -56,7 +56,7 @@
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟡 | ゾーン、動きの確認、トラッカー、規則は動作しますが、実際の検出モデルはまだありません。シミュレーションはスクリプト化した検出結果を使います。 |
-| テスト | 🟢 | 210 件のテストが通ります（`python -m unittest discover -s tests`）。 |
+| テスト | 🟢 | 261 件のテストが通ります（`python -m unittest discover -s tests`）。 |
 | ハードウェア | 🔴 | カメラや Jetson Orin NX ではまだ何も動かしていません。 |
 | インターフェース | 🟡 | 提供するルートやメッセージは文書化され、クライアントで試験済みです。すべてのクライアントがまだ使ったわけではありません |
 | セキュリティ | 🟡 | アクセス制御、入力の制限、署名のいずれかは実装されコンピューター上で試験済みですが、プロジェクト外の誰もレビューしていません |
@@ -120,7 +120,7 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
  "box": [0.41, 0.62, 0.47, 0.82], "timestamp": 1.0, "authorizes_action": false}
 ```
 
-ライブラリとして：`parse_config`、`Pipeline.process_detections`、`process_frame`。`load_detector("tensorrt")` は Jetson Orin NX 用のモデルが未実装のため `DetectorUnavailable` を送出します。[docs/USAGE.md](docs/USAGE.md) を参照。
+ライブラリとして：`parse_config`、`Pipeline.process_detections`、`process_frame`。`load_detector("tensorrt")` にはその設定と Jetson のパッケージが必要で、無ければ `DetectorUnavailable` を送出します。模擬エンジンならどこでも動き、証拠は `simulator` と示されます。[docs/USAGE.md](docs/USAGE.md) を参照。
 
 ## ⚙️ 設定
 
@@ -150,13 +150,13 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 210 tests
+python -m unittest discover -s tests   # 261 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 210 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 261 tests
 ```
 
 ## 🧪 テスト
@@ -176,6 +176,8 @@ python -I tools/armor_ci_validate.py
 | `test_heatmap_service.py` | 7 | コマンドとしてのヒートマップのルート：オフならデータに関係なく 404、オンでデータなしなら空の地図、3 つの形式での件数、不正な問い合わせ、誤った設定やファイルはエラーであり空の地図にはならない |
 | `test_service.py` | 15 | ライブサービス：再生したファイルと同じマップ、オフなら 404 と 503、理解できないものは拒否、設定の上限、メモリの上限、コマンド |
 | `test_service_load.py` | 7 | 軽い負荷と行儀の悪いクライアントの下でのライブサービス：新しい上限とその範囲、黙り込んだクライアントの切断、同時リクエストの上限、多数のスレッドでも正確なカウンター、変化のない地図の描画の再利用とその上限、描画中の地図が観測を妨げないこと |
+| `test_tensorrt_and_streams.py` | 21 | 模擬エンジンの TensorRT 検知器、ストリームの組と録画、前後キャプチャ付きクリップ、種類別の保存期間 |
+| `test_analytics_schedule_phase2.py` | 30 | ゾーン内の速度、置き去り物、PTZ 追従、イベントのベクトル、時間帯設定、既定でオフの第 2 段階 |
 
 ## 🏗️ ビルドとリリース
 
@@ -187,7 +189,7 @@ python -I tools/armor_ci_validate.py
 |---|---|---|
 | `check-config` が終了コード 1 | 設定に問題があり、すべて表示される | すべて直す（未知のフィールドもエラー） |
 | `check-config` が終了コード 2 | ファイルを読み取れない | パスと JSON 形式を確認する |
-| `DetectorUnavailable` | `load_detector("tensorrt")`：実モデルは未実装 | `ScriptedDetector` を使う |
+| `DetectorUnavailable` | `load_detector("tensorrt")`：設定、エンジンファイル、または Jetson のパッケージが無い | Jetson 上で `TensorrtSettings` とエンジンファイルを渡すか、`ScriptedDetector` を使う |
 | ゾーンが反応しない | 足元がポリゴン外、ラベルが非対象、マスクで隠れている、またはそのモードのプロファイルにゾーンがない | 同じファイルとモードで `simulate` を実行 |
 
 ## 📂 リポジトリの構成
@@ -205,9 +207,13 @@ ARMOR-VISION/
 │   ├── geometry.py                      正規化座標の多角形
 │   ├── config.py                        ゾーン、マスク、プロファイルとその検証
 │   ├── motion.py                        16 x 9 の動き判定（マスクは無視）
-│   ├── detector.py                      スクリプト化した検出。実モデルは未実装
+│   ├── detector.py                      スクリプト化・ONNX・TensorRT の検知器（Jetson 以外では模擬エンジン）
 │   ├── tracker.py                       画像間の識別、静止物
 │   ├── rules.py                         ゾーンからイベントへ：armor.vision.event/v1
+│   ├── tensorrt_detector.py             Jetson 用の TensorRT 検知器。模擬エンジン
+│   ├── streams.py recording.py          解析用サブストリームと録画用メインストリーム。クリップと保存期間
+│   ├── analytics.py schedule.py         ゾーン内の速度、置き去り物、PTZ 追従。時間帯別マスク
+│   ├── phase2.py                        意味検索、ナンバープレート、顔：すべて既定でオフ、プライバシー通知付き
 │   ├── activity_config.py               アクティビティ処理の設定（既定でオフ）
 │   ├── sources.py heatmap.py            合成・記録ソース、ヒートマップ
 │   ├── activity.py                      イベントと /heatmap ハンドラ

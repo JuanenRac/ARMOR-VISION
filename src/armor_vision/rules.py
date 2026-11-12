@@ -19,6 +19,7 @@ from .tracker import Track
 
 EVENT_SCHEMA = "armor.vision.event/v1"
 EVENT_SCHEMA_V2 = "armor.vision.event/v2"  # same fields plus radar_tracks
+MAX_VECTORS = 16                           # the contract (ARMOR-COMMON vision_event) carries at most this many
 
 
 @dataclass
@@ -78,11 +79,12 @@ class Evaluator:
         return events
 
 
-def make_event(camera_id: str, zone: Zone, track: Track, timestamp: float, radar_tracks: int | None = None) -> dict:
+def make_event(camera_id: str, zone: Zone, track: Track, timestamp: float, radar_tracks: int | None = None, vectors: list[dict] | None = None) -> dict:
     """The message sent to the server. It reports what was seen; it never asks
     for anything to be done: authorizes_action is always false. Without
     radar_tracks the event is the first version; with it (a whole number, zero
-    or more) it is the second, which carries the radar tracks that agree."""
+    or more) it is the second, which carries the radar tracks that agree. `vectors` (at most 16, see
+    analytics.track_vectors) says where the followed objects were heading; both versions can carry it."""
     if radar_tracks is not None and (isinstance(radar_tracks, bool) or not isinstance(radar_tracks, int) or radar_tracks < 0):
         raise ValueError("radar_tracks must be a whole number, zero or more")
     event = {
@@ -101,4 +103,8 @@ def make_event(camera_id: str, zone: Zone, track: Track, timestamp: float, radar
     }
     if radar_tracks is not None:
         event["radar_tracks"] = radar_tracks
+    if vectors is not None:
+        if len(vectors) > MAX_VECTORS:
+            raise ValueError(f"at most {MAX_VECTORS} vectors")
+        event["vectors"] = vectors
     return event

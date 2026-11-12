@@ -1,7 +1,8 @@
 """The detector is the expensive part, so it sits behind a small interface.
 
-Version 0.0.1 ships only a scripted detector (for tests and simulation). The
-real model for the Jetson Orin NX is not written yet and asking for it says so.
+A scripted detector serves tests and simulation, `onnx` runs a model on the CPU and `tensorrt`
+is the engine of the Jetson Orin NX (it needs the Jetson packages; with a simulated engine it
+runs on any machine and says so).
 """
 from __future__ import annotations
 
@@ -34,14 +35,15 @@ class ScriptedDetector:
 
 
 def load_detector(name: str, settings: object = None) -> Detector:
-    """`onnx` needs the settings of `onnx_detector.parse_onnx_settings`; the others are not written."""
+    """`onnx` needs the settings of `onnx_detector.parse_onnx_settings`, `tensorrt` those of `tensorrt_detector.parse_tensorrt_settings`."""
     if name == "onnx":
         from .onnx_detector import OnnxDetector, OnnxSettings
         if not isinstance(settings, OnnxSettings):
             raise DetectorUnavailable("the ONNX detector needs its settings (model, labels): see onnx_detector.parse_onnx_settings")
         return OnnxDetector(settings)
     if name == "tensorrt":
-        raise DetectorUnavailable(
-            "the TensorRT detector for the Jetson Orin NX is not written yet; "
-            "this version only runs the scripted detector of the tests and the simulation")
+        from .tensorrt_detector import TensorrtDetector, TensorrtSettings
+        if not isinstance(settings, TensorrtSettings):
+            raise DetectorUnavailable("the TensorRT detector needs its settings (engine, labels): see tensorrt_detector.parse_tensorrt_settings")
+        return TensorrtDetector(settings)
     raise DetectorUnavailable(f"unknown detector {name!r}")

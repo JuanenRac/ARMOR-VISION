@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 o posterior">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Lenguaje">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-210%20passing-2ea44f.svg" alt="Pruebas">
+  <img src="https://img.shields.io/badge/Tests-261%20passing-2ea44f.svg" alt="Pruebas">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Versión">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Madurez">
 </p>
 
 ---
 
-**Comprobación de honestidad - qué funciona hoy:** Las zonas, la comprobación de movimiento, el seguimiento, las reglas y los 210 tests son reales. **Todavía no existe un modelo de detección real** y nada se ha ejecutado en una cámara ni en la Jetson Orin NX: la simulación usa detecciones guionizadas.
+**Comprobación de honestidad - qué funciona hoy:** Las zonas, la comprobación de movimiento, el seguimiento, las reglas y los 261 tests son reales. El detector para la Jetson Orin NX (TensorRT), las dos corrientes, los clips, la velocidad, los objetos abandonados, el seguimiento PTZ, el horario y la segunda fase están escritos y probados solo con motores y fuentes simulados: nada se ha ejecutado en una cámara ni en la Jetson Orin NX.
 
 ---
 
@@ -40,7 +40,7 @@
 | Madurez | Funcional |
 | Función | Zonas, máscaras y reglas de detección de cámaras (familia: Core Services, padre: ARMOR-SERVER) |
 | Tecnología | Python 3.11+, solo biblioteca estándar |
-| Pruebas | 210 (`python -m unittest discover -s tests`) |
+| Pruebas | 261 (`python -m unittest discover -s tests`) |
 | Funciona en | Cualquier ordenador |
 | En hardware real | Ninguno todavía: ni detector real, ni cámara ni Jetson (una simulación con detecciones guionizadas) |
 | Licencia | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Cada línea es una parte de este repositorio y la luz dice hasta dónde llega ho
 | Área | Estado | Qué significa aquí |
 |---|---|---|
 | Software | 🟡 | Las zonas, la comprobación de movimiento, el seguimiento y las reglas funcionan, pero aún no hay un modelo detector real: la simulación usa detecciones guionizadas. |
-| Pruebas | 🟢 | Pasan 210 pruebas (`python -m unittest discover -s tests`). |
+| Pruebas | 🟢 | Pasan 261 pruebas (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nada ha funcionado en una cámara ni en la Jetson Orin NX. |
 | Interfaz | 🟡 | Las rutas o los mensajes que ofrece están documentados y probados con un cliente; aún no los han usado todos los clientes |
 | Seguridad | 🟡 | El control de acceso, los límites de entrada o las firmas están implementados y probados en un ordenador; nadie ajeno al proyecto los ha revisado |
@@ -120,7 +120,7 @@ Nada de esto es una función de seguridad: aún no hay un modelo de detección r
  "box": [0.41, 0.62, 0.47, 0.82], "timestamp": 1.0, "authorizes_action": false}
 ```
 
-Como biblioteca: `parse_config`, `Pipeline.process_detections` y `process_frame`. Pedir `load_detector("tensorrt")` lanza `DetectorUnavailable` porque el modelo para la Jetson Orin NX no está escrito. Consulta [docs/USAGE.md](docs/USAGE.md).
+Como biblioteca: `parse_config`, `Pipeline.process_detections` y `process_frame`. `load_detector("tensorrt")` necesita su configuración y los paquetes de la Jetson; si no, lanza `DetectorUnavailable`. Con un motor simulado funciona en cualquier sitio y declara que su evidencia es `simulator`. Consulta [docs/USAGE.md](docs/USAGE.md).
 
 ## ⚙️ Configuración
 
@@ -150,13 +150,13 @@ Hoy estos valores son constantes de `tracker.py` y `motion.py`; el fichero de co
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 210 tests
+python -m unittest discover -s tests   # 261 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 210 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 261 tests
 ```
 
 ## 🧪 Pruebas
@@ -176,6 +176,8 @@ python -I tools/armor_ci_validate.py
 | `test_heatmap_service.py` | 7 | La ruta del mapa de calor como comando: apagado es 404 sea cual sea el dato, encendido sin datos es un mapa vacío, cuentas en los tres formatos, consultas malas, y una configuración o un fichero erróneos son un error y nunca un mapa vacío |
 | `test_service.py` | 15 | El servicio vivo: el mismo mapa que el fichero reproducido, apagado da 404 y 503, lo que no se entiende se rechaza, los límites de los ajustes, memoria acotada y el comando |
 | `test_service_load.py` | 7 | El servicio vivo con carga ligera y con clientes que se portan mal: los límites nuevos y sus rangos, se corta al cliente que se queda callado, las peticiones a la vez están acotadas, contadores exactos con muchos hilos, el dibujo de un mapa sin cambios se reutiliza y está acotado, y un mapa que se dibuja no retrasa las observaciones |
+| `test_tensorrt_and_streams.py` | 21 | El detector TensorRT con un motor simulado, el par de corrientes y el grabador, los clips con pre y post captura y la retención por tipo |
+| `test_analytics_schedule_phase2.py` | 30 | Velocidad en zona, objetos abandonados, el seguidor PTZ, los vectores de un evento, el horario y la segunda fase apagada por defecto |
 
 ## 🏗️ Compilación y publicación
 
@@ -187,7 +189,7 @@ Es Python puro: no hay nada que compilar. La versión vive en `pyproject.toml` y
 |---|---|---|
 | `check-config` termina con 1 | La configuración tiene problemas; los lista todos | Corrígelos todos: los campos desconocidos son errores |
 | `check-config` termina con 2 | No se puede leer el fichero | Comprueba la ruta y que sea JSON |
-| `DetectorUnavailable` | `load_detector("tensorrt")`: el modelo real no está escrito | Usa `ScriptedDetector` |
+| `DetectorUnavailable` | `load_detector("tensorrt")`: sin configuración, sin fichero de motor o sin los paquetes de la Jetson | Da `TensorrtSettings` y un fichero de motor en la Jetson, o usa `ScriptedDetector` |
 | Una zona nunca salta | Los pies están fuera del polígono, la etiqueta no se acepta, una máscara la oculta, o el modo no tiene un perfil con esa zona | Ejecuta `simulate` con el mismo fichero y modo |
 
 ## 📂 Estructura del repositorio
@@ -205,9 +207,13 @@ ARMOR-VISION/
 │   ├── geometry.py                      polígonos en coordenadas normalizadas
 │   ├── config.py                        zonas, máscaras, perfiles y su validación
 │   ├── motion.py                        la comprobación de movimiento 16 x 9, máscaras ignoradas
-│   ├── detector.py                      detecciones guionizadas; el modelo real no está escrito
+│   ├── detector.py                      detectores guionizado, ONNX y TensorRT (motor simulado fuera de la Jetson)
 │   ├── tracker.py                       identidad entre imágenes; objetos quietos
 │   ├── rules.py                         de zonas a eventos: armor.vision.event/v1
+│   ├── tensorrt_detector.py             el detector TensorRT para la Jetson; un motor simulado
+│   ├── streams.py recording.py          subcorriente para analizar, principal para grabar; clips y retención
+│   ├── analytics.py schedule.py         velocidad en zona, objetos abandonados, seguimiento PTZ; máscaras por hora
+│   ├── phase2.py                        búsqueda semántica, matrículas, caras: todo apagado, con avisos de privacidad
 │   ├── activity_config.py               ajustes del canal de actividad, apagado por defecto
 │   ├── sources.py heatmap.py            fuentes sintética y grabada; mapa de calor
 │   ├── activity.py                      eventos y manejador de /heatmap

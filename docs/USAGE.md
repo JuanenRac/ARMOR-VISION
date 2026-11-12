@@ -66,7 +66,25 @@ pipeline = Pipeline(config, mode="away")
 events = pipeline.process_detections("cam-front", timestamp, [Detection("person", 0.9, (x0, y0, x1, y1))])
 ```
 
-`process_frame(camera_id, timestamp, frame)` takes a grey `Frame` and a detector, and asks the detector only when the picture moved. The only detector in this version is `ScriptedDetector`; asking `load_detector("tensorrt")` raises `DetectorUnavailable` because the model for the Jetson Orin NX is not written yet.
+`process_frame(camera_id, timestamp, frame)` takes a grey `Frame` and a detector, and asks the detector only when the picture moved. The detectors are `ScriptedDetector`, the ONNX one and the TensorRT one (next sections).
+
+## The TensorRT detector (Jetson Orin NX)
+
+`parse_tensorrt_settings({"engine": "model.engine", "labels": [...], "input_size": 640})` reads the settings (the fields of the ONNX detector, with `engine` instead of `model`) and `load_detector("tensorrt", settings)` opens the serialized engine with the `tensorrt` and `pycuda` packages of the Jetson; without them, or without the file, it raises `DetectorUnavailable`. The engine sits behind a small interface, so `TensorrtDetector(settings, SimulatedEngine(rows))` runs on any machine: the rows are decoded exactly as the ONNX detector does (confidence filter, classes, same-class merge, limit) and `detector.evidence` says `simulator`. The engine that reads a real file has never run on a Jetson.
+
+## Two streams, clips and retention (library)
+
+`parse_stream_pair({"analysis": "rtsp://.../sub", "record": "rtsp://.../main", "segment_seconds": 10})` describes a camera's small stream (for the movement check and the detector, read by `analysis_frames`) and its main stream, which `SegmentRecorder` copies without decoding into files named by their start time. `ClipPlanner` (`parse_recording_settings`: `pre_seconds`, `post_seconds`, `max_clip_seconds`) turns events into clips made of segments already on disk, from the seconds before the first trigger to the seconds after the last one, and `plan_retention` lists what may be erased by type of event (`parse_retention`: days per label, `continuous` and `default`); nothing is erased unless the caller passes the function that erases.
+
+## Speed, left objects, PTZ follow and the schedule (library)
+
+`parse_speed_settings` takes a zone and four reference points of the picture with their place on the ground in metres, and `SpeedEstimator` gives the speed of the objects inside the zone (`speed_event` for the message; an optional `limit_kmh`). `AbandonedObjectDetector` reports a bag-like object that stands still with nobody near it for `min_seconds`. `PtzFollower` computes the pan, tilt and zoom speeds that would centre the followed object; it only computes them, `SimulatedPtz` records them and the module never sends a command to a camera. `track_vectors(tracks)` gives the heading of the followed objects, and `Pipeline(..., with_vectors=True)` adds them to each event as the optional `vectors` of the event contract.
+
+`parse_schedule` gives a camera windows by hour (`from`, `to`, even across midnight; optional `days` and arming `mode`) with extra masks and their own `motion_threshold` and `motion_min_cells` (for example day, night and away); `Pipeline(..., schedule=...)` uses the first window that matches the time of each frame.
+
+## Search by meaning, plates and faces (off)
+
+`Phase2` holds three features that read personal data, each behind its own switch in `parse_phase2_settings`, all off by default. A switch turned on without its feature listed in `acknowledged` is an error: the owner must read the privacy notice (`privacy_notice(feature, language)`, in the eight languages) first. A disabled feature raises `FeatureDisabled` and does nothing. Faces are compared only with people who enrolled themselves with explicit consent, and nobody else is ever named. The readers are interfaces and only simulated ones exist (`SimulatedEmbedder`, `SimulatedPlateReader`, `SimulatedFaceMatcher`), so every result says `evidence: simulator`.
 
 ## Replaying recorded detections
 

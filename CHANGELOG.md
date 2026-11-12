@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A TensorRT detector for the Jetson Orin NX behind the same interface:** `load_detector("tensorrt", settings)` opens a serialized engine with the Jetson packages; the engine is an interface, so `TensorrtDetector` runs on any machine with `SimulatedEngine` and says its evidence is `simulator`. The reading of a real engine has never run on a Jetson.
+
+- **Two streams from one camera:** `parse_stream_pair` and `analysis_frames` read the small stream for the movement check and the detector, and `SegmentRecorder` copies the main stream without decoding it into segments named by their start time.
+
+- **Clips with the seconds before and after the event, and retention by type:** `ClipPlanner` picks the recorded segments of each event from `pre_seconds` before to `post_seconds` after it (and extends the clip while the event goes on), and `plan_retention` lists what may be erased by type of event; nothing is erased unless the caller gives the function that erases.
+
+- **Speed in a zone, objects left behind and PTZ follow:** `SpeedEstimator` works from four reference points of the picture and their place on the ground, `AbandonedObjectDetector` reports a bag-like object alone for long enough, and `PtzFollower` computes the speeds that would centre the followed object (it never sends a command to a camera).
+
+- **Masks and sensitivity by hour, with profiles for day, night and away:** `parse_schedule` and `Pipeline(..., schedule=...)` change the masks, the grey difference and the cells needed according to the time of the frame, the weekday and the arming mode.
+
+- **The event can say where the objects are heading:** `track_vectors` and `Pipeline(..., with_vectors=True)` add the optional `vectors` (a unit direction and a speed per followed object, at most 16) that the shared contract of the vision event now describes.
+
+- **Search by meaning, licence plates and faces, all off by default:** each has its own switch, cannot be turned on without acknowledging its privacy notice (in the eight languages), raises `FeatureDisabled` while off, compares faces only with people who enrolled with consent, and has only simulated readers (`evidence: simulator`).
+
+- Tests: 261 (before 210).
+
 ## [0.1.5] - The CI checks the coverage floor of this repository: a workflow of its own runs `tools/coverage_check.py` on every push and fails when the lines or the branches covered by the tests fall under the numbers of `docs/coverage_threshold.json` (
 
 - **The CI checks the coverage floor of this repository:** a workflow of its own runs `tools/coverage_check.py` on every push and fails when the lines or the branches covered by the tests fall under the numbers of `docs/coverage_threshold.json` (the shared workflow checks a floor only where there is a `package.json`).

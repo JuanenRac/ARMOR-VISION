@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-210%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-261%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**Honesty check - what runs today:** The zones, the motion check, the tracker, the rules and the 210 tests are real. There is **no real detector model yet** and nothing has run on a camera or on the Jetson Orin NX: the simulation uses scripted detections.
+**Honesty check - what runs today:** The zones, the motion check, the tracker, the rules and the 261 tests are real. The detector for the Jetson Orin NX (TensorRT), the two streams, the clips, speed, left objects, PTZ follow, the schedule and the second phase are written and tested only with simulated engines and sources: nothing has run on a camera or on the Jetson Orin NX.
 
 ---
 
@@ -40,7 +40,7 @@
 | Maturity | Functional |
 | Role | Camera zones, masks and detection rules (family: Core Services, parent: ARMOR-SERVER) |
 | Stack | Python 3.11+, standard library only |
-| Tests | 210 (`python -m unittest discover -s tests`) |
+| Tests | 261 (`python -m unittest discover -s tests`) |
 | Runs on | Any computer |
 | On real hardware | None yet: no real detector, camera or Jetson (a simulation with scripted detections) |
 | License | GPL-3.0-or-later |
@@ -56,7 +56,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟡 | The zones, the motion check, the tracker and the rules work, but there is no real detector model yet: the simulation uses scripted detections. |
-| Tests | 🟢 | 210 tests pass (`python -m unittest discover -s tests`). |
+| Tests | 🟢 | 261 tests pass (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nothing has run on a camera or on the Jetson Orin NX. |
 | Interface | 🟡 | The routes or messages it offers are documented and tested with a client; not every client has used them yet |
 | Security | 🟡 | Access control, input limits or signatures are implemented and tested on a computer; nobody outside the project has reviewed them |
@@ -120,7 +120,7 @@ Nothing here is a safety function: there is no real detector model yet.
  "box": [0.41, 0.62, 0.47, 0.82], "timestamp": 1.0, "authorizes_action": false}
 ```
 
-As a library: `parse_config`, `Pipeline.process_detections` and `process_frame`. Asking `load_detector("tensorrt")` raises `DetectorUnavailable` because the model for the Jetson Orin NX is not written. See [docs/USAGE.md](docs/USAGE.md).
+As a library: `parse_config`, `Pipeline.process_detections` and `process_frame`. `load_detector("tensorrt")` needs its settings and the Jetson packages, otherwise it raises `DetectorUnavailable`; with a simulated engine it runs anywhere and says its evidence is `simulator`. See [docs/USAGE.md](docs/USAGE.md).
 
 ## ⚙️ Configuration
 
@@ -150,13 +150,13 @@ These values are constants of `tracker.py` and `motion.py` today; the configurat
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 210 tests
+python -m unittest discover -s tests   # 261 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 210 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 261 tests
 ```
 
 ## 🧪 Testing
@@ -176,6 +176,8 @@ python -I tools/armor_ci_validate.py
 | `test_heatmap_service.py` | 7 | The heat map route as a command: off is 404 whatever the data, on with no data is an empty map, counts in the three formats, bad queries, and a wrong configuration or file is an error and never an empty map |
 | `test_service.py` | 15 | The live service: the same map as the replayed file, off is 404 and 503, what is not understood is refused, the limits of the settings, bounded memory and the command |
 | `test_service_load.py` | 7 | The live service under light load and with clients that misbehave: the new limits and their ranges, a client that goes quiet is dropped, the requests at once are bounded, exact counters under many threads, the drawing of an unchanged map is reused and bounded, and a map being drawn does not hold up the observations |
+| `test_tensorrt_and_streams.py` | 21 | The TensorRT detector with a simulated engine, the pair of streams and the recorder, the clips with pre and post capture and the retention by type |
+| `test_analytics_schedule_phase2.py` | 30 | Speed in a zone, left objects, the PTZ follower, the vectors of an event, the schedule by hour and the second phase off by default |
 
 ## 🏗️ Build & Release
 
@@ -187,7 +189,7 @@ It is plain Python: nothing to compile. The version lives in `pyproject.toml` an
 |---|---|---|
 | `check-config` exits with 1 | The configuration has problems; it lists each one | Fix them all: unknown fields are errors |
 | `check-config` exits with 2 | The file cannot be read | Check the path and that it is JSON |
-| `DetectorUnavailable` | `load_detector("tensorrt")`: the real model is not written | Use `ScriptedDetector` |
+| `DetectorUnavailable` | `load_detector("tensorrt")`: no settings, no engine file or no Jetson packages | Give `TensorrtSettings` and an engine file on the Jetson, or use `ScriptedDetector` |
 | A zone never fires | The feet are outside the polygon, the label is not accepted, a mask hides it, or the mode has no profile with that zone | Run `simulate` with the same file and mode |
 
 ## 📂 Repository Structure
@@ -205,9 +207,13 @@ ARMOR-VISION/
 │   ├── geometry.py                      polygons on normalised coordinates
 │   ├── config.py                        zones, masks, profiles and their validation
 │   ├── motion.py                        the 16 x 9 motion check, masks ignored
-│   ├── detector.py                      scripted detections; the real model is not written
+│   ├── detector.py                      scripted, ONNX and TensorRT detectors (simulated engine off the Jetson)
 │   ├── tracker.py                       identity between pictures; stationary objects
 │   ├── rules.py                         zones to events: armor.vision.event/v1
+│   ├── tensorrt_detector.py             the TensorRT detector for the Jetson; a simulated engine
+│   ├── streams.py recording.py          sub stream to analyse, main stream to record; clips and retention
+│   ├── analytics.py schedule.py         speed in a zone, left objects, PTZ follow; masks by hour
+│   ├── phase2.py                        search by meaning, plates, faces: all off, with privacy notices
 │   ├── activity_config.py               activity pipeline settings, off by default
 │   ├── sources.py heatmap.py            synthetic and recorded sources; heat map
 │   ├── activity.py                      events and the /heatmap handler

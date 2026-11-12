@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-210%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-261%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 210 个测试都是真实的。**目前还没有真正的检测模型**，也没有在任何摄像头或 Jetson Orin NX 上运行过：模拟使用的是预设的检测结果。
+**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 261 个测试都是真实的。面向 Jetson Orin NX 的检测器（TensorRT）、双码流、片段、速度、遗留物、PTZ 跟随、时间表和第二阶段都已编写，并且只用模拟的引擎和来源测试过：没有在任何摄像头或 Jetson Orin NX 上运行过。
 
 ---
 
@@ -40,7 +40,7 @@
 | 成熟度 | 可用 |
 | 角色 | 摄像头区域、遮罩和检测规则（家族：Core Services，上级：ARMOR-SERVER） |
 | 技术栈 | Python 3.11+，仅标准库 |
-| 测试 | 210 (`python -m unittest discover -s tests`) |
+| 测试 | 261 (`python -m unittest discover -s tests`) |
 | 运行位置 | 任何计算机 |
 | 真实硬件 | 暂无：没有真实的检测器、摄像头或 Jetson（使用脚本化检测的模拟） |
 | 许可证 | GPL-3.0-or-later |
@@ -56,7 +56,7 @@
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 防区、移动检查、跟踪器和规则都能工作，但目前还没有真实的检测模型：模拟使用的是脚本化的检测结果。 |
-| 测试 | 🟢 | 210 项测试通过（`python -m unittest discover -s tests`）。 |
+| 测试 | 🟢 | 261 项测试通过（`python -m unittest discover -s tests`）。 |
 | 硬件 | 🔴 | 还没有在摄像头或 Jetson Orin NX 上运行过。 |
 | 界面 | 🟡 | 提供的路由或消息已有文档，并用客户端测试过；尚未被所有客户端使用 |
 | 安全 | 🟡 | 访问控制、输入限制或签名已实现并在计算机上测试；项目之外无人审查过 |
@@ -120,7 +120,7 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
  "box": [0.41, 0.62, 0.47, 0.82], "timestamp": 1.0, "authorizes_action": false}
 ```
 
-作为库使用：`parse_config`、`Pipeline.process_detections` 和 `process_frame`。调用 `load_detector("tensorrt")` 会抛出 `DetectorUnavailable`，因为 Jetson Orin NX 的模型尚未编写。参见 [docs/USAGE.md](docs/USAGE.md)。
+作为库使用：`parse_config`、`Pipeline.process_detections` 和 `process_frame`。`load_detector("tensorrt")` 需要它的设置和 Jetson 软件包，否则会抛出 `DetectorUnavailable`；使用模拟引擎时可在任何地方运行，并声明其证据为 `simulator`。参见 [docs/USAGE.md](docs/USAGE.md)。
 
 ## ⚙️ 配置
 
@@ -150,13 +150,13 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 210 tests
+python -m unittest discover -s tests   # 261 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 210 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 261 tests
 ```
 
 ## 🧪 测试
@@ -176,6 +176,8 @@ python -I tools/armor_ci_validate.py
 | `test_heatmap_service.py` | 7 | 作为命令的热力图路由：关闭时无论数据如何都返回 404，开启但没有数据时返回空图，三种格式下的计数，错误的查询，以及错误的配置或文件会报错，绝不会变成空图 |
 | `test_service.py` | 15 | 实时服务：与回放文件相同的地图，关闭时返回 404 和 503，无法理解的内容被拒绝，设置的限制，内存有上限，以及命令 |
 | `test_service_load.py` | 7 | 轻负载和行为不良的客户端下的实时服务：新的上限及其范围、沉默的客户端被断开、同时请求数有上限、多线程下计数器精确、未变化地图的绘制被复用且有上限、正在绘制的地图不会阻塞观测 |
+| `test_tensorrt_and_streams.py` | 21 | 使用模拟引擎的 TensorRT 检测器、码流对与录制器、带前后捕获的片段以及按类型的保留 |
+| `test_analytics_schedule_phase2.py` | 30 | 区域内速度、遗留物、PTZ 跟随器、事件的向量、时间表以及默认关闭的第二阶段 |
 
 ## 🏗️ 构建与发布
 
@@ -187,7 +189,7 @@ python -I tools/armor_ci_validate.py
 |---|---|---|
 | `check-config` 退出码为 1 | 配置有问题，会逐条列出 | 全部修正：未知字段也算错误 |
 | `check-config` 退出码为 2 | 无法读取文件 | 检查路径以及是否为 JSON |
-| `DetectorUnavailable` | `load_detector("tensorrt")`：真实模型尚未编写 | 使用 `ScriptedDetector` |
+| `DetectorUnavailable` | `load_detector("tensorrt")`：没有设置、没有引擎文件或没有 Jetson 软件包 | 在 Jetson 上提供 `TensorrtSettings` 和引擎文件，或使用 `ScriptedDetector` |
 | 区域从不触发 | 脚部在多边形之外、标签不被接受、被遮罩挡住，或该模式的配置文件不含此区域 | 用同样的文件和模式运行 `simulate` |
 
 ## 📂 仓库结构
@@ -205,9 +207,13 @@ ARMOR-VISION/
 │   ├── geometry.py                      归一化坐标的多边形
 │   ├── config.py                        区域、遮罩、配置文件及其校验
 │   ├── motion.py                        16 x 9 运动检测（忽略遮罩）
-│   ├── detector.py                      脚本化检测；真实模型尚未编写
+│   ├── detector.py                      脚本化、ONNX 和 TensorRT 检测器（非 Jetson 上用模拟引擎）
 │   ├── tracker.py                       跨画面的身份；静止物体
 │   ├── rules.py                         从区域到事件：armor.vision.event/v1
+│   ├── tensorrt_detector.py             Jetson 的 TensorRT 检测器；模拟引擎
+│   ├── streams.py recording.py          用于分析的子码流和用于录制的主码流；片段与保留
+│   ├── analytics.py schedule.py         区域内速度、遗留物、PTZ 跟随；按时间的遮罩
+│   ├── phase2.py                        语义搜索、车牌、人脸：默认全部关闭，附隐私提示
 │   ├── activity_config.py               活动管线设置，默认关闭
 │   ├── sources.py heatmap.py            合成与记录的来源；热力图
 │   ├── activity.py                      事件与 /heatmap 处理器
