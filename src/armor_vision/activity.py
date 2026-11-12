@@ -14,6 +14,7 @@ from typing import NamedTuple
 
 from .activity_config import ActivityConfig, CountLine
 from .config import VisionConfig, Zone
+from .context_detection import CameraDetection
 from .geometry import centre, foot_point, point_in_polygon, segments_cross, valid_box
 from .heatmap import Heatmap, HeatmapSnapshot
 from .pipeline import UnknownCameraError
@@ -61,6 +62,7 @@ class ActivityEngine:
         self._last_foot: dict[tuple[str, int], tuple[float, float]] = {}
         self._maps = {camera_id: Heatmap(activity.heatmap) for camera_id in vision.cameras}
         self._camera_lines: dict[str, tuple[CountLine, ...]] = {}
+        self._camera_zones: dict[str, tuple[Zone, ...]] = {}
         self._line_counts: dict[tuple[str, str], dict[str, int]] = {}   # (camera, line) -> crossings to the left and to the right since the start; one entry per line, never per crossing
         self.dropped_detections = 0
         self.events = 0
@@ -76,6 +78,19 @@ class ActivityEngine:
         alive = {(camera_id, line.line_id) for camera_id in self._maps for line in self._activity.events.lines + known.get(camera_id, ())}
         self._line_counts = {key: value for key, value in self._line_counts.items() if key in alive}   # the count of a line that was taken away goes with it
         return sorted(set(lines) - set(known))
+
+    def set_camera_detection(self, detection: dict[str, CameraDetection], mode: str | None) -> list[str]:
+        """Replace the detection zones the server drew (only the ones its profile for `mode` watches; every zone when the mode has no profile) and return the ids of the cameras that are not in the configuration, which are ignored. A zone whose id is already in the configuration of its camera is left out: the configured one stays. They report together with the zones of the configuration."""
+        known: dict[str, tuple[Zone, ...]] = {}
+        for camera_id, found in detection.items():
+            if camera_id not in self._maps:
+                continue
+            taken = {zone.zone_id for zone in self._vision.cameras[camera_id].zones}
+            watched = tuple(zone for zone in found.watched(mode) if zone.zone_id not in taken)
+            if watched:
+                known[camera_id] = watched
+        self._camera_zones = known
+        return sorted(set(detection) - set(self._maps))
 
     def line_counts(self) -> dict[str, dict[str, dict[str, int]]]:
         """The crossings counted so far: camera -> line -> {"to_left", "to_right"}. Every line of every camera is listed, with zeros before anything crossed. Counts only: no track, no label, no picture."""
@@ -121,7 +136,7 @@ class ActivityEngine:
         seen = tracker.update(timestamp, kept)
         alive = {t.track_id: t for t in tracker.tracks}
         events: list[dict] = []
-        events.extend(self._zone_events(camera_id, camera.zones, timestamp, seen, alive))
+        events.extend(self._zone_events(camera_id, camera.zones + self._camera_zones.get(camera_id, ()), timestamp, seen, alive))
         events.extend(self._line_events(camera_id, timestamp, seen, alive))
         self.events += len(events)
         return events

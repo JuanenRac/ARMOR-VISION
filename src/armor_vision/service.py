@@ -28,6 +28,7 @@ from urllib.parse import parse_qsl, urlsplit
 
 from .activity import ActivityEngine, HeatmapPlan, heatmap_draw, heatmap_plan
 from .activity_config import ActivityConfig
+from .context_detection import parse_context_detection
 from .context_lines import parse_context_lines
 from .config import VisionConfig
 from .sources import FileSource, SourceError, SyntheticSource
@@ -237,17 +238,21 @@ class LiveService:
         return 200, {"schema": SERVICE_SCHEMA, "events": len(events)}
 
     def apply_context(self, context: object) -> tuple[int, dict[str, object]]:
-        """The context of the server (`cameras[].lines`): the counting lines of each camera replace the ones held. A camera with invalid lines loses only its own; the answer counts what was taken and what was left out. 503 when the pipeline is off, 400 when the context is not usable."""
+        """The context of the server (`cameras[].lines` and `cameras[].detection`): the counting lines and the detection zones of each camera replace the ones held. A camera with invalid lines loses only its own; the answer counts what was taken and what was left out. 503 when the pipeline is off, 400 when the context is not usable."""
         if self._engine is None:
             self.refuse()
             return 503, {"error": "activity_off"}
         lines, problems = parse_context_lines(context)
+        detection, mode, detection_problems = parse_context_detection(context)
+        problems = problems + [p for p in detection_problems if p not in problems]
         if not isinstance(context, dict) or not isinstance(context.get("cameras", []), list):
             self.refuse()
             return 400, {"error": problems[0]}
         with self._lock:
             unknown = self._engine.set_camera_lines(lines)
-        return 200, {"schema": SERVICE_SCHEMA, "cameras": len(lines) - len(unknown), "ignored": len(problems) + len(unknown)}
+            unknown_zones = self._engine.set_camera_detection(detection, mode)
+        taken = len(set(lines) | set(detection)) - len(set(unknown) | set(unknown_zones))
+        return 200, {"schema": SERVICE_SCHEMA, "cameras": taken, "ignored": len(problems) + len(set(unknown) | set(unknown_zones))}
 
     def counts(self) -> tuple[int, dict[str, object]]:
         """The crossings of the counting lines, per camera and line. 404 while the pipeline is off, as if the route did not exist."""
