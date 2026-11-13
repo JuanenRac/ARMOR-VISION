@@ -1,4 +1,5 @@
 """Speed in a zone, abandoned objects, the PTZ follower, the vectors of an event, the schedule by hour and the second phase (all off by default)."""
+import hmac
 import json
 import random
 import sys
@@ -6,6 +7,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
@@ -286,7 +288,41 @@ class ScheduleTests(unittest.TestCase):
 ADMIN = p2.Actor("owner", "admin")
 
 
-class Phase2Tests(unittest.TestCase):
+class FakeAesGcm:
+    """A stand-in for the AES-GCM class of the optional package, so the tests run where it is not installed: same interface, same failure on a wrong key or a changed byte."""
+
+    def __init__(self, key):
+        self.key = key
+
+    def _stream(self, nonce, length):
+        out, counter = b"", 0
+        while len(out) < length:
+            out += hmac.new(self.key, b"s" + nonce + counter.to_bytes(4, "big"), "sha256").digest()
+            counter += 1
+        return out[:length]
+
+    def encrypt(self, nonce, data, aad):
+        cipher = bytes(a ^ b for a, b in zip(data, self._stream(nonce, len(data)), strict=True))
+        return cipher + hmac.new(self.key, b"t" + nonce + aad + cipher, "sha256").digest()[:16]
+
+    def decrypt(self, nonce, data, aad):
+        cipher, tag = data[:-16], data[-16:]
+        if not hmac.compare_digest(tag, hmac.new(self.key, b"t" + nonce + aad + cipher, "sha256").digest()[:16]):
+            raise ValueError("InvalidTag")
+        return bytes(a ^ b for a, b in zip(cipher, self._stream(nonce, len(cipher)), strict=True))
+
+
+REAL_AESGCM = p2._aesgcm
+
+
+class WithFakeAes(unittest.TestCase):
+    def setUp(self):
+        patcher = mock.patch.object(p2, "_aesgcm", lambda: FakeAesGcm)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+
+class Phase2Tests(WithFakeAes):
     FRAME = Frame(2, 2, bytes(4))
     BOX = (0.1, 0.1, 0.3, 0.3)
 
@@ -358,12 +394,13 @@ class Phase2Tests(unittest.TestCase):
         self.assertIsNone(phase.match_face(self.FRAME, self.BOX))
 
 
-class Phase2PrivacyTests(unittest.TestCase):
+class Phase2PrivacyTests(WithFakeAes):
     FRAME = Frame(2, 2, bytes(4))
     BOX = (0.1, 0.1, 0.3, 0.3)
     DAY = 86400.0
 
     def setUp(self):
+        super().setUp()
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.now = 1_000_000.0
@@ -476,6 +513,65 @@ class Phase2PrivacyTests(unittest.TestCase):
         with self.assertRaises(p2.VaultError):
             self.stored()
 
+    def test_a_vault_of_the_older_scheme_is_read_and_sealed_again_keeping_a_copy(self):
+        phase = self.stored()
+        phase.enrol("ana", [0.5], True, ADMIN)
+        key = (self.dir / "vault.key").read_bytes()
+        vault = self.dir / "vault.bin"
+        old = p2.seal_legacy(key, p2.json.dumps(phase._state()).encode())
+        vault.write_bytes(old)
+        self.assertEqual(p2.unseal_any(key, old)[1], True)
+        again = self.stored()
+        self.assertTrue(again.export_subject(ADMIN, "ana")["enrolled"])
+        self.assertEqual((self.dir / "vault.bin.legacy").read_bytes(), old)             # the old bytes are kept beside it
+        self.assertTrue(vault.read_bytes().startswith(p2.MAGIC))                       # and the vault is now AES-GCM
+        self.assertEqual(p2.unseal_any(key, vault.read_bytes())[1], False)
+        self.assertIn("vault-migrated", [e["action"] for e in again.audit.entries()])
+        self.stored()                                                                   # a second start migrates nothing
+        self.assertFalse((self.dir / "vault.bin.legacy1").exists())
+        vault.write_bytes(old)
+        self.stored()                                                                   # a second old vault never overwrites the first copy
+        self.assertTrue((self.dir / "vault.bin.legacy1").exists())
+
+    def test_an_old_vault_that_starts_like_the_header_is_still_read(self):
+        key = bytes(range(32))
+        for _ in range(3):
+            old = p2.seal_legacy(key, b"hello", nonce=p2.MAGIC + bytes(12))
+            self.assertEqual(p2.unseal_any(key, old), (b"hello", True))
+        with self.assertRaises(p2.VaultError):
+            p2.unseal(bytes(32), p2.MAGIC + bytes(40))
+
+    def test_the_second_phase_does_not_start_without_the_package(self):
+        def missing():
+            raise p2.CryptographyMissing("install cryptography")
+        with mock.patch.object(p2, "_aesgcm", missing):
+            p2.Phase2(p2.Phase2Settings())                                               # all off: nothing is imported
+            with self.assertRaises(p2.CryptographyMissing):
+                p2.Phase2(self.settings())
+            with self.assertRaises(p2.CryptographyMissing):
+                p2.Phase2(p2.Phase2Settings(vault_file=str(self.dir / "v"), key_file=str(self.dir / "k")))
+            with self.assertRaises(p2.CryptographyMissing):
+                p2.seal(bytes(32), b"x")
+            with self.assertRaises(p2.CryptographyMissing):
+                p2.unseal(bytes(32), p2.MAGIC + bytes(40))
+
+    def test_the_real_package_gives_the_same_guarantees_when_installed(self):
+        try:
+            import cryptography  # noqa: F401
+        except ImportError:
+            self.skipTest("the optional cryptography package is not installed")
+        with mock.patch.object(p2, "_aesgcm", REAL_AESGCM):
+            key = bytes(range(32))
+            sealed = p2.seal(key, b"secret text")
+            self.assertNotIn(b"secret text", sealed)
+            self.assertEqual(p2.unseal(key, sealed), b"secret text")
+            changed = bytearray(sealed)
+            changed[-1] ^= 1
+            with self.assertRaises(p2.VaultError):
+                p2.unseal(key, bytes(changed))
+            with self.assertRaises(p2.VaultError):
+                p2.unseal(bytes(32), sealed)
+
     def test_seal_and_unseal_properties(self):
         rng = random.Random(7)
         key = bytes(rng.randrange(256) for _ in range(32))
@@ -486,7 +582,11 @@ class Phase2PrivacyTests(unittest.TestCase):
             self.assertNotEqual(p2.seal(key, plain), sealed)                 # a new nonce every time
             if size > 8:
                 self.assertNotIn(plain[:8], sealed)
-        self.assertEqual(p2.seal(key, b"abc", nonce=bytes(16)), p2.seal(key, b"abc", nonce=bytes(16)))
+        self.assertEqual(p2.seal(key, b"abc", nonce=bytes(12)), p2.seal(key, b"abc", nonce=bytes(12)))
+        self.assertTrue(p2.seal(key, b"abc").startswith(p2.MAGIC))
+        for bad_key, bad_nonce in ((b"short", None), (key, bytes(16))):
+            with self.assertRaises(p2.VaultError):
+                p2.seal(bad_key, b"abc", nonce=bad_nonce)
         with self.assertRaises(p2.VaultError):
             p2.unseal(bytes(32), p2.seal(key, b"abc"))
 
