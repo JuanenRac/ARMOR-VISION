@@ -1,5 +1,8 @@
 """Speed in a zone, abandoned objects, the PTZ follower, the vectors of an event, the schedule by hour and the second phase (all off by default)."""
+import json
+import random
 import sys
+import tempfile
 import time
 import unittest
 from pathlib import Path
@@ -280,6 +283,9 @@ class ScheduleTests(unittest.TestCase):
         self.assertEqual(calls, [1])
 
 
+ADMIN = p2.Actor("owner", "admin")
+
+
 class Phase2Tests(unittest.TestCase):
     FRAME = Frame(2, 2, bytes(4))
     BOX = (0.1, 0.1, 0.3, 0.3)
@@ -289,7 +295,7 @@ class Phase2Tests(unittest.TestCase):
         self.assertEqual([settings.enabled(f) for f in p2.FEATURES], [False, False, False])
         self.assertEqual(p2.parse_phase2_settings(None)[0], settings)
         phase = p2.Phase2(settings)
-        for call in (lambda: phase.index("a", "x"), lambda: phase.search("x"), lambda: phase.read_plate(self.FRAME, self.BOX), lambda: phase.enrol("ana", [1.0], True),
+        for call in (lambda: phase.index("a", "x"), lambda: phase.search("x"), lambda: phase.read_plate(self.FRAME, self.BOX), lambda: phase.enrol("ana", [1.0], True, ADMIN),
                      lambda: phase.match_face(self.FRAME, self.BOX)):
             with self.assertRaises(p2.FeatureDisabled):
                 call()
@@ -326,13 +332,13 @@ class Phase2Tests(unittest.TestCase):
         self.assertEqual((found[0]["id"], found[0]["meta"], found[0]["evidence"]), ("e1", {"camera": "gate"}, "simulator"))
         self.assertEqual([r["id"] for r in phase.search("van driveway", limit=1)], ["e2"])
         self.assertEqual(phase.search("zebra"), [])
-        self.assertEqual(phase.forget_index(), 3)
+        self.assertEqual(phase.forget_index(ADMIN), 3)
         self.assertEqual(phase.search("person"), [])
 
     def test_plates_are_read_only_when_on_and_well_formed(self):
         script = {self.BOX: ("1234 abc", 0.9), (0, 0, 0.5, 0.5): ("???", 0.9), (0.5, 0.5, 0.9, 0.9): ("1234ABC", 0.3)}
         phase = p2.Phase2(p2.Phase2Settings(plates=True, acknowledged=("plates",)), plates=p2.SimulatedPlateReader(script))
-        self.assertEqual(phase.read_plate(self.FRAME, self.BOX), {"plate": "1234 ABC", "confidence": 0.9, "evidence": "simulator", "authorizes_action": False})
+        self.assertEqual(phase.read_plate(self.FRAME, self.BOX), {"plate": "1234 ABC", "confidence": 0.9, "evidence": "simulator", "authorized": False, "authorizes_action": False})
         self.assertIsNone(phase.read_plate(self.FRAME, (0, 0, 0.5, 0.5)))
         self.assertIsNone(phase.read_plate(self.FRAME, (0.5, 0.5, 0.9, 0.9)))
         self.assertIsNone(phase.read_plate(self.FRAME, (0.2, 0.2, 0.3, 0.3)))
@@ -341,15 +347,231 @@ class Phase2Tests(unittest.TestCase):
         script = {self.BOX: ("ana", 0.95), (0.5, 0.5, 0.6, 0.6): ("stranger", 0.99), (0.7, 0.7, 0.8, 0.8): ("ana", 0.2)}
         phase = p2.Phase2(p2.Phase2Settings(faces=True, acknowledged=("faces",)), faces=p2.SimulatedFaceMatcher(script))
         with self.assertRaises(p2.FeatureDisabled):
-            phase.enrol("ana", [1.0], False)
+            phase.enrol("ana", [1.0], False, ADMIN)
         self.assertIsNone(phase.match_face(self.FRAME, self.BOX))
-        phase.enrol("ana", [1.0, 0.0], True)
+        phase.enrol("ana", [1.0, 0.0], True, ADMIN)
         self.assertEqual(phase.match_face(self.FRAME, self.BOX)["person"], "ana")
         self.assertIsNone(phase.match_face(self.FRAME, (0.5, 0.5, 0.6, 0.6)))        # not enrolled: never named
         self.assertIsNone(phase.match_face(self.FRAME, (0.7, 0.7, 0.8, 0.8)))        # not sure enough
-        self.assertTrue(phase.unenrol("ana"))
-        self.assertFalse(phase.unenrol("ana"))
+        self.assertTrue(phase.unenrol("ana", ADMIN))
+        self.assertFalse(phase.unenrol("ana", ADMIN))
         self.assertIsNone(phase.match_face(self.FRAME, self.BOX))
+
+
+class Phase2PrivacyTests(unittest.TestCase):
+    FRAME = Frame(2, 2, bytes(4))
+    BOX = (0.1, 0.1, 0.3, 0.3)
+    DAY = 86400.0
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.now = 1_000_000.0
+        self.dir = Path(self.tmp.name)
+
+    def clock(self):
+        return self.now
+
+    def settings(self, **extra):
+        return p2.Phase2Settings(True, True, True, p2.FEATURES, **extra)
+
+    def stored(self, **extra):
+        paths = {"audit_file": str(self.dir / "audit.log"), "vault_file": str(self.dir / "vault.bin"), "key_file": str(self.dir / "vault.key")}
+        paths.update(extra)
+        return p2.Phase2(self.settings(**paths), clock=self.clock,
+                         plates=p2.SimulatedPlateReader({self.BOX: ("1234 ABC", 0.9)}), faces=p2.SimulatedFaceMatcher({self.BOX: ("ana", 0.9)}))
+
+    def test_settings_accept_retention_and_paths_and_refuse_a_vault_without_key(self):
+        parsed, errors = p2.parse_phase2_settings({"retention_days": 7, "audit_file": "a.log", "vault_file": "v.bin", "key_file": "k"})
+        self.assertEqual((errors, parsed.retention_days, parsed.vault_file), ([], 7, "v.bin"))
+        self.assertEqual(p2.parse_phase2_settings({})[0].retention_days, 30)
+        for raw in ({"retention_days": 0}, {"retention_days": True}, {"retention_days": 4000}, {"retention_days": "7"}, {"vault_file": "v.bin"}, {"audit_file": 5}, {"key_file": " k"}):
+            self.assertIsNone(p2.parse_phase2_settings(raw)[0], raw)
+
+    def test_the_confirmation_exists_in_eight_languages_and_enabling_needs_it_and_an_admin(self):
+        self.assertEqual(set(p2.CONFIRMATION), set(p2.LANGUAGES))
+        self.assertEqual(len(set(p2.CONFIRMATION.values())), 8)
+        self.assertEqual(p2.confirmation_text("xx"), p2.confirmation_text("en"))
+        phase = p2.Phase2(p2.Phase2Settings(), clock=self.clock)
+        with self.assertRaises(p2.PermissionDenied):
+            phase.enable(p2.Actor("guest", "operator"), "faces", True)
+        with self.assertRaises(p2.FeatureDisabled):
+            phase.enable(ADMIN, "faces", False)
+        with self.assertRaises(KeyError):
+            phase.enable(ADMIN, "eyes", True)
+        self.assertFalse(phase.settings.enabled("faces"))
+        self.assertTrue(phase.enable(ADMIN, "faces", True).enabled("faces"))
+        self.assertFalse(phase.settings.enabled("plates"))
+        self.assertFalse(phase.disable(ADMIN, "faces").enabled("faces"))
+        with self.assertRaises(p2.PermissionDenied):
+            phase.disable(None, "faces")
+        with self.assertRaises(KeyError):
+            phase.disable(ADMIN, "eyes")
+        self.assertEqual([e["result"] for e in phase.audit.entries()], ["denied", "not-confirmed", "ok", "ok", "denied"])
+
+    def test_only_the_administrator_manages_lists_exports_and_erases(self):
+        phase = self.stored()
+        operator = p2.Actor("guard", "operator")
+        calls = (lambda a: phase.allow_plate(a, "1234 ABC"), lambda a: phase.disallow_plate(a, "1234 ABC"), lambda a: phase.allowed_plates(a), lambda a: phase.enrol("ana", [1.0], True, a),
+                 lambda a: phase.unenrol("ana", a), lambda a: phase.forget_index(a), lambda a: phase.export_subject(a, "ana"), lambda a: phase.erase_subject(a, "ana"),
+                 lambda a: phase.erase_everything(a))
+        for call in calls:
+            for actor in (None, operator, p2.SERVICE):
+                with self.assertRaises(p2.PermissionDenied):
+                    call(actor)
+        self.assertEqual(sum(e["result"] == "denied" for e in phase.audit.entries()), len(calls) * 3)
+
+    def test_the_authorised_vehicles_are_listed_by_the_admin_and_marked_on_reads(self):
+        phase = self.stored()
+        self.assertFalse(phase.read_plate(self.FRAME, self.BOX)["authorized"])
+        phase.allow_plate(ADMIN, "1234-abc", "van")
+        result = phase.read_plate(self.FRAME, self.BOX)
+        self.assertEqual((result["authorized"], result["authorizes_action"]), (True, False))
+        self.assertEqual(phase.allowed_plates(ADMIN), {"1234ABC": "van"})
+        with self.assertRaises(ValueError):
+            phase.allow_plate(ADMIN, "???")
+        self.assertTrue(phase.disallow_plate(ADMIN, "1234 ABC"))
+        self.assertFalse(phase.disallow_plate(ADMIN, "1234 ABC"))
+        self.assertFalse(phase.read_plate(self.FRAME, self.BOX)["authorized"])
+
+    def test_the_vault_is_encrypted_and_survives_a_restart(self):
+        phase = self.stored()
+        phase.enrol("ana", [0.25, 0.75], True, ADMIN)
+        phase.allow_plate(ADMIN, "1234 ABC")
+        phase.index("e1", "a person with a red jacket", {"subject": "ana"})
+        phase.read_plate(self.FRAME, self.BOX, camera="gate")
+        raw = (self.dir / "vault.bin").read_bytes()
+        for secret in (b"ana", b"1234", b"red jacket", b"gate", b"0.25"):
+            self.assertNotIn(secret, raw)
+        self.assertEqual(len((self.dir / "vault.key").read_bytes()), 32)
+        again = self.stored()
+        self.assertEqual(again.export_subject(ADMIN, "ana")["enrolled"], True)
+        self.assertEqual(again.export_subject(ADMIN, "1234ABC")["sightings"][0]["camera"], "gate")
+        self.assertEqual(again.search("red jacket")[0]["id"], "e1")
+
+    def test_a_wrong_key_or_a_changed_vault_does_not_open(self):
+        phase = self.stored()
+        phase.enrol("ana", [1.0], True, ADMIN)
+        vault = self.dir / "vault.bin"
+        good = vault.read_bytes()
+        with self.assertRaises(p2.VaultError):
+            p2.Phase2(self.settings(vault_file=str(vault), key_file=str(self.dir / "other.key")), clock=self.clock)
+        changed = bytearray(good)
+        changed[20] ^= 1
+        vault.write_bytes(bytes(changed))
+        with self.assertRaises(p2.VaultError):
+            self.stored()
+        vault.write_bytes(b"short")
+        with self.assertRaises(p2.VaultError):
+            self.stored()
+        (self.dir / "bad.key").write_bytes(b"x")
+        with self.assertRaises(p2.VaultError):
+            p2.load_key(str(self.dir / "bad.key"))
+        with self.assertRaises(p2.VaultError):
+            p2.Phase2(self.settings(vault_file=str(vault)), clock=self.clock)       # a vault with no key
+
+    def test_a_vault_with_the_right_key_but_odd_content_is_refused(self):
+        key = p2.load_key(str(self.dir / "vault.key"))
+        (self.dir / "vault.bin").write_bytes(p2.seal(key, b'{"index": 5}'))
+        with self.assertRaises(p2.VaultError):
+            self.stored()
+
+    def test_seal_and_unseal_properties(self):
+        rng = random.Random(7)
+        key = bytes(rng.randrange(256) for _ in range(32))
+        for size in (0, 1, 31, 32, 33, 1000):
+            plain = bytes(rng.randrange(256) for _ in range(size))
+            sealed = p2.seal(key, plain)
+            self.assertEqual(p2.unseal(key, sealed), plain)
+            self.assertNotEqual(p2.seal(key, plain), sealed)                 # a new nonce every time
+            if size > 8:
+                self.assertNotIn(plain[:8], sealed)
+        self.assertEqual(p2.seal(key, b"abc", nonce=bytes(16)), p2.seal(key, b"abc", nonce=bytes(16)))
+        with self.assertRaises(p2.VaultError):
+            p2.unseal(bytes(32), p2.seal(key, b"abc"))
+
+    def test_retention_erases_old_sightings_and_index_entries_but_not_the_enrolled(self):
+        phase = self.stored(retention_days=2)
+        phase.enrol("ana", [1.0], True, ADMIN)
+        phase.index("old", "a red van")
+        phase.read_plate(self.FRAME, self.BOX)
+        self.now += 1 * self.DAY
+        phase.index("new", "a red bicycle")
+        self.now += 1.5 * self.DAY                                           # "old" is 2.5 days old, "new" is 1.5
+        self.assertEqual([r["id"] for r in phase.search("red")], ["new"])
+        self.assertEqual(phase.export_subject(ADMIN, "1234ABC")["sightings"], [])
+        self.assertTrue(phase.export_subject(ADMIN, "ana")["enrolled"])
+        self.assertEqual(phase.purge(), {"index": 0, "sightings": 0})
+        self.now += 5 * self.DAY
+        self.assertEqual(phase.purge(), {"index": 1, "sightings": 0})
+        self.assertIn("retention-purge", [e["action"] for e in phase.audit.entries()])
+
+    def test_export_and_erase_on_request(self):
+        phase = self.stored()
+        phase.enrol("ana", [0.5], True, ADMIN)
+        phase.allow_plate(ADMIN, "1234 ABC", "van")
+        phase.read_plate(self.FRAME, self.BOX, camera="gate")
+        phase.index("e1", "ana at the gate", {"subject": "ana"})
+        data = phase.export_subject(ADMIN, "ana")
+        self.assertEqual((data["enrolled"], data["index_entries"], data["evidence"]), (True, ["e1"], "simulator"))
+        self.assertNotIn("0.5", json.dumps(data))                            # the biometric template is never handed out
+        self.assertEqual(phase.erase_subject(ADMIN, "ana"), {"enrolled": 1, "authorised_vehicle": 0, "sightings": 0, "index_entries": 1})
+        self.assertEqual(phase.erase_subject(ADMIN, "1234 ABC"), {"enrolled": 0, "authorised_vehicle": 1, "sightings": 1, "index_entries": 0})
+        self.assertEqual(phase.export_subject(ADMIN, "ana")["enrolled"], False)
+        self.assertEqual(self.stored().export_subject(ADMIN, "1234ABC")["sightings"], [])    # also gone from the vault
+        phase.enrol("bea", [1.0], True, ADMIN)
+        phase.erase_everything(ADMIN)
+        self.assertFalse((self.dir / "vault.bin").exists())
+        self.assertFalse(phase.export_subject(ADMIN, "bea")["enrolled"])
+
+    def test_the_audit_log_chains_every_use_and_holds_no_personal_data(self):
+        phase = self.stored()
+        phase.enrol("ana", [1.0], True, ADMIN)
+        phase.allow_plate(ADMIN, "1234 ABC")
+        phase.read_plate(self.FRAME, self.BOX)
+        phase.match_face(self.FRAME, self.BOX)
+        phase.index("e1", "a secret description")
+        phase.search("secret description")
+        phase.export_subject(ADMIN, "ana")
+        text = (self.dir / "audit.log").read_text(encoding="utf-8")
+        for private in ('"ana"', "1234", "ABC", "secret"):
+            self.assertNotIn(private, text)
+        entries = phase.audit.entries()
+        self.assertEqual([e["action"] for e in entries], ["enrol", "allow-plate", "read-plate", "match-face", "index", "search", "export"])
+        self.assertEqual([e["seq"] for e in entries], list(range(1, 8)))
+        self.assertIsNone(phase.audit.verify())
+        self.assertIsNone(p2.AuditLog(str(self.dir / "audit.log"), self.clock, (self.dir / "vault.key").read_bytes()).verify())    # reopened from the file
+        for tamper in (lambda ls: ls.pop(2), lambda ls: ls.__setitem__(1, ls[1].replace("allow-plate", "nothing")), lambda ls: ls.__setitem__(0, "not json"), lambda ls: ls.reverse(),
+                       lambda ls: ls.__setitem__(0, "[]")):
+            lines = list(phase.audit.lines)
+            tamper(lines)
+            log = p2.AuditLog()
+            log.lines = lines
+            self.assertIsNotNone(log.verify())
+
+    def test_actors_are_checked(self):
+        for name, role in (("", "admin"), ("x", "root")):
+            with self.assertRaises(ValueError):
+                p2.Actor(name, role)
+
+    def test_scripted_readers_come_from_made_up_readings(self):
+        plates, faces = p2.scripted_readers({"plates": [{"box": [0.1, 0.1, 0.3, 0.3], "text": "9999 ZZZ", "confidence": 0.8}],
+                                             "faces": [{"box": [0.5, 0.5, 0.6, 0.6], "person": "demo", "confidence": 0.9}]})
+        self.assertEqual(plates.read(self.FRAME, self.BOX), ("9999 ZZZ", 0.8))
+        self.assertIsNone(faces.match(self.FRAME, (0.5, 0.5, 0.6, 0.6), {}))          # not enrolled: nobody
+        self.assertEqual(faces.match(self.FRAME, (0.5, 0.5, 0.6, 0.6), {"demo": [1.0]}), ("demo", 0.9))
+        path = self.dir / "script.json"
+        path.write_text(json.dumps({"plates": [{"box": [0, 0, 1, 1], "text": "1111 AAA", "confidence": 0.7}]}), encoding="utf-8")
+        self.assertEqual(p2.load_scripted_readers(str(path))[0].read(self.FRAME, (0, 0, 1, 1)), ("1111 AAA", 0.7))
+        for bad in ([], {"x": 1}, {"plates": [{"box": [1, 2, 3], "text": "a", "confidence": 1}]}, {"plates": [{"box": [0, 0, 1, 1], "text": 5, "confidence": 1}]},
+                    {"faces": [{"box": [0, 0, 1, True], "person": "a", "confidence": 1}]}, {"faces": [{"box": [0, 0, 1, 1], "person": "a", "confidence": True}]}, {"faces": ["x"]}):
+            with self.assertRaises(ValueError, msg=bad):
+                p2.scripted_readers(bad)
+
+    def test_nothing_in_the_second_phase_can_reach_the_network(self):
+        source = Path(p2.__file__).read_text(encoding="utf-8")
+        for module in ("socket", "urllib", "http", "requests", "ssl", "smtplib", "ftplib", "subprocess", "webbrowser"):
+            self.assertNotRegex(source, rf"(?m)^\s*(import|from)\s+{module}\b", module)
 
 
 if __name__ == "__main__":

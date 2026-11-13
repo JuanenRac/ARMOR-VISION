@@ -86,6 +86,19 @@ events = pipeline.process_detections("cam-front", timestamp, [Detection("person"
 
 `Phase2` holds three features that read personal data, each behind its own switch in `parse_phase2_settings`, all off by default. A switch turned on without its feature listed in `acknowledged` is an error: the owner must read the privacy notice (`privacy_notice(feature, language)`, in the eight languages) first. A disabled feature raises `FeatureDisabled` and does nothing. Faces are compared only with people who enrolled themselves with explicit consent, and nobody else is ever named. The readers are interfaces and only simulated ones exist (`SimulatedEmbedder`, `SimulatedPlateReader`, `SimulatedFaceMatcher`), so every result says `evidence: simulator`.
 
+Around those features sit the guards the privacy rules ask for, all in `phase2.py`:
+
+- **Switch and confirmation:** `Phase2.enable(actor, feature, confirmed=True)` is for an administrator and needs the explicit confirmation of the notice (`confirmation_text(language)`, eight languages); the settings file still has to say so to survive a restart.
+- **Retention:** `retention_days` (1 to 3650, 30 by default) erases index entries and plate sightings that are older, before every read and on `purge()`. People who enrolled stay until they ask to leave.
+- **Audit:** every use, allowed or denied, is a line of `audit_file` chained by hash (`AuditLog.verify()` names the first broken line). It holds a salted digest of the subject, never a plate, a name or a description.
+- **Encrypted at rest:** what the features remember goes only into `vault_file`, sealed with the 32-byte key of `key_file` (made with owner-only permissions the first time, never part of the settings). A wrong key or a changed file raises `VaultError`.
+- **Administrator only:** the list of authorised vehicles (`allow_plate`, `disallow_plate`, `allowed_plates`), enrolling and removing people, `forget_index`, `export_subject`, `erase_subject` and `erase_everything` raise `PermissionDenied` for anyone else, and the refusal is logged. A plate read says whether the vehicle is authorised, and still never authorises an action.
+- **Export and erasure on request:** `export_subject` lists what is held about a name or a plate (a biometric template is never handed out, only whether one exists); `erase_subject` removes it from memory and from the vault.
+- **Nothing leaves the machine:** the module opens no connection and its tests check that it imports nothing that could. Results, templates and descriptions are never sent to any outside service, an AI included.
+- **Synthetic readings:** `scripted_readers(raw)` / `load_scripted_readers(path)` build the simulated plate reader and face matcher from a file of made-up readings, so tests and benches use no real plate and no real person.
+
+The real readers (a plate OCR, a face model, an embedding model) are plugged in behind `PlateReader`, `FaceMatcher` and `Embedder`; they have never run on the Jetson Orin NX.
+
 ## Replaying recorded detections
 
 `python -m armor_vision replay FILE [--config FILE] [--mode MODE]` runs a file of recorded detections (one JSON object per line: `camera_id`, `timestamp`, `detections`) through the zone rules and prints one event per line followed by `{"stats", "events_per_zone"}`. With `--mode` only the zones of that arming mode are watched, as in the service. The exit code is 2 for a file that cannot be used (the whole file is refused) and for a camera of the file that is not in the configuration.

@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The second phase (search by meaning, plates, faces) gets the guards that personal data needs:** enabling a feature needs an administrator and the explicit confirmation of its notice (in the eight languages); `retention_days` erases old sightings and index entries; every use, allowed or denied, goes to a hash-chained audit log that holds no plate, name or description; what the features remember is kept only in an encrypted vault (`vault_file` with the key of `key_file`, a wrong key or a changed file is refused); the list of authorised vehicles, enrolling people, export and erasure on request, and wiping the index are for the administrator only; a plate read says whether the vehicle is authorised and still authorises nothing. Nothing in the module can reach the network. Synthetic readings from a file (`scripted_readers`) replace real data in tests. The readers are still the simulated ones.
+
 ## [0.1.6] - Activity events, new simulated capabilities and TensorRT detector
 
 - **More tests of the opening of a TensorRT engine and of the context command:** the packages of the Jetson are replaced by stand-ins so that every way the engine can fail to open is tried on a computer (no file, no packages, a file that is not an engine of this version, an error of the runtime, a good engine), and the command that hands the server's context to the service is tried with one round that fails and with the loop that the person stops.
