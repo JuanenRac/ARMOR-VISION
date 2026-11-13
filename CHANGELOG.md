@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The usage guide shows what `sync-context --help` prints:** a picture of the help of the command that carries the lines of the server to the live service (`images/sync-context-help.svg`), and a test that fails when the options change and the picture is not made again.
 - **The example of the `delivery` settings points at the current port of the server:** `DELIVERY_EXAMPLE` now uses `http://127.0.0.1:18080` instead of the old 8080, so the shared port scan of the family finds no old number left.
 
 - **The vault of the second phase is sealed with AES-256-GCM:** `seal` and `unseal` keep their shape and now use the optional `cryptography` package, imported only when a second-phase feature is on or a vault is configured (without it the second phase does not start and says how to install it). A vault written by the earlier scheme is read, copied beside the vault as `.legacy` (never over an existing copy) and sealed again. The tests use a stand-in for the AES-GCM class, so they run where the package is not installed, plus one test with the real package when it is.
