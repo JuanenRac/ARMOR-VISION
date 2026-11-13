@@ -27,7 +27,7 @@ DELIVERY_TOKEN_ENV = "ARMOR_VISION_DELIVERY_TOKEN"
 DELIVERY_PATH = "/api/v1/ai/activity-events"
 KINDS = ("zone_enter", "zone_exit", "dwell", "loiter", "line_cross")
 DELIVERY_EXAMPLE: dict[str, Any] = {
-    "url": "http://127.0.0.1:8080",
+    "url": "http://127.0.0.1:18080",
     "token_file": None,
     "kinds": ["zone_enter", "dwell", "loiter"],
     "queue_max": 256,

@@ -96,7 +96,7 @@ class DelivererTest(unittest.TestCase):
         self.assertEqual(deliverer.offer(events), 2)
         deliverer.drain()
         self.assertEqual([call[1]["type"] for call in post.calls], ["zone_enter", "dwell"])
-        self.assertTrue(all(call[0] == "http://127.0.0.1:8080" + DELIVERY_PATH and call[2] == TOKEN for call in post.calls))
+        self.assertTrue(all(call[0] == "http://127.0.0.1:18080" + DELIVERY_PATH and call[2] == TOKEN for call in post.calls))
         self.assertIs(post.calls[1][1]["notify"], False)   # the flag arrives as the engine set it
         self.assertEqual(deliverer.counters(), {"sent": 2, "failed": 0, "dropped": 0})
 
