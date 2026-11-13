@@ -6,12 +6,13 @@ raises `FeatureDisabled` and does nothing: it is never half on. The readers behi
 (`SimulatedEmbedder`, `SimulatedPlateReader`, `SimulatedFaceMatcher`), so every result carries `evidence = "simulator"`. Nothing leaves the machine: results are
 returned to the caller, and a face is only ever compared with the people the owner enrolled, never looked up anywhere else.
 
-Around the features: an administrator-only role for lists, export and erasure, retention in days, a hash-chained audit log without personal data, and an encrypted vault for what is remembered. This module imports nothing that can open a connection.
+Around the features: an administrator-only role for lists, export and erasure, retention in days, a hash-chained audit log without personal data, and an encrypted (AES-256-GCM, optional `cryptography` package) vault for what is remembered. This module imports nothing that can open a connection.
 """
 from __future__ import annotations
 
 import hashlib
 import hmac
+import importlib
 import json
 import math
 import os
@@ -309,15 +310,39 @@ def _subkeys(key: bytes) -> tuple[bytes, bytes]:
     return hmac.new(key, b"armor-vision/enc", "sha256").digest(), hmac.new(key, b"armor-vision/mac", "sha256").digest()
 
 
+MAGIC = b"AVV2"                     # the vault written with AES-GCM starts with this; the older HMAC scheme has no header
+GCM_NONCE_BYTES = 12
+
+
+class CryptographyMissing(VaultError):
+    """The optional `cryptography` package is not installed, and the second phase needs it to seal what it remembers."""
+
+
+def _aesgcm() -> Any:
+    """The AES-GCM class of the optional `cryptography` package, imported only when the second phase is in use."""
+    try:
+        return importlib.import_module("cryptography.hazmat.primitives.ciphers.aead").AESGCM
+    except ImportError as error:
+        raise CryptographyMissing("the second phase needs the 'cryptography' package to protect what it remembers: install it (python -m pip install cryptography) and start again") from error
+
+
 def seal(key: bytes, plain: bytes, nonce: bytes | None = None) -> bytes:
-    """Encrypt then authenticate: nonce + ciphertext + tag (HMAC-SHA256 keystream, HMAC-SHA256 tag)."""
+    """AES-256-GCM: MAGIC + nonce (12 bytes) + ciphertext and tag. The key is the 32 bytes of the key file."""
+    nonce = nonce if nonce is not None else os.urandom(GCM_NONCE_BYTES)
+    if len(key) != KEY_BYTES or len(nonce) != GCM_NONCE_BYTES:
+        raise VaultError("AES-256-GCM needs a key of 32 bytes and a nonce of 12")
+    return MAGIC + nonce + _aesgcm()(key).encrypt(nonce, plain, MAGIC)
+
+
+def seal_legacy(key: bytes, plain: bytes, nonce: bytes | None = None) -> bytes:
+    """The scheme of the first version (HMAC-SHA256 keystream and tag). Kept only to read, and test the reading of, vaults written before AES-GCM."""
     enc_key, mac_key = _subkeys(key)
     nonce = nonce if nonce is not None else os.urandom(NONCE_BYTES)
     cipher = bytes(a ^ b for a, b in zip(plain, _stream(enc_key, nonce, len(plain)), strict=True))
     return nonce + cipher + hmac.new(mac_key, nonce + cipher, "sha256").digest()
 
 
-def unseal(key: bytes, sealed: bytes) -> bytes:
+def _unseal_legacy(key: bytes, sealed: bytes) -> bytes:
     if len(sealed) < NONCE_BYTES + TAG_BYTES:
         raise VaultError("the vault is too short to be one")
     enc_key, mac_key = _subkeys(key)
@@ -325,6 +350,26 @@ def unseal(key: bytes, sealed: bytes) -> bytes:
     if not hmac.compare_digest(tag, hmac.new(mac_key, nonce + cipher, "sha256").digest()):
         raise VaultError("the vault does not open with this key or was changed")
     return bytes(a ^ b for a, b in zip(cipher, _stream(enc_key, nonce, len(cipher)), strict=True))
+
+
+def unseal_any(key: bytes, sealed: bytes) -> tuple[bytes, bool]:
+    """The plain bytes and whether the vault was written with the older scheme (and so should be sealed again)."""
+    if sealed.startswith(MAGIC) and len(sealed) >= len(MAGIC) + GCM_NONCE_BYTES + 16:
+        body = sealed[len(MAGIC):]
+        try:
+            return _aesgcm()(key).decrypt(body[:GCM_NONCE_BYTES], body[GCM_NONCE_BYTES:], MAGIC), False
+        except CryptographyMissing:
+            raise
+        except Exception as error:      # a wrong key or a changed file; the package names its own exception
+            try:
+                return _unseal_legacy(key, sealed), True      # a legacy vault whose random nonce happened to start like the header
+            except VaultError:
+                raise VaultError("the vault does not open with this key or was changed") from error
+    return _unseal_legacy(key, sealed), True
+
+
+def unseal(key: bytes, sealed: bytes) -> bytes:
+    return unseal_any(key, sealed)[0]
 
 
 def normalise_plate(text: str) -> str:
@@ -377,6 +422,8 @@ class Phase2:
         self._allowed: dict[str, str] = {}                      # normalised plate -> label of the authorised vehicle
         self._sightings: list[tuple[str, str, float]] = []      # plate, camera, time
         self._vault = Path(settings.vault_file) if settings.vault_file else None
+        if any(settings.enabled(f) for f in FEATURES) or self._vault is not None:
+            _aesgcm()                                           # the second phase does not start without the package that seals its data
         if self._vault is not None and self._key is None:
             raise VaultError("a vault needs a key")
         if self._vault is not None and self._vault.exists():
@@ -407,14 +454,32 @@ class Phase2:
 
     def _load(self) -> None:
         assert self._vault is not None and self._key is not None
+        raw = self._vault.read_bytes()
         try:
-            state = json.loads(unseal(self._key, self._vault.read_bytes()))
+            plain, legacy = unseal_any(self._key, raw)
+            state = json.loads(plain)
             self._index = [(str(i), dict(m), [float(x) for x in v], float(t)) for i, m, v, t in state["index"]]
             self._enrolled = {str(k): [float(x) for x in v] for k, v in state["enrolled"].items()}
             self._allowed = {str(k): str(v) for k, v in state["allowed"].items()}
             self._sightings = [(str(p), str(c), float(t)) for p, c, t in state["sightings"]]
         except (ValueError, KeyError, TypeError) as error:
+            if isinstance(error, VaultError):
+                raise
             raise VaultError("the vault cannot be read") from error
+        if legacy:
+            self._migrate(raw)
+
+    def _migrate(self, old: bytes) -> None:
+        """A vault of the older scheme is sealed again with AES-GCM; the old bytes are first copied beside it (never over an existing copy) and stay there for the owner to remove."""
+        assert self._vault is not None
+        number = 0
+        backup = self._vault.with_name(self._vault.name + ".legacy")
+        while backup.exists():
+            number += 1
+            backup = self._vault.with_name(f"{self._vault.name}.legacy{number}")
+        backup.write_bytes(old)
+        self._save()
+        self.audit.record(SERVICE, "vault-migrated", "all", "", "aes-gcm")
 
     # --- enabling with an explicit confirmation
     def enable(self, actor: Actor | None, feature: str, confirmed: bool) -> Phase2Settings:
