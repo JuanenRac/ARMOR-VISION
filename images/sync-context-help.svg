@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 510" width="680" height="510" role="img" aria-labelledby="t d">
+<title id="t">armor_vision sync-context --help</title>
+<desc id="d">What the command that carries the context of the server to the vision service prints with --help</desc>
+<rect width="680" height="510" rx="8" fill="#0f172a"/>
+<text x="20" y="28" font-family="Consolas, Menlo, monospace" font-size="13" fill="#5df0c4">$ python -m armor_vision sync-context --help</text>
+<g font-family="Consolas, Menlo, monospace" font-size="13" fill="#e2e8f0" xml:space="preserve">
+<text x="20" y="54" data-line="0">usage: armor-vision sync-context [-h] --server SERVER [--service SERVICE]</text>
+<text x="20" y="72" data-line="1">                                 [--ai-token-file FILE]</text>
+<text x="20" y="90" data-line="2">                                 [--service-token-file FILE] [--ca-file FILE]</text>
+<text x="20" y="108" data-line="3">                                 [--interval INTERVAL] [--timeout TIMEOUT]</text>
+<text x="20" y="126" data-line="4">                                 [--max-bytes MAX_BYTES]</text>
+<text x="20" y="144" data-line="5"></text>
+<text x="20" y="162" data-line="6">options:</text>
+<text x="20" y="180" data-line="7">  -h, --help            show this help message and exit</text>
+<text x="20" y="198" data-line="8">  --server SERVER       address of ARMOR-SERVER, for example</text>
+<text x="20" y="216" data-line="9">                        http://127.0.0.1:18080</text>
+<text x="20" y="234" data-line="10">  --service SERVICE     address of the live service (default:</text>
+<text x="20" y="252" data-line="11">                        http://127.0.0.1:8765)</text>
+<text x="20" y="270" data-line="12">  --ai-token-file FILE  file with the token of the observation service of the</text>
+<text x="20" y="288" data-line="13">                        server (or the variable ARMOR_AI_TOKEN)</text>
+<text x="20" y="306" data-line="14">  --service-token-file FILE</text>
+<text x="20" y="324" data-line="15">                        file with the token the live service asks for, if it</text>
+<text x="20" y="342" data-line="16">                        has one (or the variable ARMOR_VISION_SERVICE_TOKEN)</text>
+<text x="20" y="360" data-line="17">  --ca-file FILE        certificate that signs the server when it answers over</text>
+<text x="20" y="378" data-line="18">                        https</text>
+<text x="20" y="396" data-line="19">  --interval INTERVAL   seconds between rounds; 0 (the default) does one round</text>
+<text x="20" y="414" data-line="20">                        and stops</text>
+<text x="20" y="432" data-line="21">  --timeout TIMEOUT     seconds to wait for each answer</text>
+<text x="20" y="450" data-line="22">  --max-bytes MAX_BYTES</text>
+<text x="20" y="468" data-line="23">                        the most bytes taken from an answer</text>
+</g></svg>
