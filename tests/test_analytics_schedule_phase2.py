@@ -633,7 +633,9 @@ class Phase2PrivacyTests(WithFakeAes):
         phase.index("e1", "a secret description")
         phase.search("secret description")
         phase.export_subject(ADMIN, "ana")
-        text = (self.dir / "audit.log").read_text(encoding="utf-8")
+        # the chain hashes are hexadecimal digits and may hold "1234" by chance: only what the entries say is searched
+        lines = (self.dir / "audit.log").read_text(encoding="utf-8").splitlines()
+        text = " ".join(json.dumps({k: v for k, v in json.loads(line).items() if k not in ("hash", "previous")}, sort_keys=True) for line in lines if line.strip())
         for private in ('"ana"', "1234", "ABC", "secret"):
             self.assertNotIn(private, text)
         entries = phase.audit.entries()
