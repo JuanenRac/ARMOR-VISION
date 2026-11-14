@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The ONNX detector reads a YOLOX-nano model and has a detector file that is off by default:** the settings `output_format` (`rows` as before, or `yolox`, the raw output of the export placed on its grid with the objectness times the best class score and merged here) and `input_range` (`unit` as before, or `byte`), the label list `coco80`, a detector file with `enabled` false (`detector-example`, `check-detector-config` with `--open` to try the model) and `build_detector`, which opens nothing while it is off; a model whose anchors or values per anchor do not match is refused. The weights stay outside the repository. Tested with a doubled model session (no weights and no runtime needed); the real model on a CPU or the Jetson is the pending physical check.
 - **The usage guide shows what `sync-context --help` prints:** a picture of the help of the command that carries the lines of the server to the live service (`images/sync-context-help.svg`), and a test that fails when the options change and the picture is not made again.
 - **The example of the `delivery` settings points at the current port of the server:** `DELIVERY_EXAMPLE` now uses `http://127.0.0.1:18080` instead of the old 8080, so the shared port scan of the family finds no old number left.
 
