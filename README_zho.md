@@ -21,14 +21,14 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-3776ab.svg" alt="Language">
   <img src="https://img.shields.io/badge/Dependencies-none-2ea44f.svg" alt="Dependencies">
-  <img src="https://img.shields.io/badge/Tests-348%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-363%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.6-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-00E5FF.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 348 个测试都是真实的。面向 Jetson Orin NX 的检测器（TensorRT）、双码流、片段、速度、遗留物、PTZ 跟随、时间表和第二阶段都已编写，并且只用模拟的引擎和来源测试过：没有在任何摄像头或 Jetson Orin NX 上运行过。
+**诚实性检查 - 今天真正能运行的部分：** 区域、运动检查、跟踪、规则和 363 个测试都是真实的。面向 Jetson Orin NX 的检测器（TensorRT）、双码流、片段、速度、遗留物、PTZ 跟随、时间表和第二阶段都已编写，并且只用模拟的引擎和来源测试过：没有在任何摄像头或 Jetson Orin NX 上运行过。
 
 ---
 
@@ -40,7 +40,7 @@
 | 成熟度 | 可用 |
 | 角色 | 摄像头区域、遮罩和检测规则（家族：Core Services，上级：ARMOR-SERVER） |
 | 技术栈 | Python 3.11+，仅标准库 |
-| 测试 | 348 (`python -m unittest discover -s tests`) |
+| 测试 | 363 (`python -m unittest discover -s tests`) |
 | 运行位置 | 任何计算机 |
 | 真实硬件 | 暂无：没有真实的检测器、摄像头或 Jetson（使用脚本化检测的模拟） |
 | 许可证 | GPL-3.0-or-later |
@@ -56,7 +56,7 @@
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 防区、移动检查、跟踪器和规则都能工作，但目前还没有真实的检测模型：模拟使用的是脚本化的检测结果。 |
-| 测试 | 🟢 | 348 项测试通过（`python -m unittest discover -s tests`）。 |
+| 测试 | 🟢 | 363 项测试通过（`python -m unittest discover -s tests`）。 |
 | 硬件 | 🔴 | 还没有在摄像头或 Jetson Orin NX 上运行过。 |
 | 界面 | 🟡 | 提供的路由或消息已有文档，并用客户端测试过；尚未被所有客户端使用 |
 | 安全 | 🟡 | 访问控制、输入限制或签名已实现并在计算机上测试；项目之外无人审查过 |
@@ -150,13 +150,13 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 $env:PYTHONPATH = "src"
 python -m armor_vision simulate --mode away
 python -m armor_vision check-config my_cameras.json
-python -m unittest discover -s tests   # 348 tests
+python -m unittest discover -s tests   # 363 tests
 ```
 
 ```bash
 PYTHONPATH=src python -m armor_vision simulate --mode away
 PYTHONPATH=src python -m armor_vision check-config my_cameras.json
-PYTHONPATH=src python -m unittest discover -s tests   # 348 tests
+PYTHONPATH=src python -m unittest discover -s tests   # 363 tests
 ```
 
 ## 🧪 测试
