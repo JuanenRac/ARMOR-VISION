@@ -11,6 +11,8 @@ from . import __version__
 from .activity import ActivityEngine
 from .activity_config import ACTIVITY_EXAMPLE, parse_activity_config
 from .config import parse_config
+from .detector import DetectorUnavailable
+from .onnx_detector import DETECTOR_EXAMPLE, build_detector, parse_detector_config
 from .context_sync import AI_TOKEN_ENV, SyncError, SyncSettings, check_url, read_token, run_forever, sync_once
 from .heatmap_service import QUERY_KEYS, ServiceError, answer
 from .pipeline import Pipeline
@@ -57,6 +59,28 @@ def simulate(config, mode: str | None) -> tuple[list[dict], dict]:
         ]
         events.extend(pipeline.process_detections("cam-front", t, detections))
     return events, vars(pipeline.stats)
+
+
+def _run_check_detector(args) -> int:
+    """Exit 0 for a good file (the detector is on or off), 1 for a bad one, 2 for a file that cannot be read, 3 when --open is asked and the model cannot be opened."""
+    try:
+        raw = json.loads(Path(args.file).read_text(encoding="utf-8"), parse_constant=_no_constants)
+    except (OSError, ValueError) as exc:
+        print(f"cannot read {args.file}: {exc}", file=sys.stderr)
+        return 2
+    detector, problems = parse_detector_config(raw)
+    for problem in problems:
+        print(f"error: {problem}", file=sys.stderr)
+    if detector is None:
+        return 1
+    if args.open and detector.enabled:
+        try:
+            build_detector(detector)
+        except DetectorUnavailable as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 3
+    print(f"ok: detector {'on' if detector.enabled else 'off'}")
+    return 0
 
 
 def _read_activity(path: str):
@@ -255,6 +279,10 @@ def main(argv: list[str] | None = None) -> int:
     check_service = sub.add_parser("check-service-config", help="validate a settings file of the live service")
     check_service.add_argument("file")
     sub.add_parser("service-example", help="print the settings of the live service to start from")
+    check_detector = sub.add_parser("check-detector-config", help="validate a detector file (the ONNX model that runs when motion is seen); with --open the model is opened too")
+    check_detector.add_argument("file")
+    check_detector.add_argument("--open", action="store_true", help="also open the model (needs onnxruntime); only when the file says enabled")
+    sub.add_parser("detector-example", help="print a detector file to start from (a YOLOX-nano model, switched off)")
     args = parser.parse_args(argv if argv is not None else sys.argv[1:] or ["simulate"])
     if args.action == "check-config":
         try:
@@ -288,6 +316,11 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print(f"ok: service on {settings.host}:{settings.port}, {'with' if token else 'without'} a token")
         return 0
+    if args.action == "detector-example":
+        print(json.dumps(DETECTOR_EXAMPLE, indent=2))
+        return 0
+    if args.action == "check-detector-config":
+        return _run_check_detector(args)
     if args.action == "sync-context":
         return _run_sync_context(args)
     if args.action == "check-activity-config":

@@ -107,6 +107,12 @@ The real readers (a plate OCR, a face model, an embedding model) are plugged in 
 
 `parse_onnx_settings({"model": "model.onnx", "labels": ["person", "car"], "input_size": 640, "min_confidence": 0.4, "merge_iou": 0.5, "max_detections": 50})` checks the settings whole; `load_detector("onnx", settings)` opens the model with `onnxruntime` (install it yourself; it is not a dependency). The model has one input `[1, 3, S, S]` (float32, RGB 0..1; the grey frame is repeated on three channels) and one output `[N, 6]` or `[1, N, 6]` with rows `x1, y1, x2, y2, score, class` in pixels of the input.
 
+### A YOLOX-nano model and the detector file
+
+The reference model is YOLOX-nano (Apache-2.0, trained on COCO, input 416): the weights are not in this repository, you download the `.onnx` export yourself and put it outside the checkout. Two settings read it: `"output_format": "yolox"` (the raw `[1, 3549, 85]` output of the export is placed on its grid and merged here) and `"input_range": "byte"` (pixels 0..255, as YOLOX takes them); `"labels": "coco80"` stands for the 80 classes of COCO. A model whose number of anchors or values per anchor does not match is refused, never guessed.
+
+`python -m armor_vision detector-example` prints a detector file to start from (switched off, with the model path under `/opt/armor/models/`). `python -m armor_vision check-detector-config FILE` validates it (the settings are checked even while it is off, so that a typo is found before the switch is turned) and prints `ok: detector off` or `on`; with `--open` the model is also opened when the file says `enabled` (exit 3 when it cannot be). `build_detector(config)` returns `None` while the detector is off and the pipeline then runs on the detections it is given, as it always did.
+
 ## Activity events and heat map (off by default)
 
 A separate pipeline turns detections into activity events and a heat map. It is **off** unless the activity configuration says `"enabled": true`: without it `--simulate-events` and `--heatmap` exit with 3 and write nothing, and everything above behaves exactly as before. `activity-example` prints a configuration to start from.
