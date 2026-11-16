@@ -51,6 +51,7 @@ SERVICE_EXAMPLE: dict[str, Any] = {
     "token_file": None,
     "simulate": None,
     "delivery": None,
+    "max_forward_jump_s": 3600,
 }
 _SIMULATE_KEYS = {"camera_id", "seed", "objects", "duration", "fps"}
 
@@ -82,6 +83,7 @@ class ServiceSettings:
     token_file: str | None = None
     simulate: SimulateSettings | None = None
     delivery: DeliverySettings | None = None
+    max_forward_jump_s: float = 3600.0   # the most an observation may be ahead of the last one of its camera (0 = no limit): a producer with a clock far ahead would otherwise lock the camera out
 
 
 TOKEN_ENV = "ARMOR_VISION_SERVICE_TOKEN"
@@ -144,6 +146,10 @@ def parse_service_settings(raw: object) -> tuple[ServiceSettings | None, list[st
     connections = raw.get("max_connections", d.max_connections)
     cache = raw.get("render_cache_entries", d.render_cache_entries)
     token_file = raw.get("token_file", d.token_file)
+    jump = raw.get("max_forward_jump_s", d.max_forward_jump_s)
+    if not isinstance(jump, (int, float)) or isinstance(jump, bool) or not math.isfinite(jump) or not 0 <= jump <= 31_536_000:
+        errors.append("max_forward_jump_s must be a number of seconds from 0 (no limit) to 31536000")
+        jump = d.max_forward_jump_s
     if not isinstance(host, str) or not host:
         errors.append("host must be an address")
         host = d.host
@@ -191,7 +197,7 @@ def parse_service_settings(raw: object) -> tuple[ServiceSettings | None, list[st
     errors.extend(delivery_problems)
     if errors:
         return None, errors
-    return ServiceSettings(str(host), int(port), bool(remote), int(body), int(detections), int(query), int(timeout), int(connections), int(cache), token_file, simulate, delivery), []
+    return ServiceSettings(str(host), int(port), bool(remote), int(body), int(detections), int(query), int(timeout), int(connections), int(cache), token_file, simulate, delivery, float(jump)), []
 
 
 class LiveService:
@@ -235,8 +241,11 @@ class LiveService:
         with self._lock:
             if observation.camera_id not in self._engine.camera_ids:
                 return refuse(404, "unknown camera")
-            if observation.timestamp < self._last.get(observation.camera_id, -math.inf):
+            last = self._last.get(observation.camera_id, -math.inf)
+            if observation.timestamp < last:
                 return refuse(409, "time goes backwards for this camera")
+            if self.settings.max_forward_jump_s > 0 and last != -math.inf and observation.timestamp - last > self.settings.max_forward_jump_s:
+                return refuse(409, "time jumps too far ahead for this camera")   # the last time is not moved: the next right observation is still taken
             events = self._engine.process(observation.camera_id, observation.timestamp, list(observation.detections))
             self._last[observation.camera_id] = observation.timestamp
         if self._deliverer is not None:
