@@ -65,6 +65,33 @@ class Running:
             connection.close()
 
 
+class ForwardJumpTests(unittest.TestCase):
+    def test_an_observation_far_ahead_is_refused_and_does_not_lock_the_camera_out(self):
+        with Running(ServiceSettings(port=0, max_forward_jump_s=100)) as running:
+            self.assertEqual(running.call("POST", "/ingest", record(10))[0], 200)
+            self.assertEqual(running.call("POST", "/ingest", record(110))[0], 200, "exactly the limit is taken")
+            status, _, body = running.call("POST", "/ingest", record(1_000_000))
+            self.assertEqual(status, 409)
+            self.assertIn("too far ahead", json.loads(body)["error"])
+            self.assertEqual(running.call("POST", "/ingest", record(120))[0], 200, "the clock that was right is still taken")
+
+    def test_the_first_observation_of_a_camera_has_nothing_to_jump_from_and_zero_is_no_limit(self):
+        with Running(ServiceSettings(port=0, max_forward_jump_s=100)) as running:
+            self.assertEqual(running.call("POST", "/ingest", record(5_000_000))[0], 200)
+        with Running(ServiceSettings(port=0, max_forward_jump_s=0)) as running:
+            self.assertEqual(running.call("POST", "/ingest", record(1))[0], 200)
+            self.assertEqual(running.call("POST", "/ingest", record(9_000_000))[0], 200)
+
+    def test_the_default_is_an_hour_and_bad_values_are_refused(self):
+        settings, problems = parse_service_settings(None)
+        self.assertEqual((problems, settings.max_forward_jump_s), ([], 3600.0))
+        for bad in (-1, "10", True, float("nan"), 31_536_001, None):
+            _, problems = parse_service_settings({"max_forward_jump_s": bad})
+            self.assertTrue(problems, bad)
+        good, problems = parse_service_settings({"max_forward_jump_s": 0})
+        self.assertEqual((problems, good.max_forward_jump_s), ([], 0.0))
+
+
 class SettingsTests(unittest.TestCase):
     def test_the_defaults_are_local_and_the_example_is_valid(self):
         settings, problems = parse_service_settings(None)

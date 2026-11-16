@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **An observation far ahead of the last one of its camera is refused:** `max_forward_jump_s` of the service settings (default 3600 seconds, 0 for no limit) answers `409` when an observation is more than that ahead, and does not move the camera's clock, so one producer with a wrong clock can no longer lock the camera out for the right ones.
 ## [0.1.7] - YOLOX detector option, sealed vault of the second phase and guards for personal data
 
 - **The ONNX detector reads a YOLOX-nano model and has a detector file that is off by default:** the settings `output_format` (`rows` as before, or `yolox`, the raw output of the export placed on its grid with the objectness times the best class score and merged here) and `input_range` (`unit` as before, or `byte`), the label list `coco80`, a detector file with `enabled` false (`detector-example`, `check-detector-config` with `--open` to try the model) and `build_detector`, which opens nothing while it is off; a model whose anchors or values per anchor do not match is refused. The weights stay outside the repository. Tested with a doubled model session (no weights and no runtime needed); the real model on a CPU or the Jetson is the pending physical check.
