@@ -132,6 +132,8 @@ ARMOR-VISION は、検出器とは別に、カメラの映像が何を意味す�
 | `masks[]` | 動きを無視する多角形。中心が内側にある検出は破棄されます |
 | `profiles` | 警戒モードごとに監視するゾーン（`away`、`home` など） |
 | `アクティビティ設定（別ファイル）` | `enabled`（既定 `false`）、`heatmap`（`cols`、`rows`、`window_seconds`、`half_life_seconds`、`slices`、65536 までの `max_cells`、`position`、`labels`）、`events`（`dwell_seconds`、`loiter_seconds`、`loiter_radius`、`lost_seconds`、`labels`、`id`・`a`・`b` を持つ `lines[]`、`sensitivity_floor`（`low`、`normal`、`high`））。ヒートマップは重みを最大値で割って正規化します |
+| `delivery`（サービス設定） | `retries`（0〜5、既定 0。0 より大きいと、サーバーに届かなかった場合やサーバー側エラーが返った場合に、間隔を少しずつ延ばしてイベントを再送し、拒否された後は再送しません）、`retry_backoff_s`（0〜30、既定 1）、`event_id`（既定 false。再送のたびに同じ安定した ID を付けます）。再送が有効なとき `/health` は再送回数を `retried` として数えます |
+| `ffmpeg_protocols`（カメラのストリームペア）と `sha256`（ONNX モデル設定） | `ffmpeg_protocols` は両方のストリームで ffmpeg が開いてよいプロトコル名のカンマ区切りリスト（`-protocol_whitelist`。省略すると何も追加しません）。`sha256` は null または 16 進 64 桁で、SHA-256 が異なるモデルファイルは開く前に拒否されます |
 
 | 制限 | 値 |
 |---|---|

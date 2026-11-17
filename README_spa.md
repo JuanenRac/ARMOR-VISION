@@ -132,6 +132,8 @@ Como biblioteca: `parse_config`, `Pipeline.process_detections` y `process_frame`
 | `masks[]` | Polígonos donde se ignora el movimiento; se descartan las detecciones cuyo centro está dentro |
 | `profiles` | Qué zonas se vigilan en cada modo de armado (`away`, `home`, ...) |
 | `configuración de actividad (fichero aparte)` | `enabled` (por defecto `false`), `heatmap` (`cols`, `rows`, `window_seconds`, `half_life_seconds`, `slices`, `max_cells` hasta 65536, `position`, `labels`) y `events` (`dwell_seconds`, `loiter_seconds`, `loiter_radius`, `lost_seconds`, `labels`, `lines[]` con `id`, `a`, `b`, `sensitivity_floor` (`low`, `normal`, `high`)); el mapa se normaliza como peso dividido por el máximo |
+| `delivery` (configuración del servicio) | `retries` (0 a 5, por defecto 0: con más de 0 un evento se envía de nuevo, un poco más tarde cada vez, cuando no se pudo llegar al servidor o respondió con un error suyo, nunca tras un rechazo), `retry_backoff_s` (0 a 30, por defecto 1) y `event_id` (por defecto falso: un id estable, el mismo en cada reintento); `/health` cuenta las repeticiones como `retried` si hay reintentos |
+| `ffmpeg_protocols` (par de streams de una cámara) y `sha256` (ajustes del modelo ONNX) | `ffmpeg_protocols` es una lista, separada por comas, de nombres de protocolo que ffmpeg puede abrir en ambos streams (`-protocol_whitelist`; si falta no añade nada); `sha256` es null o 64 dígitos hexadecimales, y un fichero de modelo con otro SHA-256 se rechaza antes de abrirlo |
 
 | Límite | Valor |
 |---|---|

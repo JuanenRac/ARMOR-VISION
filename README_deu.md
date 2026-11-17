@@ -132,6 +132,8 @@ Als Bibliothek: `parse_config`, `Pipeline.process_detections` und `process_frame
 | `masks[]` | Polygone, in denen Bewegung ignoriert wird; Erkennungen mit Mittelpunkt darin entfallen |
 | `profiles` | Welche Zonen in jedem Scharfschaltmodus überwacht werden (`away`, `home`, ...) |
 | `Aktivitätskonfiguration (eigene Datei)` | `enabled` (Standard `false`), `heatmap` (`cols`, `rows`, `window_seconds`, `half_life_seconds`, `slices`, `max_cells` bis 65536, `position`, `labels`) und `events` (`dwell_seconds`, `loiter_seconds`, `loiter_radius`, `lost_seconds`, `labels`, `lines[]` mit `id`, `a`, `b`, `sensitivity_floor` (`low`, `normal`, `high`)); die Heatmap wird als Gewicht geteilt durch das Maximum normiert |
+| `delivery` (Dienstkonfiguration) | `retries` (0 bis 5, Standard 0: bei mehr als 0 wird ein Ereignis erneut gesendet, jedes Mal etwas später, wenn der Server nicht erreichbar war oder mit einem Serverfehler antwortete, nie nach einer Ablehnung), `retry_backoff_s` (0 bis 30, Standard 1) und `event_id` (Standard false: eine stabile ID, bei jeder Wiederholung dieselbe); `/health` zählt die Wiederholungen als `retried`, wenn Wiederholungen aktiv sind |
+| `ffmpeg_protocols` (Stream-Paar einer Kamera) und `sha256` (ONNX-Modelleinstellungen) | `ffmpeg_protocols` ist eine kommagetrennte Liste von Protokollnamen, die ffmpeg für beide Streams öffnen darf (`-protocol_whitelist`; fehlt sie, kommt nichts hinzu); `sha256` ist null oder 64 Hexadezimalziffern, und eine Modelldatei mit anderem SHA-256 wird abgelehnt, bevor sie geöffnet wird |
 
 | Grenze | Wert |
 |---|---|

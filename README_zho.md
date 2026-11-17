@@ -132,6 +132,8 @@ ARMOR-VISION 是独立于任何检测器、决定摄像头画面含义的部分�
 | `masks[]` | 忽略运动的多边形；中心位于其中的检测会被丢弃 |
 | `profiles` | 每种布防模式下监视哪些区域（`away`、`home` 等） |
 | `活动配置（单独的文件）` | `enabled`（默认 `false`）、`heatmap`（`cols`、`rows`、`window_seconds`、`half_life_seconds`、`slices`、最大 65536 的 `max_cells`、`position`、`labels`）和 `events`（`dwell_seconds`、`loiter_seconds`、`loiter_radius`、`lost_seconds`、`labels`、含 `id`、`a`、`b` 的 `lines[]`、`sensitivity_floor`（`low`、`normal`、`high`））；热力图按权重除以最大值归一化 |
+| `delivery`（服务配置） | `retries`（0 到 5，默认 0：大于 0 时，若服务器无法连接或返回服务器错误，事件会重新发送，每次稍晚一些，被拒绝后绝不重发）、`retry_backoff_s`（0 到 30，默认 1）和 `event_id`（默认 false：每次重试都相同的稳定标识）；启用重试时 `/health` 把重发次数计为 `retried` |
+| `ffmpeg_protocols`（摄像头的流对）和 `sha256`（ONNX 模型设置） | `ffmpeg_protocols` 是 ffmpeg 可为两条流打开的协议名称列表，以逗号分隔（`-protocol_whitelist`；缺省则不增加任何协议）；`sha256` 为 null 或 64 位十六进制数字，SHA-256 不同的模型文件在打开之前就会被拒绝 |
 
 | 限制 | 值 |
 |---|---|
