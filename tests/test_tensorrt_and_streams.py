@@ -81,6 +81,28 @@ class StreamPairTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual((pair.width, pair.height, pair.fps, pair.segment_seconds, pair.transport), (320, 180, 5.0, 10, "tcp"))
 
+    def test_the_protocols_ffmpeg_may_open_come_from_the_settings_of_the_pair(self):
+        pair, errors = streams.parse_stream_pair({**self.raw, "ffmpeg_protocols": "file,rtsp,tcp,udp"})
+        self.assertEqual((errors, pair.ffmpeg_protocols), ([], "file,rtsp,tcp,udp"))
+        recording = streams.record_command(pair, "out")
+        self.assertEqual(recording[recording.index("-protocol_whitelist") + 1], "file,rtsp,tcp,udp")
+        self.assertLess(recording.index("-protocol_whitelist"), recording.index("-i"))
+        self.assertNotIn("-protocol_whitelist", streams.record_command(streams.parse_stream_pair(self.raw)[0], "out"), "without the setting nothing is added")
+        seen = {}
+        original = streams.read_frames
+        streams.read_frames = lambda *args, **kwargs: seen.update(kwargs) or iter(())
+        try:
+            list(streams.analysis_frames(pair))
+            self.assertEqual(seen["protocols"], "file,rtsp,tcp,udp")
+            list(streams.analysis_frames(pair, protocols="rtsp"))
+            self.assertEqual(seen["protocols"], "rtsp", "a caller may still choose")
+        finally:
+            streams.read_frames = original
+        for bad in ("", "file;rm", "Rtsp", 5, "a,,b"):
+            refused, errors = streams.parse_stream_pair({**self.raw, "ffmpeg_protocols": bad})
+            self.assertIsNone(refused, bad)
+            self.assertTrue(any("ffmpeg_protocols" in item for item in errors), bad)
+
     def test_two_rtsp_addresses_make_a_pair_and_credentials_are_refused(self):
         pair, errors = streams.parse_stream_pair({"analysis": "rtsp://10.0.0.2/sub", "record": "rtsp://10.0.0.2/main"})
         self.assertEqual(errors, [])

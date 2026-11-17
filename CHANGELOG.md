@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The protocols ffmpeg may open can be set in the file of a camera:** the streams of a camera take an optional `ffmpeg_protocols` (for example `file,rtsp,rtsps,tcp,udp,tls,rtp,crypto`); it limits what ffmpeg can open both for the analysis stream and for the recording. Without it nothing changes.
+
 - **The delivery can send a stable identifier with every event:** `event_id` (true or false, false by default) in the `delivery` settings adds an `event_id` made from a hash of the event itself, so a retry of the same event carries the same one and a server that takes the field records it once. It is off by default because a server that does not know the field refuses the event. Tests.
 
 - **The model of a detector can be pinned by its hash:** an optional `sha256` in the settings of the ONNX detector and of the TensorRT detector (64 hexadecimal digits) makes the detector refuse, before anything opens it, a model or engine file whose SHA-256 differs; an engine is code that runs when it is loaded. Without it nothing changes. Tests for the same file, another file, a missing file and the settings.
