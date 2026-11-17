@@ -10,6 +10,7 @@ event is counted and, unless `retries` says otherwise (0 by default), not sent a
 """
 from __future__ import annotations
 
+import hashlib
 import ipaddress
 import json
 import os
@@ -35,6 +36,7 @@ DELIVERY_EXAMPLE: dict[str, Any] = {
     "timeout_s": 5,
     "retries": 0,
     "retry_backoff_s": 1,
+    "event_id": False,
 }
 _TOKEN = re.compile(r"^[A-Za-z0-9._~+/=-]{24,200}$")
 
@@ -52,6 +54,8 @@ class DeliverySettings:
     timeout_s: int = 5
     retries: int = 0
     retry_backoff_s: int = 1
+    #: Sends a stable `event_id` with every event (a hash of the event itself, so a retry carries the same one) that a server which knows the field uses to drop a repeat. Off by default: a server that does not know the field refuses the event.
+    event_id: bool = False
 
 
 def _loopback(host: str) -> bool:
@@ -121,9 +125,13 @@ def parse_delivery_settings(raw: object) -> tuple[DeliverySettings | None, list[
     if not _whole(backoff) or not 0 <= backoff <= 30:
         errors.append("delivery.retry_backoff_s must be a whole number of seconds from 0 to 30")
         backoff = DELIVERY_EXAMPLE["retry_backoff_s"]
+    event_id = raw.get("event_id", DELIVERY_EXAMPLE["event_id"])
+    if not isinstance(event_id, bool):
+        errors.append("delivery.event_id must be true or false")
+        event_id = False
     if errors:
         return None, errors
-    return DeliverySettings(str(url).rstrip("/"), token_file, tuple(dict.fromkeys(kinds)), int(queue_max), int(timeout), int(retries), int(backoff)), []
+    return DeliverySettings(str(url).rstrip("/"), token_file, tuple(dict.fromkeys(kinds)), int(queue_max), int(timeout), int(retries), int(backoff), event_id), []
 
 
 def load_delivery_token(settings: DeliverySettings, environ: dict[str, str] | None = None) -> str:
@@ -206,6 +214,8 @@ class EventDeliverer:
 
     def _attempt(self, event: dict) -> int:
         try:
+            if self.settings.event_id and "event_id" not in event:
+                event = {**event, "event_id": hashlib.sha256(json.dumps(event, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:32]}
             body = json.dumps(event, separators=(",", ":")).encode("utf-8")
             return int(self._post(self.settings.url + DELIVERY_PATH, body, self._token, self.settings.timeout_s))
         except Exception:   # noqa: BLE001 - a delivery fault never reaches the detections

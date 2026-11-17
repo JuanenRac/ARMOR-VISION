@@ -215,3 +215,26 @@ class Retrying(unittest.TestCase):
         deliverer.close()
         self.assertEqual(deliverer.counters()["dropped"], 1)
         self.assertIsNone(list(deliverer._queue.queue)[-1])
+
+
+class StableId(unittest.TestCase):
+    def test_off_by_default_and_the_body_is_untouched(self):
+        recorder = Recorder()
+        EventDeliverer(settings(), TOKEN, post=recorder, start=False).deliver_one({"type": "zone_enter", "track_id": 1})
+        self.assertNotIn("event_id", recorder.calls[0][1])
+
+    def test_a_retry_carries_the_same_identifier_and_another_event_another_one(self):
+        recorder = Recorder(status=503)
+        deliverer = EventDeliverer(settings(event_id=True, retries=1, retry_backoff_s=0), TOKEN, post=recorder, start=False, sleep=lambda _s: None)
+        deliverer.deliver_one({"type": "dwell", "track_id": 1, "timestamp_ms": 10})
+        deliverer.deliver_one({"type": "dwell", "track_id": 2, "timestamp_ms": 10})
+        ids = [call[1]["event_id"] for call in recorder.calls]
+        self.assertEqual(ids[0], ids[1])
+        self.assertEqual(ids[2], ids[3])
+        self.assertNotEqual(ids[0], ids[2])
+        self.assertRegex(ids[0], r"^[0-9a-f]{32}$")
+
+    def test_the_setting_is_a_boolean(self):
+        raw = copy.deepcopy(DELIVERY_EXAMPLE)
+        raw["event_id"] = "yes"
+        self.assertIsNone(parse_delivery_settings(raw)[0])
