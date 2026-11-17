@@ -5,7 +5,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D). GPL-3.0-or-later.
 It is OFF unless the service settings carry a `delivery` object (the default is null: nothing leaves the machine). The token is read from the file the settings name or from
 `ARMOR_VISION_DELIVERY_TOKEN`, never from the settings file itself. The address must be https, or http on the loopback address (a token is never sent in clear over a network).
 A delivery never holds up a detection: the events go to a bounded queue (the oldest is dropped when it is full and counted) and one daemon thread sends them. A refused or failed
-event is counted and not retried forever: the server is the one that decides what is worth an alarm, this only tells it what the engine saw. Only the event the engine made is sent
+event is counted and, unless `retries` says otherwise (0 by default), not sent again: the server is the one that decides what is worth an alarm, this only tells it what the engine saw. Only the event the engine made is sent
 (no picture, no box). Whether the people the alarms go to are told is the `notify` flag of the event, set by the engine from the profile of the arming mode.
 """
 from __future__ import annotations
@@ -16,6 +16,7 @@ import os
 import queue
 import re
 import threading
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -32,6 +33,8 @@ DELIVERY_EXAMPLE: dict[str, Any] = {
     "kinds": ["zone_enter", "dwell", "loiter"],
     "queue_max": 256,
     "timeout_s": 5,
+    "retries": 0,
+    "retry_backoff_s": 1,
 }
 _TOKEN = re.compile(r"^[A-Za-z0-9._~+/=-]{24,200}$")
 
@@ -47,6 +50,8 @@ class DeliverySettings:
     kinds: tuple[str, ...] = ("zone_enter", "dwell", "loiter")
     queue_max: int = 256
     timeout_s: int = 5
+    retries: int = 0
+    retry_backoff_s: int = 1
 
 
 def _loopback(host: str) -> bool:
@@ -108,9 +113,17 @@ def parse_delivery_settings(raw: object) -> tuple[DeliverySettings | None, list[
     if not _whole(timeout) or not 1 <= timeout <= 60:
         errors.append("delivery.timeout_s must be a whole number of seconds from 1 to 60")
         timeout = DELIVERY_EXAMPLE["timeout_s"]
+    retries = raw.get("retries", DELIVERY_EXAMPLE["retries"])
+    if not _whole(retries) or not 0 <= retries <= 5:
+        errors.append("delivery.retries must be a whole number from 0 to 5 (0 sends each event once)")
+        retries = DELIVERY_EXAMPLE["retries"]
+    backoff = raw.get("retry_backoff_s", DELIVERY_EXAMPLE["retry_backoff_s"])
+    if not _whole(backoff) or not 0 <= backoff <= 30:
+        errors.append("delivery.retry_backoff_s must be a whole number of seconds from 0 to 30")
+        backoff = DELIVERY_EXAMPLE["retry_backoff_s"]
     if errors:
         return None, errors
-    return DeliverySettings(str(url).rstrip("/"), token_file, tuple(dict.fromkeys(kinds)), int(queue_max), int(timeout)), []
+    return DeliverySettings(str(url).rstrip("/"), token_file, tuple(dict.fromkeys(kinds)), int(queue_max), int(timeout), int(retries), int(backoff)), []
 
 
 def load_delivery_token(settings: DeliverySettings, environ: dict[str, str] | None = None) -> str:
@@ -155,15 +168,17 @@ def http_post(url: str, body: bytes, token: str, timeout: int) -> int:
 class EventDeliverer:
     """A bounded queue and one thread that posts the events of the chosen kinds. `offer` never blocks and never raises."""
 
-    def __init__(self, settings: DeliverySettings, token: str, post: Post = http_post, start: bool = True) -> None:
+    def __init__(self, settings: DeliverySettings, token: str, post: Post = http_post, start: bool = True, sleep: Callable[[float], None] = time.sleep) -> None:
         self.settings = settings
         self._token = token
         self._post = post
+        self._sleep = sleep
         self._queue: queue.Queue[dict | None] = queue.Queue(maxsize=settings.queue_max)
         self._lock = threading.Lock()
         self.sent = 0
         self.failed = 0
         self.dropped = 0
+        self.retried = 0
         self._thread: threading.Thread | None = None
         if start:
             self._thread = threading.Thread(target=self._run, name="armor-vision-delivery", daemon=True)
@@ -189,12 +204,23 @@ class EventDeliverer:
                         pass
         return taken
 
-    def deliver_one(self, event: dict) -> bool:
+    def _attempt(self, event: dict) -> int:
         try:
             body = json.dumps(event, separators=(",", ":")).encode("utf-8")
-            status = self._post(self.settings.url + DELIVERY_PATH, body, self._token, self.settings.timeout_s)
+            return int(self._post(self.settings.url + DELIVERY_PATH, body, self._token, self.settings.timeout_s))
         except Exception:   # noqa: BLE001 - a delivery fault never reaches the detections
-            status = 0
+            return 0
+
+    def deliver_one(self, event: dict) -> bool:
+        """One event, sent again (at most `retries` times, a little later each time) only when the server could not be reached or answered with a server error; a refusal (4xx) is final."""
+        status = self._attempt(event)
+        for attempt in range(1, self.settings.retries + 1):
+            if status != 0 and status < 500:
+                break
+            self._sleep(self.settings.retry_backoff_s * attempt)
+            with self._lock:
+                self.retried += 1
+            status = self._attempt(event)
         ok = 200 <= status < 300
         with self._lock:
             if ok:
@@ -221,12 +247,24 @@ class EventDeliverer:
             self.deliver_one(event)
 
     def close(self) -> None:
-        if self._thread is not None:
+        """Tells the thread to stop; when the queue is full the oldest waiting event goes (counted in `dropped`) so that the stop always gets in."""
+        if self._thread is None:
+            return
+        while True:
             try:
                 self._queue.put_nowait(None)
+                return
             except queue.Full:
-                pass
+                try:
+                    if self._queue.get_nowait() is not None:
+                        with self._lock:
+                            self.dropped += 1
+                except queue.Empty:
+                    pass
 
     def counters(self) -> dict[str, int]:
         with self._lock:
-            return {"sent": self.sent, "failed": self.failed, "dropped": self.dropped}
+            counts = {"sent": self.sent, "failed": self.failed, "dropped": self.dropped}
+            if self.settings.retries:
+                counts["retried"] = self.retried
+            return counts

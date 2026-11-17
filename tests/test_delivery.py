@@ -163,3 +163,55 @@ def _inside(zone):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Retrying(unittest.TestCase):
+    def deliverer(self, statuses, **changes):
+        waits = []
+        calls = []
+
+        def post(url, body, token, timeout):
+            calls.append(url)
+            return statuses[min(len(calls), len(statuses)) - 1]
+
+        return EventDeliverer(settings(**changes), TOKEN, post=post, start=False, sleep=waits.append), calls, waits
+
+    def test_nothing_changes_by_default(self):
+        deliverer, calls, waits = self.deliverer([503])
+        self.assertFalse(deliverer.deliver_one({"type": "zone_enter"}))
+        self.assertEqual((len(calls), waits), (1, []))
+        self.assertEqual(deliverer.counters(), {"sent": 0, "failed": 1, "dropped": 0})
+
+    def test_a_server_that_fails_is_asked_again_a_little_later_each_time(self):
+        deliverer, calls, waits = self.deliverer([0, 503, 202], retries=3, retry_backoff_s=2)
+        self.assertTrue(deliverer.deliver_one({"type": "loiter"}))
+        self.assertEqual((len(calls), waits), (3, [2, 4]))
+        self.assertEqual(deliverer.counters(), {"sent": 1, "failed": 0, "dropped": 0, "retried": 2})
+
+    def test_the_retries_are_bounded_and_the_failure_is_counted_once(self):
+        deliverer, calls, _waits = self.deliverer([500], retries=2)
+        self.assertFalse(deliverer.deliver_one({"type": "dwell"}))
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(deliverer.counters(), {"sent": 0, "failed": 1, "dropped": 0, "retried": 2})
+
+    def test_a_refusal_is_never_sent_again(self):
+        for status in (400, 401, 403, 409):
+            deliverer, calls, waits = self.deliverer([status], retries=4)
+            self.assertFalse(deliverer.deliver_one({"type": "zone_enter"}))
+            self.assertEqual((len(calls), waits), (1, []), status)
+
+    def test_the_settings_of_the_retries_are_checked(self):
+        for bad in ({"retries": 6}, {"retries": -1}, {"retries": True}, {"retries": "2"}, {"retry_backoff_s": 31}, {"retry_backoff_s": 1.5}):
+            raw = copy.deepcopy(DELIVERY_EXAMPLE)
+            raw.update(bad)
+            parsed, problems = parse_delivery_settings(raw)
+            self.assertIsNone(parsed, bad)
+            self.assertTrue(problems, bad)
+
+    def test_the_stop_gets_into_a_full_queue(self):
+        deliverer = EventDeliverer(settings(queue_max=2), TOKEN, post=Recorder(), start=False)
+        deliverer.offer([{"type": "zone_enter"}, {"type": "zone_enter"}])
+        deliverer._thread = object()   # type: ignore[assignment] - pretend a thread is running, so close() has to queue the stop
+        deliverer.close()
+        self.assertEqual(deliverer.counters()["dropped"], 1)
+        self.assertIsNone(list(deliverer._queue.queue)[-1])
