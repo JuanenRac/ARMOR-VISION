@@ -17,9 +17,9 @@ from pathlib import Path
 from typing import Any
 
 from .motion import Frame
-from .video_source import MAX_FPS, MAX_HEIGHT, MAX_WIDTH, VideoSourceError, check_source, read_frames
+from .video_source import MAX_FPS, MAX_HEIGHT, MAX_WIDTH, VideoSourceError, check_protocols, check_source, read_frames
 
-PAIR_FIELDS = {"analysis", "record", "width", "height", "fps", "segment_seconds", "transport"}
+PAIR_FIELDS = {"analysis", "record", "width", "height", "fps", "segment_seconds", "transport", "ffmpeg_protocols"}
 MIN_SEGMENT_SECONDS, MAX_SEGMENT_SECONDS = 2, 3600
 SEGMENT_NAME = "%Y%m%d-%H%M%S.mkv"
 
@@ -33,6 +33,7 @@ class StreamPair:
     fps: float = 5.0
     segment_seconds: int = 10      # length of each recorded file: the unit of the pre and post capture
     transport: str = "tcp"
+    ffmpeg_protocols: str | None = None   # the protocols ffmpeg may open for both streams (`-protocol_whitelist`); None adds nothing
 
 
 def parse_stream_pair(raw: Any) -> tuple[StreamPair | None, list[str]]:
@@ -62,13 +63,20 @@ def parse_stream_pair(raw: Any) -> tuple[StreamPair | None, list[str]]:
     transport = raw.get("transport", "tcp")
     if transport not in ("tcp", "udp"):
         errors.append("transport is tcp or udp")
+    protocols: str | None = None
+    if raw.get("ffmpeg_protocols") is not None:
+        try:
+            protocols = check_protocols(raw["ffmpeg_protocols"])
+        except VideoSourceError as error:
+            errors.append(f"ffmpeg_protocols: {error}")
     if errors:
         return None, errors
-    return StreamPair(sources["analysis"], sources["record"], values["width"], values["height"], float(fps), values["segment_seconds"], transport), []
+    return StreamPair(sources["analysis"], sources["record"], values["width"], values["height"], float(fps), values["segment_seconds"], transport, protocols), []
 
 
 def analysis_frames(pair: StreamPair, **options: Any) -> Iterator[Frame]:
     """The grey frames of the sub stream (same options as `video_source.read_frames`)."""
+    options.setdefault("protocols", pair.ffmpeg_protocols)
     return read_frames(pair.analysis, pair.width, pair.height, pair.fps, transport=pair.transport, **options)
 
 
@@ -80,6 +88,8 @@ def record_command(pair: StreamPair, out_dir: str, ffmpeg: str = "ffmpeg") -> li
     command = [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error"]
     if pair.record.lower().startswith(("rtsp://", "rtsps://")):
         command += ["-rtsp_transport", pair.transport]
+    if pair.ffmpeg_protocols is not None:
+        command += ["-protocol_whitelist", pair.ffmpeg_protocols]
     return command + ["-i", pair.record, "-map", "0:v", "-c", "copy", "-f", "segment", "-segment_time", str(pair.segment_seconds), "-reset_timestamps", "1",
                       "-strftime", "1", str(Path(folder) / SEGMENT_NAME)]
 

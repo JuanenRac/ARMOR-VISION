@@ -27,6 +27,13 @@ SCHEMES = ("rtsp", "rtsps")
 _PROTOCOLS = re.compile(r"^[a-z0-9]{2,16}(,[a-z0-9]{2,16}){0,15}$")
 
 
+def check_protocols(value: object) -> str:
+    """The list of protocols ffmpeg may open, checked (a VideoSourceError for anything else)."""
+    if not isinstance(value, str) or not _PROTOCOLS.match(value):
+        raise VideoSourceError("protocols is a list of protocol names (letters and digits) separated by commas")
+    return value
+
+
 class VideoSourceError(ValueError):
     """The stream cannot be opened or stopped delivering pictures."""
 
@@ -58,8 +65,8 @@ def ffmpeg_command(source: str, width: int, height: int, fps: float, ffmpeg: str
         raise VideoSourceError(f"fps is a number above 0 and up to {MAX_FPS:g}")
     if transport not in ("tcp", "udp"):
         raise VideoSourceError("the RTSP transport is tcp or udp")
-    if protocols is not None and (not isinstance(protocols, str) or not _PROTOCOLS.match(protocols)):
-        raise VideoSourceError("protocols is a list of protocol names (letters and digits) separated by commas")
+    if protocols is not None:
+        check_protocols(protocols)
     checked = check_source(source)
     command = [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error"]
     if urlparse(checked).scheme.lower() in SCHEMES:
