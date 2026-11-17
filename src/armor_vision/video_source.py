@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import queue
+import re
 import subprocess
 import threading
 from collections.abc import Iterator, Sequence
@@ -22,6 +23,8 @@ from .motion import Frame
 MAX_WIDTH, MAX_HEIGHT = 1920, 1080
 MAX_FPS = 30.0
 SCHEMES = ("rtsp", "rtsps")
+#: The list of protocols ffmpeg may open (`-protocol_whitelist`): words of letters and digits separated by commas. A value such as "file,rtsp,rtsps,tcp,udp,tls,rtp,crypto" keeps a playlist file from sending ffmpeg to other addresses.
+_PROTOCOLS = re.compile(r"^[a-z0-9]{2,16}(,[a-z0-9]{2,16}){0,15}$")
 
 
 class VideoSourceError(ValueError):
@@ -46,8 +49,8 @@ def check_source(source: str) -> str:
     return str(Path(source).resolve())
 
 
-def ffmpeg_command(source: str, width: int, height: int, fps: float, ffmpeg: str = "ffmpeg", transport: str = "tcp") -> list[str]:
-    """The ffmpeg command line that writes `fps` grey pictures of `width` x `height` per second on its standard output."""
+def ffmpeg_command(source: str, width: int, height: int, fps: float, ffmpeg: str = "ffmpeg", transport: str = "tcp", protocols: str | None = None) -> list[str]:
+    """The ffmpeg command line that writes `fps` grey pictures of `width` x `height` per second on its standard output. With `protocols` (None adds nothing, as before) ffmpeg may open only those protocols."""
     for name, value, high in (("width", width, MAX_WIDTH), ("height", height, MAX_HEIGHT)):
         if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= high:
             raise VideoSourceError(f"{name} is a whole number from 1 to {high}")
@@ -55,15 +58,19 @@ def ffmpeg_command(source: str, width: int, height: int, fps: float, ffmpeg: str
         raise VideoSourceError(f"fps is a number above 0 and up to {MAX_FPS:g}")
     if transport not in ("tcp", "udp"):
         raise VideoSourceError("the RTSP transport is tcp or udp")
+    if protocols is not None and (not isinstance(protocols, str) or not _PROTOCOLS.match(protocols)):
+        raise VideoSourceError("protocols is a list of protocol names (letters and digits) separated by commas")
     checked = check_source(source)
     command = [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error"]
     if urlparse(checked).scheme.lower() in SCHEMES:
         command += ["-rtsp_transport", transport]
+    if protocols is not None:
+        command += ["-protocol_whitelist", protocols]
     return command + ["-i", checked, "-an", "-vf", f"fps={fps:g},scale={width}:{height},format=gray", "-f", "rawvideo", "-pix_fmt", "gray", "pipe:1"]
 
 
 def read_frames(source: str, width: int = 320, height: int = 180, fps: float = 5.0, max_frames: int | None = None, idle_timeout: float = 20.0,
-                ffmpeg: str = "ffmpeg", transport: str = "tcp", command: Sequence[str] | None = None) -> Iterator[Frame]:
+                ffmpeg: str = "ffmpeg", transport: str = "tcp", command: Sequence[str] | None = None, protocols: str | None = None) -> Iterator[Frame]:
     """Yields grey frames until the stream ends, `max_frames` have been read or no picture arrives for `idle_timeout` seconds (then VideoSourceError).
 
     `command` replaces the ffmpeg command line (tests use a program that writes known pictures); it must write the same raw grey pictures."""
@@ -71,7 +78,7 @@ def read_frames(source: str, width: int = 320, height: int = 180, fps: float = 5
         raise VideoSourceError("max_frames is a whole number above 0")
     if not isinstance(idle_timeout, (int, float)) or isinstance(idle_timeout, bool) or idle_timeout <= 0:
         raise VideoSourceError("idle_timeout is a number of seconds above 0")
-    line = list(command) if command is not None else ffmpeg_command(source, width, height, fps, ffmpeg, transport)
+    line = list(command) if command is not None else ffmpeg_command(source, width, height, fps, ffmpeg, transport, protocols)
     size = width * height
     try:
         process = subprocess.Popen(line, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=dict(os.environ))  # noqa: S603

@@ -52,6 +52,16 @@ class CommandTests(unittest.TestCase):
     def test_a_file_has_no_rtsp_transport(self):
         self.assertNotIn("-rtsp_transport", vs.ffmpeg_command(str(ROOT / "pyproject.toml"), 64, 36, 2))
 
+    def test_the_protocols_ffmpeg_may_open_can_be_listed(self):
+        plain = vs.ffmpeg_command("rtsp://h/s", 320, 180, 5)
+        self.assertNotIn("-protocol_whitelist", plain)                       # nothing is added unless asked for
+        listed = vs.ffmpeg_command("rtsp://h/s", 320, 180, 5, protocols="file,rtsp,rtsps,tcp,udp,tls,rtp,crypto")
+        self.assertEqual(listed[listed.index("-protocol_whitelist") + 1], "file,rtsp,rtsps,tcp,udp,tls,rtp,crypto")
+        self.assertLess(listed.index("-protocol_whitelist"), listed.index("-i"))   # it must come before the input it limits
+        for bad in ("", "file;rm", "file, rtsp", "FILE", "a", ",file", "file,", "http://x", 5):
+            with self.subTest(bad=bad), self.assertRaises(vs.VideoSourceError):
+                vs.ffmpeg_command("rtsp://h/s", 320, 180, 5, protocols=bad)
+
     def test_sizes_and_rates_outside_the_limits_are_refused(self):
         for args in ((0, 10, 5), (10, 0, 5), (vs.MAX_WIDTH + 1, 10, 5), (10, 10, 0), (10, 10, vs.MAX_FPS + 1), (True, 10, 5), (10, 10, float("nan"))):
             with self.subTest(args=args), self.assertRaises(vs.VideoSourceError):
