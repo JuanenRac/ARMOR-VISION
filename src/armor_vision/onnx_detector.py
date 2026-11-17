@@ -12,7 +12,9 @@ still merged here, because a model exported without it is a common mistake.
 """
 from __future__ import annotations
 
+import hashlib
 import math
+import re
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -21,7 +23,7 @@ from .geometry import Box, iou
 from .motion import Frame
 from .tracker import Detection
 
-SETTINGS_FIELDS = {"model", "labels", "input_size", "min_confidence", "merge_iou", "max_detections", "output_format", "input_range"}
+SETTINGS_FIELDS = {"model", "labels", "input_size", "min_confidence", "merge_iou", "max_detections", "output_format", "input_range", "sha256"}
 MAX_INPUT_SIZE = 2048
 OUTPUT_FORMATS = ("rows", "yolox")     # rows: [N, 6] with the non-maximum suppression inside; yolox: the raw [1, N, 5 + classes] of a YOLOX export (decoded and merged here)
 INPUT_RANGES = ("unit", "byte")        # unit: pixels 0..1; byte: pixels 0..255 as YOLOX takes them
@@ -46,6 +48,26 @@ class OnnxSettings:
     max_detections: int = 50
     output_format: str = "rows"
     input_range: str = "unit"
+    #: The SHA-256 (hex) the model file must have, or None (the default) to open whatever file the settings name.
+    sha256: str | None = None
+
+
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
+
+def check_model_sha256(path: str, expected: str | None) -> None:
+    """Does nothing without an expected hash; with one, a model file whose SHA-256 differs (or that cannot be read) is DetectorUnavailable, before anything opens it."""
+    if expected is None:
+        return
+    digest = hashlib.sha256()
+    try:
+        with open(path, "rb") as handle:
+            for block in iter(lambda: handle.read(1 << 20), b""):
+                digest.update(block)
+    except OSError as exc:
+        raise DetectorUnavailable(f"cannot read the model {path} to check its hash: {exc}") from exc
+    if digest.hexdigest() != expected:
+        raise DetectorUnavailable(f"the model {path} is not the file the settings expect (its SHA-256 differs)")
 
 
 def parse_onnx_settings(raw: Any) -> tuple[OnnxSettings | None, list[str]]:
@@ -72,6 +94,9 @@ def parse_onnx_settings(raw: Any) -> tuple[OnnxSettings | None, list[str]]:
     limit = raw.get("max_detections", 50)
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 1000:
         errors.append("max_detections must be a whole number from 1 to 1000")
+    sha256 = raw.get("sha256")
+    if sha256 is not None and (not isinstance(sha256, str) or not _SHA256.match(sha256.lower())):
+        errors.append("sha256 must be null or 64 hexadecimal digits")
     output_format, input_range = raw.get("output_format", "rows"), raw.get("input_range", "unit")
     if output_format not in OUTPUT_FORMATS:
         errors.append(f"output_format must be one of {', '.join(OUTPUT_FORMATS)}")
@@ -81,7 +106,7 @@ def parse_onnx_settings(raw: Any) -> tuple[OnnxSettings | None, list[str]]:
         errors.append(f"input_size must be a multiple of {max(YOLOX_STRIDES)} for a YOLOX model")
     if errors:
         return None, errors
-    return OnnxSettings(str(model), tuple(labels or ()), size, float(values["min_confidence"]), float(values["merge_iou"]), limit, str(output_format), str(input_range)), []
+    return OnnxSettings(str(model), tuple(labels or ()), size, float(values["min_confidence"]), float(values["merge_iou"]), limit, str(output_format), str(input_range), sha256.lower() if isinstance(sha256, str) else None), []
 
 
 def yolox_grid(size: int) -> list[tuple[int, int, int]]:
@@ -167,6 +192,7 @@ class OnnxDetector:
         self.settings = settings
         self._to_tensor = to_tensor
         if session is None:
+            check_model_sha256(settings.model, settings.sha256)
             try:
                 import onnxruntime  # type: ignore[import-not-found,import-untyped,unused-ignore]
             except ImportError as exc:
