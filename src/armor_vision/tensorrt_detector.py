@@ -16,11 +16,11 @@ from typing import Any, Callable, Protocol
 from .detector import DetectorUnavailable
 from .geometry import Box
 from .motion import Frame
-from .onnx_detector import OnnxSettings, decode, parse_onnx_settings
+from .onnx_detector import OnnxSettings, check_model_sha256, decode, parse_onnx_settings
 from .tracker import Detection
 
 EVIDENCE_SIMULATOR = "simulator"
-SETTINGS_FIELDS = {"engine", "labels", "input_size", "min_confidence", "merge_iou", "max_detections"}
+SETTINGS_FIELDS = {"engine", "labels", "input_size", "min_confidence", "merge_iou", "max_detections", "sha256"}
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,7 @@ class TensorrtSettings:
     min_confidence: float = 0.4
     merge_iou: float = 0.5
     max_detections: int = 50
+    sha256: str | None = None      # the SHA-256 (hex) the engine file must have; None (the default) opens whatever file is named
 
     def decoding(self) -> OnnxSettings:
         """The same decoding rules as the ONNX detector (confidence filter, classes, same-class merge, limit)."""
@@ -48,7 +49,7 @@ def parse_tensorrt_settings(raw: Any) -> tuple[TensorrtSettings | None, list[str
     errors = [e.replace("model is required (the path of the .onnx file)", "engine is required (the path of the serialized TensorRT engine)") for e in errors]
     if parsed is None:
         return None, errors
-    return TensorrtSettings(parsed.model, parsed.labels, parsed.input_size, parsed.min_confidence, parsed.merge_iou, parsed.max_detections), []
+    return TensorrtSettings(parsed.model, parsed.labels, parsed.input_size, parsed.min_confidence, parsed.merge_iou, parsed.max_detections, parsed.sha256), []
 
 
 class Engine(Protocol):
@@ -120,6 +121,8 @@ class TensorrtDetector:
     def __init__(self, settings: TensorrtSettings, engine: Engine | None = None) -> None:
         self.settings = settings
         self._decoding = settings.decoding()
+        if engine is None:
+            check_model_sha256(settings.engine, settings.sha256)
         self._engine = engine if engine is not None else TensorrtEngine(settings.engine)
         self.calls = 0
 

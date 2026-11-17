@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The model of a detector can be pinned by its hash:** an optional `sha256` in the settings of the ONNX detector and of the TensorRT detector (64 hexadecimal digits) makes the detector refuse, before anything opens it, a model or engine file whose SHA-256 differs; an engine is code that runs when it is loaded. Without it nothing changes. Tests for the same file, another file, a missing file and the settings.
+
 - **The protocols ffmpeg may open can be limited:** `ffmpeg_command` and `read_frames` take an optional `protocols` list (names of letters and digits separated by commas, such as `file,rtsp,rtsps,tcp,udp,tls,rtp,crypto`) that is passed to ffmpeg as `-protocol_whitelist` before the input, so a playlist file cannot make it open other addresses. Nothing is added when it is not given, which is what happens today. Tests for the command and for the values that are refused.
 
 - **The delivery of events can try again when the server does not answer:** `retries` (0 to 5, 0 by default, which is what happens today) and `retry_backoff_s` (0 to 30 seconds, 1) in the `delivery` settings. An event is sent again, a little later each time, only when the server could not be reached or answered with a server error; a refusal (4xx) is never sent again. `GET /health` shows `retried` once retries are on. Stopping the delivery now always gets into a full queue (the oldest waiting event goes and is counted). Tests with a double for the post and for the wait.
