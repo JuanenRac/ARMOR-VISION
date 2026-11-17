@@ -132,6 +132,8 @@ En bibliothèque : `parse_config`, `Pipeline.process_detections` et `process_fra
 | `masks[]` | Polygones où le mouvement est ignoré ; les détections dont le centre est dedans sont écartées |
 | `profiles` | Quelles zones sont surveillées dans chaque mode d'armement (`away`, `home`, ...) |
 | `configuration d'activité (fichier à part)` | `enabled` (par défaut `false`), `heatmap` (`cols`, `rows`, `window_seconds`, `half_life_seconds`, `slices`, `max_cells` jusqu'à 65536, `position`, `labels`) et `events` (`dwell_seconds`, `loiter_seconds`, `loiter_radius`, `lost_seconds`, `labels`, `lines[]` avec `id`, `a`, `b`, `sensitivity_floor` (`low`, `normal`, `high`)) ; la carte est normalisée comme poids divisé par le maximum |
+| `delivery` (configuration du service) | `retries` (0 à 5, 0 par défaut : au-delà de 0 un événement est renvoyé, un peu plus tard à chaque fois, quand le serveur était injoignable ou a répondu par une erreur de son côté, jamais après un refus), `retry_backoff_s` (0 à 30, 1 par défaut) et `event_id` (faux par défaut : un identifiant stable, le même à chaque nouvel essai) ; `/health` compte les répétitions sous `retried` quand les nouveaux essais sont actifs |
+| `ffmpeg_protocols` (paire de flux d'une caméra) et `sha256` (réglages du modèle ONNX) | `ffmpeg_protocols` est une liste, séparée par des virgules, de noms de protocoles que ffmpeg peut ouvrir pour les deux flux (`-protocol_whitelist` ; absente, elle n'ajoute rien) ; `sha256` vaut null ou 64 chiffres hexadécimaux, et un fichier de modèle au SHA-256 différent est refusé avant d'être ouvert |
 
 | Limite | Valeur |
 |---|---|

@@ -132,6 +132,8 @@ As a library: `parse_config`, `Pipeline.process_detections` and `process_frame`.
 | `masks[]` | Polygons where movement is ignored; detections whose centre is inside are dropped |
 | `profiles` | Which zones are watched in each arming mode (`away`, `home`, ...) |
 | `activity configuration (separate file)` | `enabled` (default `false`), `heatmap` (`cols`, `rows`, `window_seconds`, `half_life_seconds`, `slices`, `max_cells` up to 65536, `position`, `labels`) and `events` (`dwell_seconds`, `loiter_seconds`, `loiter_radius`, `lost_seconds`, `labels`, `lines[]` with `id`, `a`, `b`, `sensitivity_floor` (`low`, `normal`, `high`)); the heat map is normalised as weight divided by the maximum |
+| `delivery` (service configuration) | `retries` (0 to 5, default 0: more than 0 sends an event again, a little later each time, when the server could not be reached or answered with a server error, never after a refusal), `retry_backoff_s` (0 to 30, default 1) and `event_id` (default false: a stable id, the same on every retry); `/health` counts the repeats as `retried` when retries are on |
+| `ffmpeg_protocols` (stream pair of a camera) and `sha256` (ONNX model settings) | `ffmpeg_protocols` is a comma-separated list of protocol names ffmpeg may open for both streams (`-protocol_whitelist`; absent adds nothing); `sha256` is null or 64 hexadecimal digits, and a model file whose SHA-256 differs is refused before anything opens it |
 
 | Limit | Value |
 |---|---|
