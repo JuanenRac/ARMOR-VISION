@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The shared tools of the manifest and the status lights gain an opt-in strict check of the evidence:** `sync_manifests.py` and `status_lights.py` take `--strict-evidence` (off by default; `ARMOR_STRICT_EVIDENCE=1` switches it on for `armor_ci_validate.py`).
 - **The protocols ffmpeg may open can be set in the file of a camera:** the streams of a camera take an optional `ffmpeg_protocols` (for example `file,rtsp,rtsps,tcp,udp,tls,rtp,crypto`); it limits what ffmpeg can open both for the analysis stream and for the recording. Without it nothing changes.
 
 - **The delivery can send a stable identifier with every event:** `event_id` (true or false, false by default) in the `delivery` settings adds an `event_id` made from a hash of the event itself, so a retry of the same event carries the same one and a server that takes the field records it once. It is off by default because a server that does not know the field refuses the event. Tests.
