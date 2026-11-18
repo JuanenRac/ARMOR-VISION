@@ -79,10 +79,10 @@
 <text x="58" y="560" font-family="'Segoe UI','Noto Sans','Noto Sans CJK SC','Microsoft YaHei','Yu Gothic','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#C9D1D9" text-anchor="start">tested part</text>
 <rect x="160.4" y="548" width="14" height="14" rx="3" fill="none" stroke="#00E5FF" stroke-width="2"/>
 <text x="182.4" y="560" font-family="'Segoe UI','Noto Sans','Noto Sans CJK SC','Microsoft YaHei','Yu Gothic','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#C9D1D9" text-anchor="start">contract, signed or server part</text>
-<rect x="399.9999999999999" y="548" width="14" height="14" rx="3" fill="none" stroke="#FFB020" stroke-width="2" stroke-dasharray="3 2"/>
+<rect x="400.0" y="548" width="14" height="14" rx="3" fill="none" stroke="#FFB020" stroke-width="2" stroke-dasharray="3 2"/>
 <text x="422" y="560" font-family="'Segoe UI','Noto Sans','Noto Sans CJK SC','Microsoft YaHei','Yu Gothic','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#C9D1D9" text-anchor="start">chosen by the installation, never tried for real</text>
-<rect x="726.7199999999998" y="548" width="14" height="14" rx="3" fill="#FF6B6B" opacity="0.7"/>
+<rect x="726.72" y="548" width="14" height="14" rx="3" fill="#FF6B6B" opacity="0.7"/>
 <text x="748.72" y="560" font-family="'Segoe UI','Noto Sans','Noto Sans CJK SC','Microsoft YaHei','Yu Gothic','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#C9D1D9" text-anchor="start">has not run on real hardware</text>
-<rect x="950.7199999999997" y="548" width="14" height="14" rx="3" fill="none" stroke="#30363D" stroke-width="2"/>
+<rect x="950.72" y="548" width="14" height="14" rx="3" fill="none" stroke="#30363D" stroke-width="2"/>
 <text x="972.72" y="560" font-family="'Segoe UI','Noto Sans','Noto Sans CJK SC','Microsoft YaHei','Yu Gothic','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#C9D1D9" text-anchor="start">outside this repository</text>
 </svg>
