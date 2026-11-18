@@ -60,14 +60,24 @@
         {
           "name": "detector.py",
           "desc": {
-            "en": "scripted detections; the real model is not written",
-            "es": "detecciones guionizadas; el modelo real no está escrito",
-            "de": "geskriptete Erkennungen; das echte Modell fehlt",
-            "fr": "détections scriptées ; le vrai modèle n'est pas écrit",
-            "it": "rilevamenti scriptati; il modello reale non c'è",
-            "ja": "スクリプト化した検出。実モデルは未実装",
-            "zh": "脚本化检测；真实模型尚未编写",
-            "pt": "deteções guionizadas; o modelo real não está escrito"
+            "en": "scripted, ONNX and TensorRT detectors",
+            "es": "detectores guionizado, ONNX y TensorRT",
+            "fr": "détecteurs scripté, ONNX et TensorRT",
+            "it": "rilevatori scriptato, ONNX e TensorRT",
+            "de": "geskriptete, ONNX- und TensorRT-Detektoren",
+            "zh": "脚本化、ONNX 和 TensorRT 检测器",
+            "ja": "スクリプト化・ONNX・TensorRT の検知器",
+            "pt": "detetores com guião, ONNX e TensorRT"
+          },
+          "tree_desc": {
+            "en": "scripted, ONNX and TensorRT detectors (simulated engine off the Jetson)",
+            "es": "detectores guionizado, ONNX y TensorRT (motor simulado fuera de la Jetson)",
+            "fr": "détecteurs scripté, ONNX et TensorRT (moteur simulé hors Jetson)",
+            "it": "rilevatori scriptato, ONNX e TensorRT (motore simulato fuori dal Jetson)",
+            "de": "geskriptete, ONNX- und TensorRT-Detektoren (simulierte Engine außerhalb des Jetson)",
+            "zh": "脚本化、ONNX 和 TensorRT 检测器（非 Jetson 上用模拟引擎）",
+            "ja": "スクリプト化・ONNX・TensorRT の検知器（Jetson 以外では模擬エンジン）",
+            "pt": "detetores com guião, ONNX e TensorRT (motor simulado fora do Jetson)"
           }
         },
         {
@@ -94,6 +104,58 @@
             "ja": "ゾーンからイベントへ：armor.vision.event/v1",
             "zh": "从区域到事件：armor.vision.event/v1",
             "pt": "das zonas aos eventos: armor.vision.event/v1"
+          }
+        },
+        {
+          "name": "tensorrt_detector.py",
+          "desc": {
+            "en": "the TensorRT detector for the Jetson; a simulated engine",
+            "es": "el detector TensorRT para la Jetson; un motor simulado",
+            "fr": "le détecteur TensorRT pour le Jetson ; un moteur simulé",
+            "it": "il rilevatore TensorRT per il Jetson; un motore simulato",
+            "de": "der TensorRT-Detektor für den Jetson; eine simulierte Engine",
+            "zh": "Jetson 的 TensorRT 检测器；模拟引擎",
+            "ja": "Jetson 用の TensorRT 検知器。模擬エンジン",
+            "pt": "o detetor TensorRT para o Jetson; um motor simulado"
+          }
+        },
+        {
+          "name": "streams.py recording.py",
+          "desc": {
+            "en": "sub stream to analyse, main stream to record; clips and retention",
+            "es": "subcorriente para analizar, principal para grabar; clips y retención",
+            "fr": "sous-flux à analyser, flux principal à enregistrer ; clips et rétention",
+            "it": "sottoflusso da analizzare, flusso principale da registrare; clip e conservazione",
+            "de": "Substream zum Analysieren, Hauptstream zum Aufnehmen; Clips und Aufbewahrung",
+            "zh": "用于分析的子码流和用于录制的主码流；片段与保留",
+            "ja": "解析用サブストリームと録画用メインストリーム。クリップと保存期間",
+            "pt": "subcorrente a analisar, principal a gravar; clipes e retenção"
+          }
+        },
+        {
+          "name": "analytics.py schedule.py",
+          "desc": {
+            "en": "speed in a zone, left objects, PTZ follow; masks by hour",
+            "es": "velocidad en zona, objetos abandonados, seguimiento PTZ; máscaras por hora",
+            "fr": "vitesse dans une zone, objets abandonnés, suivi PTZ ; masques par heure",
+            "it": "velocità in una zona, oggetti abbandonati, tracciamento PTZ; maschere per ora",
+            "de": "Geschwindigkeit in einer Zone, zurückgelassene Objekte, PTZ-Verfolgung; Masken nach Uhrzeit",
+            "zh": "区域内速度、遗留物、PTZ 跟随；按时间的遮罩",
+            "ja": "ゾーン内の速度、置き去り物、PTZ 追従。時間帯別マスク",
+            "pt": "velocidade numa zona, objetos abandonados, seguimento PTZ; máscaras por hora"
+          }
+        },
+        {
+          "name": "phase2.py",
+          "desc": {
+            "en": "search by meaning, plates, faces: all off, with privacy notices",
+            "es": "búsqueda semántica, matrículas, caras: todo apagado, con avisos de privacidad",
+            "fr": "recherche sémantique, plaques, visages : tout éteint, avec avis de confidentialité",
+            "it": "ricerca semantica, targhe, volti: tutto spento, con avvisi sulla privacy",
+            "de": "semantische Suche, Kennzeichen, Gesichter: alles aus, mit Datenschutzhinweisen",
+            "zh": "语义搜索、车牌、人脸：默认全部关闭，附隐私提示",
+            "ja": "意味検索、ナンバープレート、顔：すべて既定でオフ、プライバシー通知付き",
+            "pt": "pesquisa semântica, matrículas, rostos: tudo desligado, com avisos de privacidade"
           }
         },
         {
@@ -159,6 +221,19 @@
             "ja": "ライブサービス：メモリ上のエンジン、POST /ingest と GET /heatmap",
             "zh": "实时服务：内存中的引擎、POST /ingest 与 GET /heatmap",
             "pt": "o serviço vivo: o motor em memória, POST /ingest e GET /heatmap"
+          }
+        },
+        {
+          "name": "delivery.py",
+          "desc": {
+            "en": "the delivery of events to the server (off by default)",
+            "es": "la entrega de eventos al servidor (apagada por defecto)",
+            "fr": "la remise des événements au serveur (éteinte par défaut)",
+            "it": "la consegna degli eventi al server (spenta di default)",
+            "de": "die Zustellung von Ereignissen an den Server (standardmäßig aus)",
+            "zh": "向服务器投递事件（默认关闭）",
+            "ja": "サーバーへのイベント配信（既定でオフ）",
+            "pt": "a entrega de eventos ao servidor (desligada por omissão)"
           }
         },
         {
