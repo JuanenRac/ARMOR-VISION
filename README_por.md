@@ -59,7 +59,7 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 | Testes | 🟢 | Passam 382 testes (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nada funcionou numa câmara nem no Jetson Orin NX. |
 | Interface | 🟡 | As rotas ou mensagens que oferece estão documentadas e testadas com um cliente; ainda nem todos os clientes as usaram |
-| Segurança | 🟡 | O controlo de acesso, os limites de entrada ou as assinaturas estão implementados e testados num computador; ninguém fora do projeto os reviu |
+| Segurança | 🟠 | O controlo de acesso, os limites de entrada ou as assinaturas estão implementados e testados num computador; ninguém fora do projeto os reviu |
 | Integração | 🟠 | As suas mensagens são validadas contra os esquemas partilhados e os vetores de conformidade do ARMOR-COMMON; ainda não funcionou em conjunto com o equipamento real |
 | Documentação | 🟢 | Oito idiomas e o registo de alterações estão atualizados. |
 
