@@ -4,24 +4,21 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.8] - Safer ffmpeg protocols, retried and identified event delivery, pinned detector models and a time-jump guard
+
 - **The structure generator can write a figure read from the code:** `tools/make_structure.py` resolves `{{fact:NAME|LAST}}` in the descriptions of `docs/structure.json` where the documentation tools are next to the repository, and writes LAST (the figure it had when last written) everywhere else, so a repository still builds on its own.
 - **The test counts of the repository structure are read from the code:** the tests, test modules, JSON Schemas and conformance payloads that `docs/structure.json` states are `{{fact:...}}` markers now, so the tree and the picture follow the tests instead of a number typed by hand.
 - **The Security and Updates lights of the Project status table follow the evidence ceiling:** they cannot be above what the Hardware row may show for the evidence of the manifest, and Security is never green; the rows that were higher are now orange in the eight READMEs, and `tools/status_lights.py` is the new shared copy.
-
 - **The file tree of the README is drawn from the structure source:** the text tree in the eight READMEs is generated from `docs/structure.json`, the file that also draws the picture, so the two cannot disagree; it lists the TensorRT detector, the streams and recording, the analytics and schedule, the second phase and the delivery modules.
 - **The Architecture picture rounds its coordinates to two decimals:** the legend positions no longer carry floating-point noise such as 399.9999999999999, so `make_architecture.py --check` gives the same answer on every machine; the shared tool is the one of ARMOR-COMMON.
 - **The shared tools of the manifest and the status lights gain an opt-in strict check of the evidence:** `sync_manifests.py` and `status_lights.py` take `--strict-evidence` (off by default; `ARMOR_STRICT_EVIDENCE=1` switches it on for `armor_ci_validate.py`).
 - **The protocols ffmpeg may open can be set in the file of a camera:** the streams of a camera take an optional `ffmpeg_protocols` (for example `file,rtsp,rtsps,tcp,udp,tls,rtp,crypto`); it limits what ffmpeg can open both for the analysis stream and for the recording. Without it nothing changes.
-
 - **The delivery can send a stable identifier with every event:** `event_id` (true or false, false by default) in the `delivery` settings adds an `event_id` made from a hash of the event itself, so a retry of the same event carries the same one and a server that takes the field records it once. It is off by default because a server that does not know the field refuses the event. Tests.
-
 - **The model of a detector can be pinned by its hash:** an optional `sha256` in the settings of the ONNX detector and of the TensorRT detector (64 hexadecimal digits) makes the detector refuse, before anything opens it, a model or engine file whose SHA-256 differs; an engine is code that runs when it is loaded. Without it nothing changes. Tests for the same file, another file, a missing file and the settings.
-
 - **The protocols ffmpeg may open can be limited:** `ffmpeg_command` and `read_frames` take an optional `protocols` list (names of letters and digits separated by commas, such as `file,rtsp,rtsps,tcp,udp,tls,rtp,crypto`) that is passed to ffmpeg as `-protocol_whitelist` before the input, so a playlist file cannot make it open other addresses. Nothing is added when it is not given, which is what happens today. Tests for the command and for the values that are refused.
-
 - **The delivery of events can try again when the server does not answer:** `retries` (0 to 5, 0 by default, which is what happens today) and `retry_backoff_s` (0 to 30 seconds, 1) in the `delivery` settings. An event is sent again, a little later each time, only when the server could not be reached or answered with a server error; a refusal (4xx) is never sent again. `GET /health` shows `retried` once retries are on. Stopping the delivery now always gets into a full queue (the oldest waiting event goes and is counted). Tests with a double for the post and for the wait.
-
 - **An observation far ahead of the last one of its camera is refused:** `max_forward_jump_s` of the service settings (default 3600 seconds, 0 for no limit) answers `409` when an observation is more than that ahead, and does not move the camera's clock, so one producer with a wrong clock can no longer lock the camera out for the right ones.
+
 ## [0.1.7] - YOLOX detector option, sealed vault of the second phase and guards for personal data
 
 - **The ONNX detector reads a YOLOX-nano model and has a detector file that is off by default:** the settings `output_format` (`rows` as before, or `yolox`, the raw output of the export placed on its grid with the objectness times the best class score and merged here) and `input_range` (`unit` as before, or `byte`), the label list `coco80`, a detector file with `enabled` false (`detector-example`, `check-detector-config` with `--open` to try the model) and `build_detector`, which opens nothing while it is off; a model whose anchors or values per anchor do not match is refused. The weights stay outside the repository. Tested with a doubled model session (no weights and no runtime needed); the real model on a CPU or the Jetson is the pending physical check.
