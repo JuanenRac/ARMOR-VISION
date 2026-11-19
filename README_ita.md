@@ -59,7 +59,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Test | 🟢 | Superano 382 test (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nulla ha girato su una telecamera né sulla Jetson Orin NX. |
 | Interfaccia | 🟡 | Le rotte o i messaggi offerti sono documentati e provati con un client; non tutti i client li hanno ancora usati |
-| Sicurezza | 🟡 | Il controllo degli accessi, i limiti d'ingresso o le firme sono implementati e provati su un computer; nessuno al di fuori del progetto li ha rivisti |
+| Sicurezza | 🟠 | Il controllo degli accessi, i limiti d'ingresso o le firme sono implementati e provati su un computer; nessuno al di fuori del progetto li ha rivisti |
 | Integrazione | 🟠 | I suoi messaggi sono convalidati rispetto agli schemi condivisi e ai vettori di conformità di ARMOR-COMMON; non ha ancora funzionato insieme all'apparecchiatura reale |
 | Documentazione | 🟢 | Otto lingue e il registro delle modifiche sono aggiornati. |
 

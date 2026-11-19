@@ -59,7 +59,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Tests | 🟢 | 382 tests pass (`python -m unittest discover -s tests`). |
 | Hardware | 🔴 | Nothing has run on a camera or on the Jetson Orin NX. |
 | Interface | 🟡 | The routes or messages it offers are documented and tested with a client; not every client has used them yet |
-| Security | 🟡 | Access control, input limits or signatures are implemented and tested on a computer; nobody outside the project has reviewed them |
+| Security | 🟠 | Access control, input limits or signatures are implemented and tested on a computer; nobody outside the project has reviewed them |
 | Integration | 🟠 | Its messages are validated against the shared schemas and conformance vectors of ARMOR-COMMON; it has not run together with the real equipment |
 | Documentation | 🟢 | Eight languages and the changelog are up to date. |
 
