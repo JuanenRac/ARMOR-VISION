@@ -269,27 +269,27 @@
         {
           "name": "test_vision.py",
           "desc": {
-            "en": "42 tests",
-            "es": "42 pruebas",
-            "de": "42 Tests",
-            "fr": "42 tests",
-            "it": "42 test",
-            "ja": "42 件",
-            "zh": "42 个",
-            "pt": "42 testes"
+            "en": "{{fact:tests_in:ARMOR-VISION:test_vision.py|43}} tests",
+            "es": "{{fact:tests_in:ARMOR-VISION:test_vision.py|43}} pruebas",
+            "de": "{{fact:tests_in:ARMOR-VISION:test_vision.py|43}} Tests",
+            "fr": "{{fact:tests_in:ARMOR-VISION:test_vision.py|43}} tests",
+            "it": "{{fact:tests_in:ARMOR-VISION:test_vision.py|43}} test",
+            "ja": "{{fact:tests_in:ARMOR-VISION:test_vision.py|43}} 件",
+            "zh": "{{fact:tests_in:ARMOR-VISION:test_vision.py|43}} 个",
+            "pt": "{{fact:tests_in:ARMOR-VISION:test_vision.py|43}} testes"
           }
         },
         {
           "name": "test_vision_edges.py",
           "desc": {
-            "en": "19 tests",
-            "es": "19 pruebas",
-            "de": "19 Tests",
-            "fr": "19 tests",
-            "it": "19 test",
-            "ja": "19 件",
-            "zh": "19 个",
-            "pt": "19 testes"
+            "en": "{{fact:tests_in:ARMOR-VISION:test_vision_edges.py|28}} tests",
+            "es": "{{fact:tests_in:ARMOR-VISION:test_vision_edges.py|28}} pruebas",
+            "de": "{{fact:tests_in:ARMOR-VISION:test_vision_edges.py|28}} Tests",
+            "fr": "{{fact:tests_in:ARMOR-VISION:test_vision_edges.py|28}} tests",
+            "it": "{{fact:tests_in:ARMOR-VISION:test_vision_edges.py|28}} test",
+            "ja": "{{fact:tests_in:ARMOR-VISION:test_vision_edges.py|28}} 件",
+            "zh": "{{fact:tests_in:ARMOR-VISION:test_vision_edges.py|28}} 个",
+            "pt": "{{fact:tests_in:ARMOR-VISION:test_vision_edges.py|28}} testes"
           }
         },
         {
