@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The shared project tool is the current one:** the copy follows the shared repository, which now knows the new solar panel node.
+
 - **The copy of the shared validator is current:** `tools/armor_ci_validate.py` now also checks with `node --check` that the scripts served to a browser parse, in a repository that has them under `panel/` or `public/`.
 ## [0.1.8] - Safer ffmpeg protocols, retried and identified event delivery, pinned detector models and a time-jump guard
 
