@@ -11,6 +11,7 @@ event is counted and, unless `retries` says otherwise (0 by default), not sent a
 from __future__ import annotations
 
 import hashlib
+import http.client
 import ipaddress
 import json
 import os
@@ -169,7 +170,7 @@ def http_post(url: str, body: bytes, token: str, timeout: int) -> int:
         code = int(exc.code)
         exc.close()
         return code
-    except (urllib.error.URLError, OSError, ValueError):
+    except (urllib.error.URLError, OSError, ValueError, http.client.HTTPException):
         return 0
 
 
