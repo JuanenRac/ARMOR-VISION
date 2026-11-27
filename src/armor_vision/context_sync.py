@@ -49,7 +49,7 @@ def read_token(file: str | None, env_name: str, environ: dict[str, str] | None =
     token = from_env
     if file is not None:
         try:
-            token = Path(file).read_text(encoding="utf-8").strip()
+            token = Path(file).read_text(encoding="utf-8-sig").strip()
         except (OSError, UnicodeDecodeError) as exc:
             raise SyncError(f"cannot read the token file {file}: {type(exc).__name__}") from None
     if not token:

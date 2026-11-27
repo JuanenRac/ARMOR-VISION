@@ -144,7 +144,7 @@ def load_delivery_token(settings: DeliverySettings, environ: dict[str, str] | No
     token = from_env
     if settings.token_file is not None:
         try:
-            token = Path(settings.token_file).read_text(encoding="utf-8").strip()
+            token = Path(settings.token_file).read_text(encoding="utf-8-sig").strip()
         except (OSError, UnicodeDecodeError) as exc:
             raise DeliveryConfigError(f"cannot read the delivery token file: {type(exc).__name__}") from None
     if not token:

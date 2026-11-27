@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A token file saved with a byte-order mark is read:** some editors write one at the start of a UTF-8 file, and the service, the delivery and the context sync refused the token because of it. Only that leading mark is dropped; every other check of the token is as before.
 - **A cut or garbled answer of the server or of the service is a normal delivery or synchronisation failure** instead of an unhandled error.
 - **An audit log whose last line was cut no longer blocks every later record:** the chain goes on from the last line that can be read, on a line of its own, and `verify` still names the damaged one.
 - **The shared project tool is the current one:** the copy follows the shared repository, which now knows the new solar panel node.
