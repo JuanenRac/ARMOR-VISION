@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The shared tools read the output of processes as UTF-8:** `tools/status_lights.py`, `tools/sync_manifests.py` and `tools/universal_readme_check.py` are the current copies; on Windows a character outside the code page no longer breaks a check.
+
 ## [0.1.9] - Token files with a byte-order mark, cut answers handled and an audit log that survives a cut line
 
 - **A token file saved with a byte-order mark is read:** some editors write one at the start of a UTF-8 file, and the service, the delivery and the context sync refused the token because of it. Only that leading mark is dropped; every other check of the token is as before.
