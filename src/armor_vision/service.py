@@ -100,7 +100,7 @@ def load_token(settings: "ServiceSettings", environ: dict[str, str] | None = Non
     token = from_env
     if settings.token_file is not None:
         try:
-            token = Path(settings.token_file).read_text(encoding="utf-8").strip()
+            token = Path(settings.token_file).read_text(encoding="utf-8-sig").strip()
         except (OSError, UnicodeDecodeError) as exc:
             raise ServiceConfigError(f"cannot read the token file {settings.token_file}: {type(exc).__name__}") from None
     if not token:

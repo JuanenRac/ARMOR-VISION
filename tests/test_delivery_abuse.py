@@ -9,7 +9,9 @@ import threading
 import unittest
 from pathlib import Path
 
+from armor_vision.context_sync import read_token
 from armor_vision.delivery import DELIVERY_EXAMPLE, DELIVERY_PATH, KINDS, DeliveryConfigError, EventDeliverer, http_post, load_delivery_token, parse_delivery_settings
+from armor_vision.service import load_token, parse_service_settings
 
 TOKEN = "k" * 32
 
@@ -67,10 +69,18 @@ class TokenAbuseTest(unittest.TestCase):
         self.assertNotIn("a" * 30, message)
 
     def test_odd_bytes_in_the_token_file_are_refused_without_saying_what(self):
-        for blob in (b"\xff\xfe" + b"a" * 40, b"\xef\xbb\xbf" + b"b" * 40, b"c" * 40 + b"\x00", ("d" * 20 + "é" + "d" * 20).encode("utf-8"), b"e" * 23, b"f" * 201, b"   ", b""):
+        for blob in (b"\xff\xfe" + b"a" * 40, b"\xef\xbb\xbf" * 2 + b"b" * 40, b"\xef\xbb\xbf" + b"b" * 23, b"\xef\xbb\xbf", b"c" * 40 + b"\x00", ("d" * 20 + "é" + "d" * 20).encode("utf-8"), b"e" * 23, b"f" * 201, b"   ", b""):
             message = self.raises(blob)
             self.assertNotIn("ccccc", message)
             self.assertNotIn("fffff", message)
+        # one leading byte-order mark, written by some editors, is not part of the token (in the three places that read one)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "token"
+            path.write_bytes(b"\xef\xbb\xbf" + TOKEN.encode("ascii") + b"\r\n")
+            parsed, _ = parse_delivery_settings({"url": "http://127.0.0.1", "token_file": str(path)})
+            self.assertEqual(load_delivery_token(parsed, {}), TOKEN)
+            self.assertEqual(load_token(parse_service_settings({"token_file": str(path)})[0], {}), TOKEN)  # type: ignore[arg-type]
+            self.assertEqual(read_token(str(path), "ARMOR_VISION_AI_TOKEN", {}), TOKEN)
 
     def test_a_token_with_a_space_inside_is_refused(self):
         self.raises("g" * 20 + " " + "g" * 20)
