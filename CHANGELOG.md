@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A cut or garbled answer of the server or of the service is a normal delivery or synchronisation failure** instead of an unhandled error.
+- **An audit log whose last line was cut no longer blocks every later record:** the chain goes on from the last line that can be read, on a line of its own, and `verify` still names the damaged one.
 - **The shared project tool is the current one:** the copy follows the shared repository, which now knows the new solar panel node.
 
 - **The copy of the shared validator is current:** `tools/armor_ci_validate.py` now also checks with `node --check` that the scripts served to a browser parse, in a repository that has them under `panel/` or `public/`.

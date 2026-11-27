@@ -7,6 +7,7 @@ and hands it to the service (with the token of the service). It never follows a 
 """
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import re
@@ -89,9 +90,11 @@ def _call(opener: urllib.request.OpenerDirector, request: urllib.request.Request
     except urllib.error.HTTPError as error:
         try:
             body, status = error.read(settings.max_bytes + 1), error.code
+        except (OSError, http.client.HTTPException):
+            body, status = b"", error.code   # a cut body: the status still says what happened
         finally:
             error.close()
-    except (urllib.error.URLError, OSError, ValueError) as exc:
+    except (urllib.error.URLError, OSError, ValueError, http.client.HTTPException) as exc:
         reason = getattr(exc, "reason", exc)
         raise SyncError(f"cannot reach {request.host}: {type(reason).__name__}") from None
     if len(body) > settings.max_bytes:

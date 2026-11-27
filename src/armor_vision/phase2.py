@@ -233,14 +233,18 @@ class AuditLog:
         self._clock = clock
         self._salt = salt
         self.lines: list[str] = []
+        self._unterminated = False   # the last line of the file was cut (a power loss): the next one must not be glued to it
         if self._path is not None and self._path.exists():
-            self.lines = [ln for ln in self._path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+            # a byte that is not UTF-8 is replaced and `verify` names the line: a damaged line must not stop the pipeline from starting
+            text = self._path.read_text(encoding="utf-8", errors="replace")
+            self.lines = [ln for ln in text.split("\n") if ln.strip()]
+            self._unterminated = bool(text) and not text.endswith("\n")
 
     def subject_digest(self, subject: str) -> str:
         return hmac.new(self._salt or b"armor-vision-audit", subject.encode(), "sha256").hexdigest()[:16]
 
     def record(self, actor: Actor, action: str, feature: str, subject: str = "", result: str = "ok") -> dict[str, Any]:
-        previous = json.loads(self.lines[-1])["hash"] if self.lines else "0" * 64
+        previous = self._last_hash()
         entry: dict[str, Any] = {"seq": len(self.lines) + 1, "time": round(self._clock(), 3), "actor": actor.name, "role": actor.role, "action": action, "feature": feature,
                                  "subject": self.subject_digest(subject) if subject else "", "result": result, "previous": previous}
         entry["hash"] = hashlib.sha256(json.dumps(entry, sort_keys=True).encode()).hexdigest()
@@ -249,11 +253,32 @@ class AuditLog:
         if self._path is not None:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             with self._path.open("a", encoding="utf-8") as handle:
-                handle.write(line + "\n")
+                handle.write(("\n" if self._unterminated else "") + line + "\n")
+            self._unterminated = False
         return entry
 
+    def _last_hash(self) -> str:
+        """The hash of the newest line that can be read; the chain goes on from it and `verify` still names the damaged line."""
+        for line in reversed(self.lines):
+            try:
+                value = json.loads(line)["hash"]
+            except (ValueError, KeyError, TypeError):
+                continue
+            if isinstance(value, str):
+                return value
+        return "0" * 64
+
     def entries(self) -> list[dict[str, Any]]:
-        return [json.loads(ln) for ln in self.lines]
+        """The lines that can be read."""
+        found: list[dict[str, Any]] = []
+        for line in self.lines:
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(entry, dict):
+                found.append(entry)
+        return found
 
     def verify(self) -> int | None:
         """None when the chain is whole, otherwise the number of the first line that does not follow."""
