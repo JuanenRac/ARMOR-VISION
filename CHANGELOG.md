@@ -4,12 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.9] - Token files with a byte-order mark, cut answers handled and an audit log that survives a cut line
+
 - **A token file saved with a byte-order mark is read:** some editors write one at the start of a UTF-8 file, and the service, the delivery and the context sync refused the token because of it. Only that leading mark is dropped; every other check of the token is as before.
 - **A cut or garbled answer of the server or of the service is a normal delivery or synchronisation failure** instead of an unhandled error.
 - **An audit log whose last line was cut no longer blocks every later record:** the chain goes on from the last line that can be read, on a line of its own, and `verify` still names the damaged one.
 - **The shared project tool is the current one:** the copy follows the shared repository, which now knows the new solar panel node.
-
 - **The copy of the shared validator is current:** `tools/armor_ci_validate.py` now also checks with `node --check` that the scripts served to a browser parse, in a repository that has them under `panel/` or `public/`.
+
 ## [0.1.8] - Safer ffmpeg protocols, retried and identified event delivery, pinned detector models and a time-jump guard
 
 - **The structure generator can write a figure read from the code:** `tools/make_structure.py` resolves `{{fact:NAME|LAST}}` in the descriptions of `docs/structure.json` where the documentation tools are next to the repository, and writes LAST (the figure it had when last written) everywhere else, so a repository still builds on its own.
